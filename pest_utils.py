@@ -7,7 +7,7 @@ import datetime
 import subprocess
 
 ############################################################
-#        Utils for pest preprocessing #test
+#        Utils for pest preprocessing for Marthe
 ############################################################
 
 def write_obs_data(obs_points, input_dir, output_dir, dates_out, date_string_format = '%Y', lin_interp=False):
