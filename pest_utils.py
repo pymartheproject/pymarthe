@@ -48,7 +48,7 @@ def write_obs_data(obs_points, input_dir, output_dir, dates_out, date_string_for
 	obs_data_file = open(output_dir + 'pst_obs_list.txt', 'w')
 
     except : 
-	print('Write error in ' + output_dir )
+	print(('Write error in ' + output_dir ))
 	return
 
     # init observations and observation groups counters
@@ -69,9 +69,9 @@ def write_obs_data(obs_points, input_dir, output_dir, dates_out, date_string_for
 		delimiter='	',skip_header=True,unpack=True,
 		converters={ 0: mdates.strpdate2num(date_string_format)}
 		)
-	    print('Successfully read ' + obs_point + ' observation file.')
+	    print(('Successfully read ' + obs_point + ' observation file.'))
 	except : 
-	    print('Cannot find ' + obs_point + ' observation file.')
+	    print(('Cannot find ' + obs_point + ' observation file.'))
 	    continue
 
 	obs_point_datenums = obs_point_array[0,:]
@@ -93,7 +93,7 @@ def write_obs_data(obs_points, input_dir, output_dir, dates_out, date_string_for
 
 	# open instruction and observation files for obs_point
 	ins_file = open(output_dir + obs_point + '.ins', 'w')
-	print('Writing in ' + output_dir + obs_point + '.ins')
+	print(('Writing in ' + output_dir + obs_point + '.ins'))
 	# write instruction file header 
 	ins_file.write('pif #'+ '\n')
 
@@ -155,9 +155,9 @@ def write_tpl_files(dic_params, output_dir, dic_params_init = None):
 	file_pst_io_par = open(pst_io_par_file_path, 'w')
 
     except :
-	print('Write error in ' + output_dir + '.')
+	print(('Write error in ' + output_dir + '.'))
 	
-    for param_grp in dic_params.keys():
+    for param_grp in list(dic_params.keys()):
 
 	# write parameter group and parameter I/O files data 
 	file_pst_par_grp.write(param_grp + '    relative 0.01  0.0  switch  2.0 parabolic\n')
