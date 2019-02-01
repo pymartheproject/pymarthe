@@ -102,7 +102,7 @@ def read_grid_file(path_file):
     return (x,y,grid_layer,delc,delr)
     
 
-def write_grid_file(path_file,grid_layer,x,y,delc,delr):
+def write_grid_file(path_file,grid_layer):
     
     '''
     Description
@@ -113,26 +113,39 @@ def write_grid_file(path_file,grid_layer,x,y,delc,delr):
     Parameters
     ----------
     path_file : file path of the wrritting file
-    grid : data of a layer structured in rectangular grid
-    x (list of lists) : Each element is a list with x coordinates of a layer 
-    y (list of lists) : Each element is a list with y coordinates of a layer 
     grid_layer(list)  : Each element is a numpy.ndarray with parameter values  
-    delc : widths of the columns
-    delr : heights of the lines
 
     Example
     -----------
-    write_grid_file(path_file,grid_layer,x,y,delc,delr)
+    write_grid_file(path_file,grid_layer)
         
     '''
     grid_pp = open(path_file , "a")
+
     ncol = np.arange(0,149,1)
     nrow = np.arange(1,129,1)
-    x[0].insert(0,0)
-    x[0].insert(0,0)
-    #del delc[0:1]
-    delc = list(np.int_(delc))
-    delr = list(np.int_(delr)) 
+
+    #Create a list with x coordinates
+    x = [ 285.5]
+    for i in range(147):
+        x_val = x[i] +2.0
+        x.append(x_val)
+    x.insert(0,0)
+    x.insert(0,0)
+
+    #Create a list with y coordinates
+    y = [ 411.0 ]
+    for i in range(127):
+        y_val = y[i] - 2.0
+        y.append(y_val)
+
+      
+    #create a list of widths of the columns
+    delc = [0,0] + [2] *148
+
+    #create a list of heights of the lines
+    delr = [2]*148
+
     i = 0
     
     for grid in grid_layer:
@@ -162,9 +175,9 @@ def write_grid_file(path_file,grid_layer,x,y,delc,delr):
         grid_pp.write('0 \t')
         [grid_pp.write(str(i)+'\t') for i in ncol]
         grid_pp.write('\n')
-        [grid_pp.write(str(i)+'\t') for i in x[0]]
+        [grid_pp.write(str(i)+'\t') for i in x]
         grid_pp.write('\n')
-        for row, cols, perm_line, col_size in zip(nrow, y[0],grid, delr) :
+        for row, cols, perm_line, col_size in zip(nrow, y,grid, delr) :
             grid_pp.write(str(row)+'\t'+str(cols)+'\t')
             [grid_pp.write(str(i)+'\t') for i in perm_line]
             grid_pp.write(str(col_size) +'\t \n')
