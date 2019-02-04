@@ -5,6 +5,8 @@ import numpy as np
 from matplotlib import dates as mdates
 import datetime
 import subprocess
+from matplotlib.dates import bytespdate2num
+import matplotlib.dates as mdates
 
 ############################################################
 #        Utils for pest preprocessing for Marthe
@@ -62,21 +64,21 @@ def write_obs_data(obs_points, input_dir, output_dir, dates_out, date_string_for
     for obs_point in obs_points:
 
         # read observed data for obs_point
-        obs_point_file_path = input_dir + obs_point + '.dat'
+        obs_point_file_path = input_dir + obs_point + '.txt'
 
         try :
             obs_point_array = np.genfromtxt(obs_point_file_path,
-                delimiter='     ',skip_header=True,unpack=True,
-                converters={ 0: mdates.strpdate2num(date_string_format)}
+                delimiter= '\t',skip_header=True,unpack=True,
+                converters={ 0: mdates.bytespdate2num('%Y')}
                 )
             print(('Successfully read ' + obs_point + ' observation file.'))
         except :
             print(('Cannot find ' + obs_point + ' observation file.'))
             continue
 
-        obs_point_datenums = obs_point_array[0,:]
-        obs_point_values = obs_point_array[1,:]
-        obs_point_weight = obs_point_array[2,:]
+        obs_point_datenums = obs_point_array[:,0]
+        obs_point_values = obs_point_array[:,1]
+        obs_point_weight = obs_point_array[:,2]
 
         # Interpolate / subset observed values
         # Interpolate missing values
