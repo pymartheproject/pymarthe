@@ -2,11 +2,12 @@
 import numpy as np
 from itertools import islice
 import pandas as pd
+from pathlib import Path
 ############################################################
 #        Functions for reading and writing grid files
 ############################################################
 
-def read_grid_file(path_file):
+def read_grid_file(path_file,nrow,ncol):
     
     '''
     Description
@@ -16,8 +17,9 @@ def read_grid_file(path_file):
    
     Parameters
     ----------
-    path_file : file path of the the file to read
-
+    path_file : Directory path with parameter files
+    nrow : Number of grid rows
+    ncol : number of grid columns
     Return
     ------
     x (list of lists) : Each element is a list with x coordinates of a layer 
@@ -28,13 +30,12 @@ def read_grid_file(path_file):
 
     Example
     -----------
-    x,y,grid,delc,delr = read_grid_file(file_path)
+    x,y,grid,delc,delr = read_grid_file(file_path,128,148)
     
     '''
     grid_layer = []
     x = []
     y = []   
-
     #open the file
     data = open(path_file,"r")
 
@@ -87,7 +88,7 @@ def read_grid_file(path_file):
                         for line in islice(text_file, begin,  end ):
                             table_split.append(line.split())
                     constant_value = (float(table_split[0][0].split("=")[1]))
-                    param_tab = np.full((148,128), constant_value)
+                    param_tab = np.full((ncol,nrow), constant_value)
                     
                     # select yrows, xcols, delr, delc, param in param_grid
                     x_val = table_split[3]
@@ -102,7 +103,7 @@ def read_grid_file(path_file):
     return (x,y,grid_layer,delc,delr)
     
 
-def write_grid_file(path_file,grid_layer):
+def write_grid_file(path_file,grid_layer,x,y,m_size):
     
     '''
     Description
@@ -112,41 +113,35 @@ def write_grid_file(path_file,grid_layer):
    
     Parameters
     ----------
-    path_file : file path of the wrritting file
+    path_file : directory path to write the file. The extension file must match the name of the parameter
     grid_layer(list)  : Each element is a numpy.ndarray with parameter values  
+    x : list with x coordinates of a layer. This list must start with two zero [0,0,....]
+    y : list with y coordinates of a layer
+    m_size (float or int) mesh size
 
     Example
     -----------
-    write_grid_file(path_file,grid_layer)
+    write_grid_file(path_file,grid_layer,x,y)
         
     '''
     grid_pp = open(path_file , "a")
 
-    ncol = np.arange(0,149,1)
-    nrow = np.arange(1,129,1)
+    dim   =  grid_layer[0].shape
+    nrow  =  dim[1]
+    ncol  =  dim[0]
 
-    #Create a list with x coordinates
-    x = [ 285.5]
-    for i in range(147):
-        x_val = x[i] +2.0
-        x.append(x_val)
-    x.insert(0,0)
-    x.insert(0,0)
-
-    #Create a list with y coordinates
-    y = [ 411.0 ]
-    for i in range(127):
-        y_val = y[i] - 2.0
-        y.append(y_val)
-
-      
+    nprow =  np.arange(0,nrow+1,1)
+    npcol =  np.arange(0,ncol+1,1)
+     
     #create a list of widths of the columns
-    delc = [0,0] + [2] *148
-
+    delc = [0,0] + [int(m_size)]*ncol
     #create a list of heights of the lines
-    delr = [2]*148
+    delr = [int(m_size)]*nrow
 
     i = 0
+    parse_path = Path(path_file).parts
+    file_name = parse_path[-1]
+    param = file_name.split('.')[-1]
     
     for grid in grid_layer:
         i = i + 1
@@ -154,7 +149,7 @@ def write_grid_file(path_file,grid_layer):
         
         perm = zip(*grid)
         grid_pp.write('Marthe_Grid Version=9.0 \n')
-        grid_pp.write('Title=Travail                                                        '+path_file+'            '+str(i)+'\n')
+        grid_pp.write('Title=Travail                                                        '+param+'            '+str(i)+'\n')
         grid_pp.write('[Infos]\n')
         grid_pp.write('Field=\n')
         grid_pp.write('Type=\n')
@@ -167,17 +162,17 @@ def write_grid_file(path_file,grid_layer):
         grid_pp.write('Nest_grid=0\n')
         grid_pp.write('Max_NestG=0\n')
         grid_pp.write('[Structure]\n')
-        grid_pp.write('X_Left_Corner=284.5\n')
-        grid_pp.write('Y_Lower_Corner=156\n')
-        grid_pp.write('Ncolumn=148\n')
-        grid_pp.write('Nrows=128\n')
+        grid_pp.write('X_Left_Corner='+str(xmin)+'\n')
+        grid_pp.write('Y_Lower_Corner='+str(ymin)+'\n')
+        grid_pp.write('Ncolumn='+str(ncol)+'\n')
+        grid_pp.write('Nrows='+str(nrow)+'\n')
         grid_pp.write('[Data]\n')
         grid_pp.write('0 \t')
-        [grid_pp.write(str(i)+'\t') for i in ncol]
+        [grid_pp.write(str(i)+'\t') for i in npcol]
         grid_pp.write('\n')
         [grid_pp.write(str(i)+'\t') for i in x]
         grid_pp.write('\n')
-        for row, cols, perm_line, col_size in zip(nrow, y,grid, delr) :
+        for row, cols, perm_line, col_size in zip(nprow, y,grid, delr) :
             grid_pp.write(str(row)+'\t'+str(cols)+'\t')
             [grid_pp.write(str(i)+'\t') for i in perm_line]
             grid_pp.write(str(col_size) +'\t \n')
@@ -186,3 +181,47 @@ def write_grid_file(path_file,grid_layer):
         grid_pp.write('[End_Grid]\n')
 
     return ()
+
+
+
+
+def read_file_sim (path_file,path_out ="."):
+
+
+    '''
+    Description
+    -----------
+
+    This function reads file of simulated data (historiq.prn)
+    and writes files for every points. Each file contains two columns : date and its simulation value
+   
+    Parameters
+    ----------
+    path_file : Directory path with simulated data
+    path_out  : Directory path to write data
+    
+
+    Return
+    ------
+    id_points : List of boreholes names (old code bss)
+    df_sim : Dataframe containing the same columns than in the reading file
+
+    
+    Example
+    -----------
+    read_file_sim (path_file,'./output_data/')
+        
+    '''
+    df_sim = pd.read_csv(path_file, sep='\t', skiprows=3)  # Dataframe
+    id_points = [x.rstrip('.1') for x in df_sim.columns][1:] 
+    id_points = [x.rstrip(' ') for x in id_points]
+    df_sim.columns = ['DATE'] + id_points  # Indicates the name of the columns in the DataFrame
+    df_sim.DATE = pd.to_datetime(df_sim.DATE,  format="%d/%m/%Y")
+    df_sim = df_sim.set_index(df_sim.DATE)
+
+    #write sim for pest
+    n = len(id_points) 
+    for i in range(1,n) :
+        df_sim.to_csv(path_out+str(id_points[i])+ '.txt', columns = [id_points[i]], sep='\t', index=True, header=False)
+
+    return  id_points, df_sim
