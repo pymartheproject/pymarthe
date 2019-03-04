@@ -8,7 +8,7 @@ from pathlib import Path
 ############################################################
 
 def read_grid_file(path_file,nrow,ncol):
-    
+
     '''
     Description
     -----------
@@ -182,10 +182,21 @@ def write_grid_file(path_file,grid_layer,x,y,m_size):
 
     return ()
 
+def read_obs(path_file):
+    
+    df_obs    = pd.read_csv(path_file, sep='\t', skiprows=1, decimal =",",low_memory=False ) 
+    id_points = list(df_obs.columns[1:])
+    df_obs.columns = ['DATE'] + id_points 
+    df_obs.DATE = pd.to_datetime(df_obs.DATE,  format="%d/%m/%Y")
+    df_obs = df_obs.set_index(df_obs.DATE)
+    df_obs = df_obs.iloc[0:-2,:]
+
+    return id_points,df_obs
 
 
 
-def read_file_sim (path_file,path_out ="."):
+
+def read_file_sim (path_file):
 
 
     '''
@@ -219,9 +230,74 @@ def read_file_sim (path_file,path_out ="."):
     df_sim.DATE = pd.to_datetime(df_sim.DATE,  format="%d/%m/%Y")
     df_sim = df_sim.set_index(df_sim.DATE)
 
+    return  id_points, df_sim
+
+
+def read_write_file_sim (path_file,path_out ="./"):
+
+
+    '''
+    Description
+    -----------
+
+    This function writes dimulation files for every points. Each file contains two columns : date and its simulation value
+   
+    Parameters
+    ----------
+    path_file : Directory path with simulated data
+    path_out  : Directory path to write data
+    
+
+    Return
+    ------
+        
+    Example
+    -----------
+    read_write_file_sim (path_file,'./output_data/')
+        
+    '''
+    df_sim = pd.read_csv(path_file, sep='\t', skiprows=3)  # Dataframe
+    id_points = [x.rstrip('.1') for x in df_sim.columns][1:] 
+    id_points = [x.rstrip(' ') for x in id_points]
+    df_sim.columns = ['DATE'] + id_points  # Indicates the name of the columns in the DataFrame
+    df_sim.DATE = pd.to_datetime(df_sim.DATE,  format="%d/%m/%Y")
+    df_sim = df_sim.set_index(df_sim.DATE)
+
     #write sim for pest
     n = len(id_points) 
     for i in range(1,n) :
         df_sim.to_csv(path_out+str(id_points[i])+ '.txt', columns = [id_points[i]], sep='\t', index=True, header=False)
 
     return  id_points, df_sim
+
+
+
+def read_histo_file (path_file):
+
+    '''
+    Description
+    -----------
+
+    This function reads hmona.histo)
+   
+    Parameters
+    ----------
+    path_file : Directory path with observation file
+    
+
+    Return
+    ------
+    df_histo : Dataframe containing the same columns than in the reading file
+
+        
+    ''' 
+    df_histo = pd.read_fwf('./txt_file/mona.histo',skiprows = 1,widths= [30,7,2,7,2,7,1,12,30])
+    id_columns =  ['TITRE','Xcoord', 'Y=','Ycoord','P=','Couche',';','ID_FORAGE','Commune']
+    df_histo.columns = id_columns
+    df_histo  = df_histo.iloc[0:-1,:]
+    df_histo  = df_histo.set_index(df_histo.ID_FORAGE)
+    return df_histo
+
+
+
+
