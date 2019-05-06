@@ -9,8 +9,8 @@ from math import sqrt
 import fileinput
 import sys
 sys.path.append('C:/Documents these/Dev/adeqwat/')
-import pest_utils 
-import marthe_utils
+from utils import pest_utils 
+from utils import marthe_utils
 
 #Read mona.histo 
 df_histo = marthe_utils.read_histo_file('./txt_file/mona.histo')
