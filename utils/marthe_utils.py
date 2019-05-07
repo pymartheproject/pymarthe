@@ -7,7 +7,7 @@ from pathlib import Path
 #        Functions for reading and writing grid files
 ############################################################
 
-def read_grid_file(path_file,nrow,ncol):
+def read_grid_file(path_file):
 
     '''
     Description
@@ -18,19 +18,16 @@ def read_grid_file(path_file,nrow,ncol):
     Parameters
     ----------
     path_file : Directory path with parameter files
-    nrow : Number of grid rows
-    ncol : number of grid columns
+ 
     Return
     ------
     x (list of lists) : Each element is a list with x coordinates of a layer 
     y (list of lists) : Each element is a list with y coordinates of a layer 
     grid_layer(list)  : Each element is a numpy.ndarray with parameter values 
-    delc : widths of the columns
-    delr : heights of the lines 
 
     Example
     -----------
-    x,y,grid,delc,delr = read_grid_file(file_path,128,148)
+    x,y,grid = read_grid_file(file_path)
     
     '''
     grid_layer = []
@@ -53,7 +50,7 @@ def read_grid_file(path_file,nrow,ncol):
             grid  = True 
         if lookup_begin2 in line:
             begin = num 
-            grid  = False
+            grid  = False # for uniform data
         #search for line number with end mark
         if lookup_end in line:
             if num  > begin: 
@@ -79,7 +76,6 @@ def read_grid_file(path_file,nrow,ncol):
                     param_liste  = [c[0:-1] for c in  zip(*param_grid[1:])]
                     del param_liste[0:2]
                     param_tab = pd.DataFrame(param_liste).values
-                    
                 if grid == False :
                     table_split = []
                     param_grid  = []
@@ -88,19 +84,18 @@ def read_grid_file(path_file,nrow,ncol):
                         for line in islice(text_file, begin,  end ):
                             table_split.append(line.split())
                     constant_value = (float(table_split[0][0].split("=")[1]))
-                    param_tab = np.full((ncol,nrow), constant_value)
-                    
+                    #param_tab = np.full((ncol,nrow), constant_value)
                     # select yrows, xcols, delr, delc, param in param_grid
                     x_val = table_split[3]
                     x_val = list(np.array(x_val).astype(np.float))
                     y_val = table_split[7]
                     y_val = list(np.array(y_val).astype(np.float))
-
+                    param_tab = np.full((len(y_val),len(x_val)), constant_value)
                 grid_layer.append(param_tab)
                 x.append(x_val)
                 y.append(y_val)
 
-    return (x,y,grid_layer,delc,delr)
+    return (x,y,grid_layer)
     
 
 def write_grid_file(path_file,grid_layer,x,y,m_size):
