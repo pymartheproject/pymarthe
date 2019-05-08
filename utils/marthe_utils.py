@@ -13,7 +13,7 @@ def read_grid_file(path_file):
     Description
     -----------
 
-    This function reads the paramater files that are in grid form
+    This function reads Marthe grid files 
    
     Parameters
     ----------
@@ -21,84 +21,87 @@ def read_grid_file(path_file):
  
     Return
     ------
-    x (list of lists) : Each element is a list with x coordinates of a layer 
-    y (list of lists) : Each element is a list with y coordinates of a layer 
-    grid_layer(list)  : Each element is a numpy.ndarray with parameter values 
+    A tuple containing following elements. 
+    x_list (list of lists) : Each element is a list with x coordinates of a layer 
+    y_list (list of lists) : Each element is a list with y coordinates of a layer 
+    grid_list (list)  : Each element is 2D a numpy.ndarray with grid data 
 
     Example
     -----------
-    x,y,grid = read_grid_file(file_path)
+    x, y, grid_list = read_grid_file(file_path)
     
     '''
-    grid_layer = []
-    x = []
-    y = []   
-    #open the file
-    data = open(path_file,"r")
+    x_list = []
+    y_list = []   
+    grid_list = []
 
-    #begin of each grid
+    # -- set lookup strings
+    # begin of each grid
     lookup_begin  = '[Data]' 
-    lookup_begin2 = '[Constant_Data]' 
-
-    #end of each grid
+    lookup_begin_constant = '[Constant_Data]' 
+    # end of each grid
     lookup_end = '[End_Grid]'
 
-    for num, line in enumerate(data, 1):
+    # -- open the file  
+    data = open(path_file,"r")
+
+    # --iterate over lines
+    for num, line in enumerate(data, 1): #NOTE quel intérêt de commencer à 1 ? enumerate(data) mieux non ? 
         #search for line number with begin mark
         if lookup_begin in line:
             begin = num + 1
-            grid  = True 
-        if lookup_begin2 in line:
+            constant = False 
+        if lookup_begin_constant in line:
             begin = num 
-            grid  = False # for uniform data
+            constant  = True # for uniform data
         #search for line number with end mark
-        if lookup_end in line:
+        if lookup_end in line :
             if num  > begin: 
                 end = num -1
-
-                if grid == True :
-                    table_split = []
-                    param_grid  = []
-                    # select table
+                # case with different values 
+                if constant == False :
+                    full_grid  = []
+                    # extract full grid from file
                     with open(path_file,"r") as text_file:
                         for line in islice(text_file, begin,  end ):
-                            table_split.append(line.split())
-                    for l in table_split :
-                        param_grid.append([float(v) for v in l])
-                    # select yrows, xcols, delr, delc, param in param_grid
-                    x_val = param_grid[0]
-                    del x_val[0:2]
-                    y_val = list(zip(*param_grid))[1]
-                    y_val = y_val[1:-1]
-                    delr  = param_grid[-1][2:]
-                    delc  = (param_grid)[2:]
+                             full_grid.append([float(v) for v in line.split()])
+                    # select yrows, xcols, delr, delc, param in full_grid
+                    x_vals = full_grid[0]
+                    del x_vals[0:2] # remove first two zeros
+                    # NOTE Il me semble que la ligne ci-dessous pourrait être simplifiée si full_grid devenait un tableau numpy
+                    y_vals = list(zip(*full_grid))[1] # NOTE expliquer la syntaxe, pourquoi ce "*" avant full_grid ? 
+                    y_vals = y_vals[1:-1]
+                    # NOTE je ne suis pas sûr de bien comprendre à quoi correspond delr et delc. Référence à MODFLOW ? 
+                    delr  = full_grid[-1][2:]
+                    delc  = (full_grid)[2:]
                     delc  = [c[-1] for c in  zip(*delc)]
-                    param_liste  = [c[0:-1] for c in  zip(*param_grid[1:])]
-                    del param_liste[0:2]
-                    param_tab = pd.DataFrame(param_liste).values
-                if grid == False :
+                    param_list  = [c[0:-1] for c in  zip(*full_grid[1:])]
+                    del param_list[0:2]
+                    grid_data = np.array(param_list)
+                # case with constant (homogeneous) values
+                if constant == True :
                     table_split = []
-                    param_grid  = []
+                    full_grid  = []
                     # select table
                     with open(path_file,"r") as text_file:
                         for line in islice(text_file, begin,  end ):
                             table_split.append(line.split())
                     constant_value = (float(table_split[0][0].split("=")[1]))
-                    #param_tab = np.full((ncol,nrow), constant_value)
-                    # select yrows, xcols, delr, delc, param in param_grid
-                    x_val = table_split[3]
-                    x_val = list(np.array(x_val).astype(np.float))
-                    y_val = table_split[7]
-                    y_val = list(np.array(y_val).astype(np.float))
-                    param_tab = np.full((len(y_val),len(x_val)), constant_value)
-                grid_layer.append(param_tab)
-                x.append(x_val)
-                y.append(y_val)
+                    #grid_data = np.full((ncol,nrow), constant_value)
+                    # select yrows, xcols, delr, delc, param in full_grid
+                    x_vals = table_split[3]
+                    x_vals = list(np.array(x_vals).astype(np.float))
+                    y_vals = table_split[7]
+                    y_vals = list(np.array(y_vals).astype(np.float))
+                    grid_data = np.full((len(y_vals),len(x_vals)), constant_value)
+                grid_list.append(grid_data)
+                x_list.append(x_vals)
+                y_list.append(y_vals)
 
-    return (x,y,grid_layer)
+    return (x_list,y_list,grid_list)
     
 
-def write_grid_file(path_file,grid_layer,x,y,m_size):
+def write_grid_file(path_file,grid_list,x,y,m_size):
     
     '''
     Description
@@ -109,19 +112,19 @@ def write_grid_file(path_file,grid_layer,x,y,m_size):
     Parameters
     ----------
     path_file : directory path to write the file. The extension file must match the name of the parameter
-    grid_layer(list)  : Each element is a numpy.ndarray with parameter values  
+    grid_list(list)  : Each element is a numpy.ndarray with parameter values  
     x : list with x coordinates of a layer. This list must start with two zero [0,0,....]
     y : list with y coordinates of a layer
     m_size (float or int) mesh size
 
     Example
     -----------
-    write_grid_file(path_file,grid_layer,x,y)
+    write_grid_file(path_file,grid_list,x,y)
         
     '''
     grid_pp = open(path_file , "a")
 
-    dim   =  grid_layer[0].shape
+    dim   =  grid_list[0].shape
     nrow  =  dim[1]
     ncol  =  dim[0]
 
@@ -138,7 +141,7 @@ def write_grid_file(path_file,grid_layer,x,y,m_size):
     file_name = parse_path[-1]
     param = file_name.split('.')[-1]
     
-    for grid in grid_layer:
+    for grid in grid_list:
         i = i + 1
         grid = grid.transpose()
         
