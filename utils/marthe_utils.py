@@ -68,16 +68,11 @@ def read_grid_file(path_file):
                     # select yrows, xcols, delr, delc, param in full_grid
                     x_vals = full_grid[0]
                     del x_vals[0:2] # remove first two zeros
-                    # NOTE Il me semble que la ligne ci-dessous pourrait être simplifiée si full_grid devenait un tableau numpy
-                    y_vals = list(zip(*full_grid))[1] # NOTE expliquer la syntaxe, pourquoi ce "*" avant full_grid ? 
-                    y_vals = y_vals[1:-1]
-                    # NOTE je ne suis pas sûr de bien comprendre à quoi correspond delr et delc. Référence à MODFLOW ? 
-                    delr  = full_grid[-1][2:]
-                    delc  = (full_grid)[2:]
-                    delc  = [c[-1] for c in  zip(*delc)]
-                    param_list  = [c[0:-1] for c in  zip(*full_grid[1:])]
-                    del param_list[0:2]
-                    grid_data = np.array(param_list)
+                    full_grid = full_grid[1:-1] #remove the first and the last line (x and delc) #Note Je les enleve pour pouvoir convertir après en tableau, leurs tailles est diff des autres
+                    full_grid = np.array(full_grid)
+                    y_vals = full_grid[:,1] 
+                    grid_data = np.delete(full_grid, np.s_[0,1], axis = 1) #Remove the first and the second columns 
+                    grid_data = np.delete(grid_data, np.s_[-1] , axis = 1) #Remove the last column (delr)
                 # case with constant (homogeneous) values
                 if constant == True :
                     table_split = []
@@ -87,7 +82,6 @@ def read_grid_file(path_file):
                         for line in islice(text_file, begin,  end ):
                             table_split.append(line.split())
                     constant_value = (float(table_split[0][0].split("=")[1]))
-                    #grid_data = np.full((ncol,nrow), constant_value)
                     # select yrows, xcols, delr, delc, param in full_grid
                     x_vals = table_split[3]
                     x_vals = list(np.array(x_vals).astype(np.float))
