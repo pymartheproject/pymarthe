@@ -31,6 +31,8 @@ def read_grid_file(path_file):
     x, y, grid_list = read_grid_file(file_path)
     
     '''
+    # NOTE est-ce vraiment nécessaire de travailler avec des listes pour x et y de chaque couches ? 
+    # NOTE visiblement c'est toujours la même chose pour toutes les couches...
     x_list = []
     y_list = []   
     grid_list = []
