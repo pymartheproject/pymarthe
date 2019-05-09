@@ -68,11 +68,10 @@ def read_grid_file(path_file):
                     # select yrows, xcols, delr, delc, param in full_grid
                     x_vals = full_grid[0]
                     del x_vals[0:2] # remove first two zeros
-                    full_grid = full_grid[1:-1] #remove the first and the last line (x and delc) #Note Je les enleve pour pouvoir convertir après en tableau, leurs tailles est diff des autres
+                    full_grid = full_grid[1:-1] #remove the first and the last line (x and delc) 
                     full_grid = np.array(full_grid)
                     y_vals = full_grid[:,1] 
-                    grid_data = np.delete(full_grid, np.s_[0,1], axis = 1) #Remove the first and the second columns 
-                    grid_data = np.delete(grid_data, np.s_[-1] , axis = 1) #Remove the last column (delr)
+                    grid_data = full_grid[:,2:-1]                  
                 # case with constant (homogeneous) values
                 if constant == True :
                     table_split = []
