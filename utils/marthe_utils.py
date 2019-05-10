@@ -7,6 +7,8 @@ from pathlib import Path
 #        Functions for reading and writing grid files
 ############################################################
 
+encoding = 'latin-1'
+
 def read_grid_file(path_file):
 
     '''
@@ -22,13 +24,13 @@ def read_grid_file(path_file):
     Return
     ------
     A tuple containing following elements. 
-    x_list (list of lists) : Each element is a list with x coordinates of a layer 
-    y_list (list of lists) : Each element is a list with y coordinates of a layer 
-    grid_list (list)  : Each element is 2D a numpy.ndarray with grid data 
+    x_vals (list of lists) : np.array grid x coordinates  
+    y_vals (list of lists) : np.array grid y coordinates 
+    grid (numpy array)  : Each element is 3D array with shape (nlay,nrow,ncol) 
 
     Example
     -----------
-    x, y, grid_list = read_grid_file(file_path)
+    x, y, grid = read_grid_file(file_path)
     
     '''
     # NOTE est-ce vraiment nécessaire de travailler avec des listes pour x et y de chaque couches ? 
@@ -45,7 +47,7 @@ def read_grid_file(path_file):
     lookup_end = '[End_Grid]'
 
     # -- open the file  
-    data = open(path_file,"r")
+    data = open(path_file,"r",encoding = encoding)
 
     # --iterate over lines
     for num, line in enumerate(data, 1): #NOTE quel intérêt de commencer à 1 ? enumerate(data) mieux non ? 
@@ -64,7 +66,7 @@ def read_grid_file(path_file):
                 if constant == False :
                     full_grid  = []
                     # extract full grid from file
-                    with open(path_file,"r") as text_file:
+                    with open(path_file,"r",encoding = encoding) as text_file:
                         for line in islice(text_file, begin,  end ):
                              full_grid.append([float(v) for v in line.split()])
                     # select yrows, xcols, delr, delc, param in full_grid
@@ -79,21 +81,23 @@ def read_grid_file(path_file):
                     table_split = []
                     full_grid  = []
                     # select table
-                    with open(path_file,"r") as text_file:
+                    with open(path_file,"r",encoding = encoding) as text_file:
                         for line in islice(text_file, begin,  end ):
                             table_split.append(line.split())
                     constant_value = (float(table_split[0][0].split("=")[1]))
                     # select yrows, xcols, delr, delc, param in full_grid
                     x_vals = table_split[3]
-                    x_vals = list(np.array(x_vals).astype(np.float))
+                    x_vals = np.array(x_vals, dtype = np.float)
                     y_vals = table_split[7]
-                    y_vals = list(np.array(y_vals).astype(np.float))
+                    y_vals = np.array(y_vals, dtype = np.float)
                     grid_data = np.full((len(y_vals),len(x_vals)), constant_value)
                 grid_list.append(grid_data)
                 x_list.append(x_vals)
                 y_list.append(y_vals)
 
-    return (x_list,y_list,grid_list)
+    grid = np.stack(grid_list)
+
+    return (x_vals,y_vals,grid)
     
 
 def write_grid_file(path_file,grid_list,x,y,m_size):

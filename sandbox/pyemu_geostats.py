@@ -1,5 +1,8 @@
 import sys 
+import os 
 import pandas as pd
+import numpy as np
+from matplotlib import pyplot as plt 
 
 sys.path.append('/Users/apryet/Programmes/python/pyemu/')
 import pyemu
@@ -7,11 +10,11 @@ import pyemu
 sys.path.append('/Users/apryet/Programmes/python/')
 from adeqwat.pymarthe import * 
 
-mm = MartheModel('/Users/apryet/recherche/adeqwat/dev/adeqwat/sandbox/mona/v3/mona.rma')
+mm = MartheModel('../MONA_V3/mona.rma')
 
 
 # import grid data 
-x_list, y_list, grid_list = read_grid_file('./mona/v3/mona.permh')
+x_vals, y_vals, permh_grid = read_grid_file('./mona/v3/mona.rma')
 
 
 # mask to get points to interpolate 
