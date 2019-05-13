@@ -237,7 +237,7 @@ def read_write_file_sim (path_file,path_out ="./"):
     Description
     -----------
 
-    This function writes dimulation files for every points. Each file contains two columns : date and its simulation value
+    This function writes simulation files for every points. Each file contains two columns : date and its simulation value
    
     Parameters
     ----------
