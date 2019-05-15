@@ -5,6 +5,11 @@ with the PEST suite.
 
 """
 
+__name__ = 'pymarthe'
+__author__ = 'Ryma Aissat, Yohann Cousquer, Alexandre Pryet'
+
+__version__ = 0.1
+
 # imports
-from .marthe import MartheModel
-from .marthe import SpatialReference 
+from .utils import marthe_utils, pest_utils
+from .marthe import MartheModel, SpatialReference

@@ -211,6 +211,45 @@ def write_pst_io(path_output_files) :
     except :
         print('Cannot find pst_io_par.txt or pst_io_obs.txt')
 
+
+
+def read_pp 
+
+    """A python replication of the PEST fac2real utility for creating a
+    structure grid array from previously calculated kriging factors (weights)
+    Parameters
+    ----------
+    pp_file : (str)
+        PEST-type pilot points file
+    factors_file : (str)
+        PEST-style factors file
+    upper_lim : (float)
+        maximum interpolated value in the array.  Values greater than
+        upper_lim are set to fill_value
+    lower_lim : (float)
+        minimum interpolated value in the array.  Values less than lower_lim
+        are set to fill_value
+    fill_value : (float)
+        the value to assign array nodes that are not interpolated
+    Returns
+    -------
+    arr : numpy.ndarray
+        if out_file is None
+    out_file : str
+        if out_file it not None
+    Example
+    -------
+    ``>>>import pyemu``
+    ``>>>pyemu.utils.geostats.fac2real("hkpp.dat",out_file="hk_layer_1.ref")``
+    """
+
+
+
+
+
+
+
+
 # ----------------------------------------------------------------------------------------------------------
 #Extraction from PyEMU 
 #https://github.com/jtwhite79/pyemu/blob/develop/pyemu/
@@ -285,7 +324,7 @@ def fac2real(pp_file=None,factors_file="factors.dat",
         pp_dict_log = {}
 
     out_index = []
-    out_values = []
+    out_vals = []
     while True:
         line = f_fac.readline()
         if len(line) == 0:
@@ -300,7 +339,7 @@ def fac2real(pp_file=None,factors_file="factors.dat",
             fac_sum = sum([pp_dict_log[pp] * fac_data[pp] for pp in fac_data])
         if itrans != 0:
             fac_sum = 10**fac_sum
-        out_values.append(fac_sum)
+        out_vals.append(fac_sum)
         out_index.append(inode)
 
     df = pd.DataFrame(data={'vals':out_vals},index=out_index)
