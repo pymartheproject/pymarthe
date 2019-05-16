@@ -24,8 +24,8 @@ def read_grid_file(path_file):
     Return
     ------
     A tuple containing following elements. 
-    x_vals (list of lists) : np.array grid x coordinates  
-    y_vals (list of lists) : np.array grid y coordinates 
+    x_vals  : np.array grid x coordinates  
+    y_vals  : np.array grid y coordinates 
     grid (numpy array)  : Each element is 3D array with shape (nlay,nrow,ncol) 
 
     Example
@@ -72,6 +72,7 @@ def read_grid_file(path_file):
                     # select yrows, xcols, delr, delc, param in full_grid
                     x_vals = full_grid[0]
                     del x_vals[0:2] # remove first two zeros
+                    x_vals = np.array(x_vals, dtype = np.float)
                     full_grid = full_grid[1:-1] #remove the first and the last line (x and delc) 
                     full_grid = np.array(full_grid)
                     y_vals = full_grid[:,1] 
