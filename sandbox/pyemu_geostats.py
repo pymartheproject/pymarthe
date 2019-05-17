@@ -28,7 +28,6 @@ pp_df['name'] =  [ 'pp' + str(id) for id in pp_df['id'] ]
 pp_df['zone'] = 1
 pp_df['parval1'] = pp_df['y']
 
-pp_df.to_csv('./data/ppoints.csv',sep=' ',index = False, header=False, columns=['name','x','y','zone','parval1'])
 
 # set up variogram 
 a = 16 # km
@@ -38,6 +37,8 @@ gs = pyemu.utils.GeoStruct(variograms=v,transform="log")
 ok = pyemu.utils.OrdinaryKrige(geostruct=gs,point_data=pp_df)
 sr = SpatialReference(mm) # only for compatibility
 ok.spatial_reference = sr 
+
+
 
 
 # define current parameter 

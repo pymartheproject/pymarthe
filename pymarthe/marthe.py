@@ -1,5 +1,7 @@
 """
 Contains the MartheModel class
+Designed for structured grid and
+layered parameterization
 
 """
 import os 
@@ -7,6 +9,26 @@ import numpy as np
 from matplotlib import pyplot as plt 
 from .utils import marthe_utils
 import pandas as pd 
+
+
+# ----- from PyEMU ----------------
+def SFMT(item):
+    try:
+        s = "{0:<20s} ".format(item.decode())
+    except:
+        s = "{0:<20s} ".format(str(item))
+    return s
+
+SFMT_LONG = lambda x: "{0:<50s} ".format(str(x))
+IFMT = lambda x: "{0:<10d} ".format(int(x))
+FFMT = lambda x: "{0:<20.10E} ".format(float(x))
+
+
+PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT,
+"parval1": FFMT}
+
+# ----- from PyEMU ----------------
+
 
 class MartheModel():
     """
@@ -29,6 +51,9 @@ class MartheModel():
         # initialize grids dictionary
         self.grid_keys = ['permh','kepon']
         self.grids = { key : None for key in self.grid_keys }
+
+        # initialize parameter list 
+        self.parameters = []
 
         # get model working directory and rma file 
         self.mldir, self.rma_file = os.path.split(rma_path)
@@ -65,9 +90,15 @@ class MartheModel():
             'parval': pd.Series(None, dtype=np.float32)
             })
 
-
-
-
+    def add_parameter(self,parameter) :
+        if isinstance(parameter,Parameter):
+            if parameter.name in [par.name in self.parameters] : 
+                print('Replacing existing parameter...')
+            else :
+                self.parameters.append(parameter)
+        else :
+            print('Argument parameter should be an instance of Parameter')
+        
     def load_grid(self,key) : 
         """
         Simple wrapper for read_grid.
@@ -111,34 +142,6 @@ class MartheModel():
 
         return(x_vals,y_vals,grid)
 
-    def set_izone(self,key,data):
-        """
-        Load izone array to MartheModel instance
-        Former izone for given parameter, if present, will be reset. 
-
-        Parameters
-        ----------
-        key : str
-            parameter to which the array is related
-        data : int or np array of int, shape (nlay,nrow,ncol)
-
-        Examples
-        --------
-
-        """
-        # reset izone for current parameter from imask
-        self.izone[key] = self.imask
-        # index of active cells
-        idx_active_cells = self.imask == 1
-
-        if isinstance(data,int) :
-            self.izone[key][idx_active_cells] = data
-
-        if isinstance(data,np.ndarray) : 
-            assert data.shape == (nlay,nrow,ncol) 
-            # only update active cells  
-            self.izone[key][idx_active_cells] = data[idx_active_cells]
-
         return
 
     def plot_grid(self,key,lay):
@@ -154,19 +157,9 @@ class MartheModel():
         """
         plt.imshow(self.grids[key][lay,:,:])
 
-    def add_ppoints(self,new_pp_df) :
-        """
-        Parameters
-        ----------
-        param : type
-            text
-
-        Examples
-        --------
-
-        """
-
-
+    def data_to_shp(self, key, lay, filepath ) :
+        data = self.grids[key][lay,:,:]
+        marthe_utils.grid_data_to_shp(self.x_vals, self.y_vals, data, file_path, field_name_list=[key]):
 
 
 class SpatialReference():

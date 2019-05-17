@@ -3,6 +3,9 @@ import numpy as np
 from itertools import islice
 import pandas as pd
 from pathlib import Path
+import fiona
+from collections import OrderedDict
+import fiona.crs
 ############################################################
 #        Functions for reading and writing grid files
 ############################################################
@@ -296,5 +299,87 @@ def read_histo_file (path_file):
     return df_histo
 
 
+
+def grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,crs):
+    """
+    -----------
+    Description:
+    -----------
+    Writes shapefile from structured rectangular grid data
+    Based on Fiona library
+    
+    Parameters: 
+    -----------
+    data : List of numpy array with data.shape =  len(x_values), len(y_values)
+    x_values : 1D numpy array with x coordinates of grid cell centers
+    y_values : 1D numpy array with y coordinates of grid cell centers
+
+    Returns:
+    -----------
+    True if successful, False otherwise 
+
+    Example
+    -----------
+    data_list = [array1, array2]
+    field_name_list = ['f1','f2']
+    crs = fiona.crs.from_epsg(2154)
+    grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,crs)
+    """
+    # open collection 
+    driver = 'ESRI Shapefile'
+    data_field_properties = [(field_name, 'float') for field_name in field_name_list]
+    id_field_properties = [('id','int:10')]
+    field_properties = OrderedDict(id_field_properties+ data_field_properties)
+    schema = {'geometry': 'Polygon', 'properties':field_properties}
+    try : 
+        collection = fiona.open(
+            file_path,
+            'w',
+            driver=driver,
+            crs=crs,
+            schema=schema
+            )
+    except : 
+        print('I/O error, check file path')
+        return(False)
+    
+    # counter (record id)
+    n=0
+    # iterate over rows 
+    for i in range(len(x_values)-1):
+        # iterate over columns
+        for j in range(len(y_values)-1):
+            # centroid coordinates
+            x_c = x_values[i]
+            y_c = y_values[j]
+            # cell size
+            dx = float(x_values[i+1] - x_c)
+            dy = float(y_values[j+1] - y_c)
+            # rectangle coordinates
+            # from top left corner, clockwise
+            rec_coor = [ (x_c - dx/2, y_c + dy/2), 
+                         (x_c + dx/2, y_c + dy/2), 
+                         (x_c + dx/2, y_c - dy/2), 
+                         (x_c - dx/2, y_c - dy/2), 
+                         (x_c - dx/2, y_c + dy/2) 
+                       ]
+            # set up record geometry and properties
+            geometry = {'type': 'Polygon', 'coordinates':[rec_coor]}
+            properties = {'id':n}
+
+            # fill data fields from list 
+            for data,fieldname in zip(data_list,field_name_list):
+                properties[fieldname] = data[i,j]
+
+            # set up record 
+            record = {'id':n, 'geometry':geometry, 'properties':properties}
+            # write record
+            collection.write(record)
+            # counter increment
+            n = n+1
+            
+    res = collection.close()
+    
+    return(res)
 
 
