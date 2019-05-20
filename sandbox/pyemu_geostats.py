@@ -14,8 +14,16 @@ from pymarthe import *
 # load Marthe model
 mm = MartheModel('../MONA_V3/mona.rma')
 
+
+# new parameter
+
+mm.add_parameter('kepon',1e-3)
+
 # load kepon
 mm.load_grid('kepon')
+
+
+
 
 # load pilot points 
 pp_shp_file = '/Users/apryet/recherche/adeqwat/dev/adeqwat/sandbox/data/points_pilotes_eponte2.shp'

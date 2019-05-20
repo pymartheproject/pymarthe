@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from .utils import marthe_utils
 import pandas as pd 
 
+from .mparam import MartheParam
 
 # ----- from PyEMU ----------------
 def SFMT(item):
@@ -53,7 +54,7 @@ class MartheModel():
         self.grids = { key : None for key in self.grid_keys }
 
         # initialize parameter list 
-        self.parameters = []
+        self.parameters = {}
 
         # get model working directory and rma file 
         self.mldir, self.rma_file = os.path.split(rma_path)
@@ -90,14 +91,10 @@ class MartheModel():
             'parval': pd.Series(None, dtype=np.float32)
             })
 
-    def add_parameter(self,parameter) :
-        if isinstance(parameter,Parameter):
-            if parameter.name in [par.name in self.parameters] : 
-                print('Replacing existing parameter...')
-            else :
-                self.parameters.append(parameter)
-        else :
-            print('Argument parameter should be an instance of Parameter')
+    def add_parameter(self,name, default_value, izone = None) :
+
+        self.parameters[name] = MartheParam(self, name, default_value, izone = None)       
+
         
     def load_grid(self,key) : 
         """
@@ -159,7 +156,7 @@ class MartheModel():
 
     def data_to_shp(self, key, lay, filepath ) :
         data = self.grids[key][lay,:,:]
-        marthe_utils.grid_data_to_shp(self.x_vals, self.y_vals, data, file_path, field_name_list=[key]):
+        marthe_utils.grid_data_to_shp(self.x_vals, self.y_vals, data, file_path, field_name_list=[key])
 
 
 class SpatialReference():

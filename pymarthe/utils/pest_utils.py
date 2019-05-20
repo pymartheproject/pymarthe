@@ -18,7 +18,7 @@ import pandas as pd
 #https://github.com/jtwhite79/pyemu/blob/develop/pyemu/
 # ----------------------------------------------------------------------------------------------------------
 
-def write_tpl_from_df(tpl_file,df)
+def write_tpl_from_df(tpl_file,df) :  
     f_tpl = open(tpl_file,'w')
     f_tpl.write("ptf ~\n")
     f_tpl.write(df.to_string(col_space=0,

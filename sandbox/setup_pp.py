@@ -45,7 +45,8 @@ mm.write_grids() #
 izone = np.stack([np.ones((mm.nrow, mm.ncol))*lay  for lay in range(mm.nlay) ])*mm.imask
 
 # setup kepon parameter 
-par = MartheParam(parname, value)
+# new class MartheParam
+mm.add_par(parname, value)
 
 # load shapefiles 
 pp_shpfiles = [ pp_shpfiles_prefix + str(lay) +'.shp' for lay in range(nlay)]
