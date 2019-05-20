@@ -3,9 +3,8 @@ import numpy as np
 from itertools import islice
 import pandas as pd
 from pathlib import Path
-import fiona
 from collections import OrderedDict
-import fiona.crs
+
 ############################################################
 #        Functions for reading and writing grid files
 ############################################################
@@ -114,13 +113,13 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
     ----------
     path_file : directory path to write the file. The extension file must match the name of the parameter
     grid_list(list)  : Each element is a numpy.ndarray with parameter values  
-    x : list with x coordinates of a layer. This list must start with two zero [0,0,....]
+    x : list with x coordinates of a layer. 
     y : list with y coordinates of a layer
     m_size (float or int) mesh size
 
     Example
     -----------
-    write_grid_file(path_file,grid_list,x,y)
+    write_grid_file(path_file,grid_list,x,y,m_size)
         
     '''
     grid_pp = open(path_file , "a")
@@ -137,7 +136,16 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
     #create a list of heights of the lines
     delr = [int(m_size)]*nrow
 
+    xmin = x[0] - 1
+    ymin = y[-1] -1
+
+
+    #Add two 0 [0,0,...] to the list of x coordinates
+    x.insert(0,0) 
+    x.insert(0,0)
+
     i = 0
+    #Extract the name of the paramter from the file path
     parse_path = Path(path_file).parts
     file_name = parse_path[-1]
     param = file_name.split('.')[-1]
