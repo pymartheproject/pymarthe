@@ -19,10 +19,25 @@ mm = MartheModel('../MONA_V3/mona.rma')
 
 mm.add_parameter('kepon',1e-3)
 
+kepon = mm.parameters['kepon']
+
+kepon.read_zpc_df()
+
+kepon.set_array_from_zpc_df()
+
+mm.grids
+
+a = np.array([1,2,3])
+dic = {'a':a}
+b = dic['a']
+a[0]=5
+b[0]=6
+a
+
+
+
 # load kepon
 mm.load_grid('kepon')
-
-
 
 
 # load pilot points 

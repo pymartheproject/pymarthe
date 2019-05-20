@@ -12,21 +12,6 @@ import pandas as pd
 
 from .mparam import MartheParam
 
-# ----- from PyEMU ----------------
-def SFMT(item):
-    try:
-        s = "{0:<20s} ".format(item.decode())
-    except:
-        s = "{0:<20s} ".format(str(item))
-    return s
-
-SFMT_LONG = lambda x: "{0:<50s} ".format(str(x))
-IFMT = lambda x: "{0:<10d} ".format(int(x))
-FFMT = lambda x: "{0:<20.10E} ".format(float(x))
-
-
-PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT,
-"parval1": FFMT}
 
 # ----- from PyEMU ----------------
 
@@ -91,9 +76,20 @@ class MartheModel():
             'parval': pd.Series(None, dtype=np.float32)
             })
 
-    def add_parameter(self,name, default_value, izone = None) :
+    def add_parameter(self, name, default_value, izone = None, array = None) :
 
-        self.parameters[name] = MartheParam(self, name, default_value, izone = None)       
+        # case an array is provided
+        if isinstance(array, np.ndarray) :
+            assert array.shape == (self.nlay, self.nrow, self.ncol)
+            self.grids[name] = array
+        else : 
+            # fetch mask from mm
+            self.grids[name] = np.array(self.imask, dtype=np.float)
+            # fill array with nan within mask
+            self.grids[name][ self.grids[name] != 0 ] = np.nan
+
+        # create new instance of MartheParam
+        self.parameters[name] = MartheParam(self, name, default_value, izone, array)       
 
         
     def load_grid(self,key) : 

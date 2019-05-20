@@ -8,8 +8,20 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt 
 from .utils import marthe_utils
+from .utils import pest_utils
 import pandas as pd 
 import pyemu
+
+# --- parameter name formatting
+
+# NOTE : layer are written with 1-base format, unsigned zone for zpc
+# name format zones of piecewise constancy
+# example: kepon_l02_zpc03
+ZPCFMT = lambda name, lay, zone: '{0}_l{1:02d}_zpc{2:02d}'.format(name,int(lay+1),int(abs(zone)))
+
+# name format for pilot points  
+# example : kepon_l02_z02_pp001
+PPFMT = lambda name, lay, zone, ppid: '{0}_l{1:02d}_z{2:02d}_{3:03d}'.format(name,int(lay+1),int(zone),int(ppid)) 
 
 class MartheParam() :
     """
@@ -27,37 +39,18 @@ class MartheParam() :
     --------
     """
     def __init__(self, mm, name, default_value, izone = None, array = None) :
-        self.mm = mm # pointer to the instance of Marthe Model
+        self.mm = mm # pointer to the instance of MartheModel
         self.name = name # parameter name
-        self.array = self.mm.grids[self.name] # pointer to corresponding grid
-        self.set_default_value(default_value)
+        self.array = mm.grids[self.name] # pointer to grid in MartheModel instance
+        self.default_value = default_value 
         self.set_izone(izone)
-        self.set_in_filenames()
-        self.set_tpl_filenames()
-        self.init_array(array)
-
-    def set_default_value(self, value) : 
-        """
-        Function
-
-        Parameters
-        ----------
-        key : str
-            parameter
-        data : type
-
-        Examples
-        --------
-
-        """
-        if isinstance(value,int) : 
-            self.default_value = np.ones()*value
       
     def set_izone(self,key,izone = None):
         """
         Load izone array from data. 
-        If data is None, a single constant zone is considered. 
-        Former izone data for given parameter, will be reset. 
+        If data is None, a single constant zone per layer is considered. 
+        Former izone data for given parameter will be reset. 
+
 
         Parameters
         ----------
@@ -70,23 +63,27 @@ class MartheParam() :
 
         """
         # reset izone for current parameter from imask
-        self.izone = self.mm.imask
+        self.izone = self.mm.imask.copy()
         # index of active cells
         idx_active_cells = self.mm.imask == 1
 
+        # case izone is not provided
         if izone is None :
             # a single zone is considered
             self.izone[idx_active_cells] = -1
 
-        if isinstance(izone,np.ndarray) : 
-            assert data.shape == (nlay,nrow,ncol) 
+        # case an izone array is provided
+        elif isinstance(izone,np.ndarray) : 
+            assert izone.shape == (nlay,nrow,ncol) 
             # only update active cells  
             self.izone[idx_active_cells] = izone[idx_active_cells]
 
-        self.update_dics()
+        # update zpc_df and pp_dic
+        self.update_zpc_df()
+        self.update_pp_dic()
 
 
-    def update_dics(self) :
+    def update_pp_dic(self) :
         """
 
         Parameters
@@ -96,72 +93,36 @@ class MartheParam() :
         Examples
         --------
         """
-        nlay = self.izone.shape[0]
-        self.zpc_dic = {lay:[] for lay in range(nlay) }
+        nlay = self.mm.nlay
         self.pp_dic  = {lay:[] for lay in range(nlay) }
       
         for lay in range(nlay) :
             zones = np.unique(self.izone[lay,:,:])
             for zone in zones :
-                if zone < 0 :
-                    self.zpc_dic[lay].append(abs(zone))
-                elif zone > 0 :
+                if zone > 0 :
                     self.pp_dic[lay].append(zone)
 
-    def set_in_filenames(self, in_file_zpc = None, in_file_pp = None):
+    def update_zpc_df(self) :
+        """
+        Set up dataframe of zones of piecewise constancy from izone
         """
 
-        Parameters
-        ----------
-        key : str
-            
-        Examples
-        --------
-        """
-        if in_file_zpc is None : 
-            self.in_file_zpc = self.name + '_zpc.dat'
-        if in_file_pp is None : 
-            self.in_file_pp = self.name + '_pp.dat'
+        nlay = self.mm.nlay
 
+        parnames = []
+        parlays = []
+        parzones = []
 
-    def set_tpl_filenames(self, tpl_file_zpc = None, tpl_file_pp = None) : 
-        """
+        for lay in range(nlay) :
+            zones = np.unique(self.izone[lay,:,:])
+            for zone in zones :
+                if zone < 0 : 
+                    parnames.append( ZPCFMT(self.name, lay, zone))
+                    parlays.append(lay)
+                    parzones.append(zone)
 
-        Parameters
-        ----------
-        key : str
-            
-        Examples
-        --------
-        """
-        if tpl_file_zpc is None : 
-            self.tpl_file_zpc = self.name + '_zpc.tpl'
-        if tpl_file_pp is None : 
-            self.tpl_file_pp = self.name + '_pp.tpl'
-
-
-    def set_zpc_names(self):
-        """
-        updates zpc names from self.dic_zpc
-
-        Parameters
-        ----------
-        key : str
-            parameter
-        data : type
-
-        Examples
-        --------
-
-        """
-        """
-        """
-        self.zpc_names = []
-        # iterate over layers
-        for lay in self.zpc_dic.keys() :
-            # iterate over zones 
-            for zone in self.zpc_dic[lay]:
-                self.zpc_names.append('{0}_l{1:02d}_z{2:02d}'.format(name,lay,zone))
+        self.zpc_df = pd.DataFrame({'parname':parnames, 'lay':parlays, 'zone':parzones})
+        self.zpc_df.set_index('parname',inplace=True)
 
 
     def set_pp_names(self):
@@ -201,12 +162,12 @@ class MartheParam() :
 
         >> 
         """
-        assert lay in range(nlay), 'layer {0} is not valid.'.format(lay)
+        assert lay in range(self.mm.nlay), 'layer {0} is not valid.'.format(lay)
         assert zone in np.unique(self.izone), 'zone {0} is not valid'.format(zone)
         if zone < 0 :
-            assert isinstance(values, int), 'values should be int if zone is < 0'
+            assert isinstance(values, float), 'A float should be provided for ZPC.'
         elif zone > 0 :
-            assert isinstance(values, np.ndarray), 'values should be np.ndarray is zone >0'
+            assert isinstance(values, np.ndarray), 'An array should be provided for PP'
 
         # select zone 
         idx = self.izone[lay,:,:] == zone
@@ -214,7 +175,14 @@ class MartheParam() :
         # update values within zone 
         self.array[lay,:,:][idx] = values
 
-        return(data)
+        return
+
+    def set_array_from_zpc_df(self) :
+        # check for missing values
+        for lay, zone, value in zip(self.zpc_df.lay, self.zpc_df.zone, self.zpc_df.value) :
+            if value is None :
+                print('Parameter value is NA for ZPC zone {0} in lay {1}').format(abs(zone),int(lay)+1)
+            self.set_array(lay,zone,value)
 
     def setup_pp(self) :
         """
@@ -230,9 +198,6 @@ class MartheParam() :
         --------
 
         """
-        
-
-
 
         self.pp_df
 
@@ -262,7 +227,7 @@ class MartheParam() :
         return(x_select,y_select)
 
 
-    def write_zpc_tpl(self):
+    def write_zpc_tpl(self, filename = None):
         """
         Load izone array from data. 
         If data is None, a single constant zone is considered. 
@@ -271,24 +236,20 @@ class MartheParam() :
         Parameters
         ----------
         key : str
-            parameter to which the array is related
-        data : None, int or np array of int, shape (nlay,nrow,ncol)
+            filename, default value is name_zpc.tpl
+            ex : permh_zpc.tpl
 
-        Examples
-        --------
         """
-        # -- zones of piecewise constancy
+
+        if filename is None : 
+            filename = self.name + '_zpc.tpl'
         
-        zpc_names = []
+        zpc_names = self.zpc_df.index
 
-        if len(names) > 0 :
-            tpl_entries = ["~  {0}  ~".format(name) for name in zpc_names]
-            zpc_df = pd.Dataframe({'name' : zpc_names,'tpl' : tpl_entries})
-            pest_utils.write_tpl_from_df(self.tpl_file_zpc, zpc_df)
-
-        # -- zones with pilot points
-
-        pp_names = []
+        if len(zpc_names) > 0 :
+            tpl_entries = ["~  {0}  ~".format(parname) for parname in zpc_names]
+            zpc_df = pd.DataFrame({'parname' : zpc_names,'tpl' : tpl_entries})
+            pest_utils.write_tpl_from_df(filename, zpc_df)
 
     def write_pp_tpl(self) : 
         """ set up template data frame for pilot points
@@ -355,19 +316,70 @@ class MartheParam() :
 
         return pp_x,pp_y
 
-
-    def init_array(self, array) : 
-        if array is None :
-            # initialize array for given parameter 
-            self.array = np.array(self.mm.imask,dtype=np.float)
-            # fill array with nan within mask
-            self.array[ self.array != 0 ] = np.nan
-        elif isinstance(array, np.ndarray) : 
-            assert array.shape == (self.mm.nlay, self.mm.nrow, self.mm.ncol)
-            self.array = array
-
     def read_zpc_df(self,filename = None) :
+        """
+        Reads dataframe with zones of piecewise constancy
+        and sets self.zpc_df accordingly
+
+        The file should be white-space-delimited, without header.
+        First column : parameter name (with ZPCFMT format)
+        Second column : parameter value
+        Any additional column will not be considered
+        ex : 
+        kepon_l01_z01 0.01
+        kepon_l02_z02 0.03
+        ...
+
+        Parameters
+        ----------
+        filename : str (optional)
+            path to parameter file, default is permh_zpc.dat
+            ex : permh_zpc.dat
+        
+        """
+
         if filename is None:
-            filename = self.in_file_zpc
-        self.zpc_df = pd.read_csv(filename, delim_whitespace=True,
-                header=None,names=['parname','value'],usecols=[0,1])
+            filename = self.name + '_zpc.dat'
+
+        # read dataframe
+        df = pd.read_csv(filename, delim_whitespace=True,
+                header=None,names=['parname','value'], usecols=[0,1])
+        df.set_index('parname',inplace=True)
+        
+        # parse layer and zone from parameter name 
+        parnames = []
+        values = []
+        not_found_parnames = []
+
+        for parname in df.index :
+            if parname in self.zpc_df.index : 
+                parnames.append(parname)
+                values.append(df.loc[parname,'value'])
+            else :
+                not_found_parnames.append(parname)
+
+        # case not any parameter values found
+        if len(parnames) == 0 :
+            print('No parameter values could be found.\n'
+            'Check compatibility with izone data.')
+            return
+        
+        # case some parameter not found
+        if len(not_found_parnames) >0 :
+            print('Following names are not compatible with {0} parameter izone :\n'
+            '{1}'.format(self.name, ' '.join(not_found_parnames))
+                    )
+        # merge new dataframe with existing zpc_df
+        df = pd.DataFrame({'parname':parnames, 'value':values})
+        df.set_index('parname', inplace=True)
+        self.zpc_df = pd.merge(self.zpc_df, df, how='left', left_index=True, right_index=True)
+
+        # check for missing parameters
+        missing_parnames = self.zpc_df.index[ self.zpc_df.value.isna() ]
+        
+        if len(missing_parnames) > 0 : 
+            print('Following parameter values are missing:\n{0}'.format(' '.join(missing_parnames))
+                    )
+
+        return
+
