@@ -28,7 +28,7 @@ def read_grid_file(path_file):
     A tuple containing following elements. 
     x_vals  : np.array grid x coordinates  
     y_vals  : np.array grid y coordinates 
-    grid (numpy array)  : Each element is 3D array with shape (nlay,nrow,ncol) 
+    grid : 3d numpy array with shape (nlay,nrow,ncol) 
 
     Example
     -----------
@@ -111,24 +111,22 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
    
     Parameters
     ----------
-    path_file : directory path to write the file. The extension file must match the name of the parameter
-    grid_list(list)  : Each element is a numpy.ndarray with parameter values  
-    x : list with x coordinates of a layer. 
-    y : list with y coordinates of a layer
+    path_file : directory path to write the file. The extension file must match the name of the parameter. Example : './*.kepon'
+    grid  : 3d numpy array with shape (nlay,nrow,ncol) 
+    x : np.array grid x coordinates  
+    y : np.array grid y coordinates  
     m_size (float or int) mesh size
 
     Example
     -----------
-    write_grid_file(path_file,grid_list,x,y,m_size)
+    write_grid_file(path_file,grid,x,y,m_size)
         
     '''
     grid_pp = open(path_file , "a")
 
-    dim   =  grid_list[0].shape
-    nrow  =  dim[1]
-    ncol  =  dim[0]
+    nrow,ncol = grid[0].shape
 
-    nprow =  np.arange(0,nrow+1,1)
+    nprow =  np.arange(1,nrow+1,1)
     npcol =  np.arange(0,ncol+1,1)
      
     #create a list of widths of the columns
@@ -136,13 +134,12 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
     #create a list of heights of the lines
     delr = [int(m_size)]*nrow
 
-    xmin = x[0] - 1
-    ymin = y[-1] -1
+    xmin = x[0]  - 1
+    ymin = y[-1] - 1
 
 
-    #Add two 0 [0,0,...] to the list of x coordinates
-    x.insert(0,0) 
-    x.insert(0,0)
+    #Add two 0 [0,0,...] to the numpy array x coordinates
+    x = np.append([0,0],x,axis = 0)
 
     i = 0
     #Extract the name of the paramter from the file path
@@ -150,11 +147,10 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
     file_name = parse_path[-1]
     param = file_name.split('.')[-1]
     
-    for grid in grid_list:
+    for layer in grid:
         i = i + 1
-        grid = grid.transpose()
-        
-        perm = zip(*grid)
+        layer = layer.astype(int)
+        parameter = zip(*layer)
         grid_pp.write('Marthe_Grid Version=9.0 \n')
         grid_pp.write('Title=Travail                                                        '+param+'            '+str(i)+'\n')
         grid_pp.write('[Infos]\n')
@@ -179,9 +175,9 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
         grid_pp.write('\n')
         [grid_pp.write(str(i)+'\t') for i in x]
         grid_pp.write('\n')
-        for row, cols, perm_line, col_size in zip(nprow, y,grid, delr) :
+        for row, cols, param_line, col_size in zip(nprow, y,layer, delr) :
             grid_pp.write(str(row)+'\t'+str(cols)+'\t')
-            [grid_pp.write(str(i)+'\t') for i in perm_line]
+            [grid_pp.write(str(i)+'\t') for i in param_line]
             grid_pp.write(str(col_size) +'\t \n')
         [grid_pp.write(str(j)+'\t') for j in delc]
         grid_pp.write('\n')
