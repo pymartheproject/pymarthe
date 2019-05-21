@@ -149,7 +149,6 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
     
     for layer in grid:
         i = i + 1
-        layer = layer.astype(int)
         parameter = zip(*layer)
         grid_pp.write('Marthe_Grid Version=9.0 \n')
         grid_pp.write('Title=Travail                                                        '+param+'            '+str(i)+'\n')
