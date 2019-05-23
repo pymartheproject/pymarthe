@@ -9,6 +9,8 @@ from collections import OrderedDict
 #        Functions for reading and writing grid files
 ############################################################
 
+# fixed a problem for grid files written from WinMarthe
+# but not the best option. 
 encoding = 'latin-1'
 
 def read_grid_file(path_file):
@@ -191,7 +193,7 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
 
 def read_obs(path_file):
     
-    df_obs    = pd.read_csv(path_file, sep='\t', skiprows=1, decimal =",",low_memory=False ) 
+    df_obs    = pd.read_csv(path_file, sep='\t', skiprows=1, decimal =",",low_memory=False) 
     id_points = list(df_obs.columns[1:])
     df_obs.columns = ['DATE'] + id_points 
     df_obs.DATE = pd.to_datetime(df_obs.DATE,  format="%d/%m/%Y")
@@ -201,9 +203,7 @@ def read_obs(path_file):
     return id_points,df_obs
 
 
-
-
-def read_file_sim (path_file):
+def prn_read(path_file):
 
 
     '''
@@ -215,9 +215,7 @@ def read_file_sim (path_file):
    
     Parameters
     ----------
-    path_file : Directory path with simulated data
-    path_out  : Directory path to write data
-    
+    path_file : Directory path with simulated data 
 
     Return
     ------
@@ -240,21 +238,18 @@ def read_file_sim (path_file):
     return  id_points, df_sim
 
 
-def read_write_file_sim (path_file,path_out ="./"):
-
-
+def extract_prn(prn_file, out_dir ="./"):
     '''
     Description
     -----------
-
-    This function writes simulation files for every points. Each file contains two columns : date and its simulation value
+    Reads model.prn extracts simulated records to individual files. 
+    Each file contains two columns : date and its simulation value
    
     Parameters
     ----------
     path_file : Directory path with simulated data
     path_out  : Directory path to write data
     
-
     Return
     ------
         
@@ -263,21 +258,19 @@ def read_write_file_sim (path_file,path_out ="./"):
     read_write_file_sim (path_file,'./output_data/')
         
     '''
-    df_sim = pd.read_csv(path_file, sep='\t', skiprows=3)  # Dataframe
+    df_sim = pd.read_csv(prn_file, sep='\t', skiprows=3)  # Dataframe
     id_points = [x.rstrip('.1') for x in df_sim.columns][1:] 
     id_points = [x.rstrip(' ') for x in id_points]
     df_sim.columns = ['DATE'] + id_points  # Indicates the name of the columns in the DataFrame
     df_sim.DATE = pd.to_datetime(df_sim.DATE,  format="%d/%m/%Y")
     df_sim = df_sim.set_index(df_sim.DATE)
 
-    #write sim for pest
+    # write individual files of simulated records
     n = len(id_points) 
     for i in range(1,n) :
-        df_sim.to_csv(path_out+str(id_points[i])+ '.txt', columns = [id_points[i]], sep='\t', index=True, header=False)
+        df_sim.to_csv(out_dir+str(id_points[i])+ '.dat', columns = [id_points[i]], sep='\t', index=True, header=False)
 
-    return  id_points, df_sim
-
-
+    return
 
 def read_histo_file (path_file):
 
@@ -285,7 +278,7 @@ def read_histo_file (path_file):
     Description
     -----------
 
-    This function reads hmona.histo)
+    This function reads model.histo
    
     Parameters
     ----------

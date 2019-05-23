@@ -11,6 +11,7 @@ from .utils import marthe_utils
 import pandas as pd 
 
 from .mparam import MartheParam
+from .mobs import MartheObs
 
 
 # ----- from PyEMU ----------------
@@ -39,7 +40,8 @@ class MartheModel():
         self.grids = { key : None for key in self.grid_keys }
 
         # initialize parameter list 
-        self.parameters = {}
+        self.param = {}
+        self.obs = {}
 
         # get model working directory and rma file 
         self.mldir, self.rma_file = os.path.split(rma_path)
@@ -76,7 +78,10 @@ class MartheModel():
             'parval': pd.Series(None, dtype=np.float32)
             })
 
-    def add_parameter(self, name, default_value, izone = None, array = None) :
+        # init number of observation locations
+        self.nobs_loc = 0
+
+    def add_param(self, name, default_value, izone = None, array = None) :
 
         # case an array is provided
         if isinstance(array, np.ndarray) :
@@ -89,9 +94,21 @@ class MartheModel():
             self.grids[name][ self.grids[name] != 0 ] = np.nan
 
         # create new instance of MartheParam
-        self.parameters[name] = MartheParam(self, name, default_value, izone, array)       
+        self.param[name] = MartheParam(self, name, default_value, izone, array)       
 
+    def add_obs(self, obs_file, loc_name = None) :
         
+        self.nobs_loc += 1
+        # prefix will be used to set individual obs name
+        prefix = 'loc{0:02d}n'.format(self.nobs_loc)
+
+        # infer loc_name from file name if loc_name not provided
+        if loc_name is None : 
+            obs_dir, obs_filename = os.path.split(obs_file)
+            loc_name = obs_filename.split('.')[0]
+
+        self.obs[loc_name] = MartheObs(self, prefix, obs_file, loc_name)
+
     def load_grid(self,key) : 
         """
         Simple wrapper for read_grid.
@@ -153,6 +170,14 @@ class MartheModel():
     def data_to_shp(self, key, lay, filepath ) :
         data = self.grids[key][lay,:,:]
         marthe_utils.grid_data_to_shp(self.x_vals, self.y_vals, data, file_path, field_name_list=[key])
+
+    def extract_prn(self, prn_file = None, out_dir = None):
+        if prn_file == None : 
+            prn_file = os.path.join(self.mldir,'historiq.prn')
+        if out_dir == None : 
+            out_dir = os.path.join(self.mldir,'obs','')
+
+        marthe_utils.extract_prn(prn_file, out_dir)
 
 
 class SpatialReference():

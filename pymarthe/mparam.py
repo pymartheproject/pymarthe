@@ -249,7 +249,7 @@ class MartheParam() :
         if len(zpc_names) > 0 :
             tpl_entries = ["~  {0}  ~".format(parname) for parname in zpc_names]
             zpc_df = pd.DataFrame({'parname' : zpc_names,'tpl' : tpl_entries})
-            pest_utils.write_tpl_from_df(filename, zpc_df)
+            pest_utils.write_tpl_from_df(os.path.join(self.mm.mldir,filename), zpc_df)
 
     def write_pp_tpl(self) : 
         """ set up template data frame for pilot points
