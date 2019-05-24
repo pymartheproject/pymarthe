@@ -157,17 +157,17 @@ class MartheParam() :
         """
 
         # case same value for all zones of all layers
-        if isinstance(values,int) : 
+        if isinstance(values,(int, float)) : 
             self.zpc_df['values'] = value
             return
         # if a dictionary is provided
         elif isinstance(values, dict) :
             for lay in list(values.keys()):
                 # layer-based parameter assignement
-                if isinstance(values[lay],int):
+                if isinstance(values[lay],(int,float)):
                     # index true for zones within lay
                     value = values[lay]
-                    idx = [ name.startswith('{0}_l{1:02d}'.format(self.name,int(lay+1))) for name in mm.param['kepon'].zpc_df.index]
+                    idx = [ name.startswith('{0}_l{1:02d}'.format(self.name,int(lay+1))) for name in self.zpc_df.index]
                     self.zpc_df.loc[idx,'value'] = value
                 # layer, zone parameter assignement
                 elif isinstance(values[lay],dict) : 
@@ -175,12 +175,9 @@ class MartheParam() :
                         parname = ZPCFMT(self.name,lay,zone)
                         value = values[lay][zone]
                         self.zpc_df.loc[parname,'value'] = value
-                else : 
-                    print('Invalid input, check the help')
         else : 
             print('Invalid input, check the help')
             return
-
 
     def set_pp_names(self):
         """
