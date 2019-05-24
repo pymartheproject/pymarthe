@@ -78,10 +78,16 @@ class MartheObs() :
         # write instruction file header
         ins_file.write('pif #\n')
 
+        obs_ids = []
+
         # Write instruction and observatin line for each value
         for i in range(self.df.shape[0]):
-            print(i)
-            ins_file.write('l1({0}n{1:03d}){2}:{3}\n'.format(self.prefix, i+1, VAL_START,VAL_CHAR_LEN))
+            obs_id = '{0}n{1:03d}'.format(self.prefix, i+1)
+            ins_file.write('l1({0}){1}:{2}\n'.format(obs_id, VAL_START, VAL_CHAR_LEN))
+            obs_ids.append(obs_id)
+
+        self.df['obs_id'] = obs_ids
+        self.df.set_index('obs_id', inplace=True)
 
         ins_file.close()
 

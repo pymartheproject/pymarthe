@@ -12,7 +12,7 @@ from .utils import pest_utils
 import pandas as pd 
 import pyemu
 
-# --- parameter name formatting
+# ---  formatting
 
 # NOTE : layer are written with 1-base format, unsigned zone for zpc
 # name format zones of piecewise constancy
@@ -22,6 +22,17 @@ ZPCFMT = lambda name, lay, zone: '{0}_l{1:02d}_zpc{2:02d}'.format(name,int(lay+1
 # name format for pilot points  
 # example : kepon_l02_z02_pp001
 PPFMT = lambda name, lay, zone, ppid: '{0}_l{1:02d}_z{2:02d}_{3:03d}'.format(name,int(lay+1),int(zone),int(ppid)) 
+
+# string format
+def SFMT(item):
+    try:
+        s = "{0:<20s} ".format(item.decode())
+    except:
+        s = "{0:<20s} ".format(str(item))
+    return s
+
+# float format
+FFMT = lambda x: "{0:<20.10E} ".format(float(x))
 
 class MartheParam() :
     """
@@ -45,7 +56,7 @@ class MartheParam() :
         self.default_value = default_value 
         self.set_izone(izone)
       
-    def set_izone(self,key,izone = None):
+    def set_izone(self,izone = None):
         """
         Load izone array from data. 
         If data is None, a single constant zone per layer is considered. 
@@ -54,8 +65,6 @@ class MartheParam() :
 
         Parameters
         ----------
-        key : str
-            parameter to which the array is related
         data : None, int or np array of int, shape (nlay,nrow,ncol)
 
         Examples
@@ -85,7 +94,6 @@ class MartheParam() :
 
     def update_pp_dic(self) :
         """
-
         Parameters
         ----------
         key : str
@@ -121,8 +129,57 @@ class MartheParam() :
                     parlays.append(lay)
                     parzones.append(zone)
 
-        self.zpc_df = pd.DataFrame({'parname':parnames, 'lay':parlays, 'zone':parzones})
+        self.zpc_df = pd.DataFrame({'parname':parnames, 'lay':parlays, 'zone':parzones, 'value': self.default_value})
         self.zpc_df.set_index('parname',inplace=True)
+
+    def set_zpc_values(self,values) : 
+        """
+        Update value column inf zpc_df
+
+        Parameters
+        ---------
+        values : int or dic
+            if an int, is provided, the value is set to all zpc
+            if a dic is provided, the value are updated accordingly
+            ex :
+            layer only value assignation : simple dic 
+            {0:1e-2,1:2e-3,...}
+            layer, zone value assignation : nested dicts
+            {0:{1:1e-3,2:1e-2}} to update the values of zones 1 and 2 from the first layer. 
+
+        Examples :
+        >> # a single value is provided
+        >> mm.set_zpc_values(1e-3)
+        >> # layer based value assignement 
+        >> mm.set_vpc_values({0:2e-3})
+        >> # layer and zone assignement
+        >> mm.set_zpc_values({0:{1:1e-3,2:1e-2}}
+        """
+
+        # case same value for all zones of all layers
+        if isinstance(values,int) : 
+            self.zpc_df['values'] = value
+            return
+        # if a dictionary is provided
+        elif isinstance(values, dict) :
+            for lay in list(values.keys()):
+                # layer-based parameter assignement
+                if isinstance(values[lay],int):
+                    # index true for zones within lay
+                    value = values[lay]
+                    idx = [ name.startswith('{0}_l{1:02d}'.format(self.name,int(lay+1))) for name in mm.param['kepon'].zpc_df.index]
+                    self.zpc_df.loc[idx,'value'] = value
+                # layer, zone parameter assignement
+                elif isinstance(values[lay],dict) : 
+                    for zones in values[lay].keys() :
+                        parname = ZPCFMT(self.name,lay,zone)
+                        value = values[lay][zone]
+                        self.zpc_df.loc[parname,'value'] = value
+                else : 
+                    print('Invalid input, check the help')
+        else : 
+            print('Invalid input, check the help')
+            return
 
 
     def set_pp_names(self):
@@ -249,7 +306,7 @@ class MartheParam() :
         if len(zpc_names) > 0 :
             tpl_entries = ["~  {0}  ~".format(parname) for parname in zpc_names]
             zpc_df = pd.DataFrame({'parname' : zpc_names,'tpl' : tpl_entries})
-            pest_utils.write_tpl_from_df(os.path.join(self.mm.mldir,filename), zpc_df)
+            pest_utils.write_tpl_from_df(os.path.join(self.mm.mldir,'tpl',filename), zpc_df)
 
     def write_pp_tpl(self) : 
         """ set up template data frame for pilot points
@@ -265,6 +322,31 @@ class MartheParam() :
 
         return pp_df
 
+    def write_zpc_data(self, filename = None):
+        """
+
+        Parameters
+        ----------
+        key : str
+            filename, default value is name_zpc.tpl
+            ex : permh_zpc.tpl
+
+        """
+
+        if filename is None : 
+            filename = self.name + '_zpc.dat'
+        
+        zpc_names = self.zpc_df.index
+
+        if len(zpc_names) > 0 :
+            f_param = open(os.path.join('param',filename),'w')
+            f_param.write(self.zpc_df.to_string(col_space=0,
+                              columns=['value'],
+                              formatters={'value':FFMT},
+                              justify="left",
+                              header=False,
+                              index=True,
+                              index_names=False))
 
     def pp_from_rgrid(zone,n_cell,lay):
 
@@ -342,7 +424,7 @@ class MartheParam() :
             filename = self.name + '_zpc.dat'
 
         # read dataframe
-        df = pd.read_csv(filename, delim_whitespace=True,
+        df = pd.read_csv(os.path.join('param',filename), delim_whitespace=True,
                 header=None,names=['parname','value'], usecols=[0,1])
         df.set_index('parname',inplace=True)
         
