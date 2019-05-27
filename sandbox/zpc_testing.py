@@ -63,9 +63,15 @@ par_files = [os.path.join(par_dir, f) for f in os.listdir( par_dir ) if f.endswi
 ins_dir = os.path.join('.','ins')
 ins_files = [os.path.join(ins_dir, f) for f in os.listdir( ins_dir ) if f.endswith(".ins")]
 
+# observation files
+obs_dir = os.path.join('.','obs')
+obs_files = [os.path.join(obs_dir, f) for f in os.listdir( obs_dir ) if f.endswith(".dat")]
+
 # output simulation files 
 sim_dir = os.path.join('.','sim')
-sim_files = [os.path.join(sim_dir, f) for f in os.listdir( sim_dir ) if f.endswith(".dat")]
+sim_files = [os.path.join(sim_dir, f) for f in os.listdir( sim_dir ) if (f.endswith(".dat")) and (f.split('\\')[-1] in os.listdir(obs_dir)) ]
+
+
 
 # set up pst file
 pst = pyemu.helpers.pst_from_io_files(tpl_files, par_files, ins_files, sim_files)

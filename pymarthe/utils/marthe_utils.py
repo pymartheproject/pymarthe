@@ -229,6 +229,8 @@ def prn_read(path_file):
     df_sim.columns = ['DATE'] + id_points  # Indicates the name of the columns in the DataFrame
     df_sim.DATE = pd.to_datetime(df_sim.DATE,  format="%d/%m/%Y")
     df_sim = df_sim.set_index(df_sim.DATE)
+    df_sim = df_sim.iloc[:,2:-1]
+    id_points = id_points[1:-1]
 
     return  id_points, df_sim
 
@@ -259,6 +261,8 @@ def extract_prn(prn_file, out_dir ="./"):
     df_sim.columns = ['DATE'] + id_points  # Indicates the name of the columns in the DataFrame
     df_sim.DATE = pd.to_datetime(df_sim.DATE,  format="%d/%m/%Y")
     df_sim = df_sim.set_index(df_sim.DATE)
+    df_sim = df_sim.iloc[:,2:-1]
+    id_points = id_points[1:-1]
 
     # write individual files of simulated records
     n = len(id_points) 
