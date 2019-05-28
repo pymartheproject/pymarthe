@@ -8,7 +8,7 @@ import os
 from math import sqrt
 import fileinput
 import sys
-sys.path.append('C:/Documents these/Dev/adeqwat/')
+sys.path.append('C:/Users/raissat/Programmes/python/adeqwat/pymarthe')
 from utils import pest_utils 
 from utils import marthe_utils
 
@@ -19,9 +19,10 @@ df_histo = marthe_utils.read_histo_file('./txt_file/mona.histo')
 id_points_obs,df_obs = marthe_utils.read_obs('./txt_file/Piezo_2015_Ryma.txt')
 
 #Read sim file 
-id_points_sim,df_sim = marthe_utils.read_file_sim('./txt_file/historiq.prn')
+id_points_sim,df_sim = marthe_utils.prn_read('./txt_file/historiq.prn')
 
 common_cols = list(set(df_histo['ID_FORAGE']).intersection(id_points_obs))
+#comm = list(set(id_points_sim).intersection(id_points_obs))
 df_obs = df_obs[common_cols]
 df_sim = df_sim[common_cols]
 df_sim.iloc[:,0:-1]
@@ -126,7 +127,7 @@ for id in common_cols :
 		weights_list.append(w)
 		means_list.append(m)
 	mean_weight = pd.DataFrame(np.column_stack([list(dates),means_list, weights_list]),columns=['Year','Mean','Weight'])
-	mean_weight.to_csv('./obs_data/'+id+'.txt',sep='\t', index = False)
+	mean_weight.to_csv('./obs_data/'+id+'.dat',sep='\t', index = False)
 
 
 # --------------- Preamble ----------------------------------------------
