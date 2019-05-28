@@ -453,11 +453,15 @@ class MartheParam() :
         df.set_index('parname', inplace=True)
         self.zpc_df = pd.merge(self.zpc_df, df, how='left', left_index=True, right_index=True)
 
+        self.zpc_df['value'] = self.zpc_df.value_y
+
+        self.zpc_df.drop(columns=['value_x','value_y'], inplace=True)
+
         # check for missing parameters
         missing_parnames = self.zpc_df.index[ self.zpc_df.value.isna() ]
         
         if len(missing_parnames) > 0 : 
-            print('Following parameter values are missing:\n{0}'.format(' '.join(missing_parnames))
+            print('Following parameter values are missing in zpc parameter file:\n{0}'.format(' '.join(missing_parnames))
                     )
 
         return

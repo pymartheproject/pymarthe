@@ -13,8 +13,9 @@ import pyemu
 sys.path.append(os.path.expanduser('~/Programmes/python/adeqwat/'))
 from pymarthe import * 
 
-
-# ------- STEP 1 : setup
+# -----------------------------------
+# -------- STEP 1 : setup -----------
+# -----------------------------------
 
 # GO TO MONA WORKING DIRECTORY
 # load existing Marthe model
@@ -34,6 +35,7 @@ mm.param['kepon'].set_zpc_values(values)
 for parname in list(mm.param.keys()):
     mm.param[parname].write_zpc_tpl()
     mm.param[parname].write_zpc_data()
+
 
 # --- Observations ---
 
@@ -69,7 +71,6 @@ sim_dir = os.path.join('.','sim')
 sim_files = [os.path.join(sim_dir, f) for f in os.listdir( sim_dir ) if (f.endswith(".dat")) and (f in os.listdir(obs_dir)) ]
 
 
-
 # set up pst file
 pst = pyemu.helpers.pst_from_io_files(tpl_files, par_files, ins_files, sim_files)
 
@@ -87,25 +88,4 @@ for param in list(mm.param.keys()):
 # write pst 
 pst.write(mm.mlname + '.pst')
 
-
-# ------- STEP 2 : use (PEST parameter estimation)
-
-mm = MartheModel('/Users/apryet/recherche/adeqwat/dev/adeqwat/MONA_V3/mona.rma')
-
-# -- parameter
-mm.add_parameter('kepon',1e-3)
-
-# load zpc parameter values from file
-mm.param['kepon'].read_zpc_df()
-
-# set parameter array
-kepon.set_array_from_zpc_df()
-kepon.set_array_from_pp_df()
-
-# -- model run
-
-# -- load simulation
-
-# extract prn
-mm.extract_prn()
 

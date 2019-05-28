@@ -6,7 +6,10 @@ layered parameterization
 """
 import os 
 import numpy as np
-from matplotlib import pyplot as plt 
+
+import subprocess as sp
+from shutil import which
+
 from .utils import marthe_utils
 import pandas as pd 
 
@@ -81,7 +84,7 @@ class MartheModel():
         # init number of observation locations
         self.nobs_loc = 0
 
-    def add_param(self, name, default_value, izone = None, array = None) :
+    def add_param(self, name, default_value = np.nan, izone = None, array = None) :
 
         # case an array is provided
         if isinstance(array, np.ndarray) :
@@ -152,20 +155,36 @@ class MartheModel():
 
         return(x_vals,y_vals,grid)
 
-        return
-
-    def plot_grid(self,key,lay):
+    def write_grid(self,key):
         """
+        Simple wrapper for write_grid file
+
         Parameters
         ----------
-        param : type
-            text
-
+        key : str
+            parameter key (ex. 'kepon')
+            
         Examples
         --------
+        mm.write_grid('permh')
 
         """
-        plt.imshow(self.grids[key][lay,:,:])
+        # get path to grid file 
+        grid_path = os.path.join(self.mldir,self.mlname + '.' + key)
+
+        # load grid file 
+        marthe_utils.write_grid_file(grid_path, self.x_vals, self.y_vals, grid = self.grids[key])
+
+        return
+
+    def write_grids(self) : 
+        """
+        write all available grids
+        """
+        for key in list(self.grids.keys()) : 
+            write_grid(key)
+
+        return
 
     def data_to_shp(self, key, lay, filepath ) :
         data = self.grids[key][lay,:,:]
@@ -178,6 +197,138 @@ class MartheModel():
             out_dir = os.path.join(self.mldir,'obs','')
 
         marthe_utils.extract_prn(prn_file, out_dir)
+
+
+    def run_model(self,exe_name = 'marthe', rma_file = None, 
+                  silent=False, pause=False, report=False,
+                  cargs=None):
+        """
+        This function will run the model using subprocess.Popen.  It
+        communicates with the model's stdout asynchronously and reports
+        progress to the screen with timestamps
+        Parameters
+        ----------
+        exe_name : str
+            Executable name (with path, if necessary) to run.
+        namefile : str
+            Namefile of model to run. The namefile must be the
+            filename of the namefile without the path. Namefile can be None
+            to allow programs that do not require a control file (name file)
+            to be passed as a command line argument.
+        model_ws : str
+            Path to the location of the namefile. (default is the
+            current working directory - './')
+        silent : boolean
+            Echo run information to screen (default is True).
+        pause : boolean, optional
+            Pause upon completion (default is False).
+        report : boolean, optional
+            Save stdout lines to a list (buff) which is returned
+            by the method . (default is False).
+        cargs : str or list of strings
+            additional command line arguments to pass to the executable.
+            Default is None
+        Returns
+        -------
+        (success, buff)
+        success : boolean
+        buff : list of lines of stdout
+        """
+        success = False
+        buff = []
+        normal_msg='normal termination'
+
+        if rma_file is None : 
+            rma_file = os.path.join(self.mldir,self.mlname + '.rma')
+
+        # Check to make sure that program and namefile exist
+        exe = which(exe_name)
+        if exe is None:
+            import platform
+            if platform.system() in 'Windows':
+                    exe = which(exe_name + '.exe')
+        if exe is None:
+            s = 'The program {} does not exist or is not executable.'.format(
+                exe_name)
+            raise Exception(s)
+        
+        if namefile is not None:
+            if not os.path.isfile(os.path.join(model_ws, namefile)):
+                s = 'The namefile for this model ' + \
+                    'does not exists: {}'.format(namefile)
+                raise Exception(s)
+
+        # simple little function for the thread to target
+        def q_output(output, q):
+            for line in iter(output.readline, b''):
+                q.put(line)
+                # time.sleep(1)
+                # output.close()
+
+        # create a list of arguments to pass to Popen
+        argv = [exe_name]
+        if namefile is not None:
+            argv.append(namefile)
+
+        # add additional arguments to Popen arguments
+        if cargs is not None:
+            if isinstance(cargs, str):
+                cargs = [cargs]
+            for t in cargs:
+                argv.append(t)
+
+        # run the model with Popen
+        proc = sp.Popen(argv,
+                        stdout=sp.PIPE, stderr=sp.STDOUT, cwd=model_ws)
+
+      
+        # some tricks for the async stdout reading
+        q = Queue.Queue()
+        thread = threading.Thread(target=q_output, args=(proc.stdout, q))
+        thread.daemon = True
+        thread.start()
+
+        failed_words = ["fail", "error"]
+        last = datetime.now()
+        lastsec = 0.
+        while True:
+            try:
+                line = q.get_nowait()
+            except Queue.Empty:
+                pass
+            else:
+                if line == '':
+                    break
+                line = line.decode().lower().strip()
+                if line != '':
+                    now = datetime.now()
+                    dt = now - last
+                    tsecs = dt.total_seconds() - lastsec
+                    line = "(elapsed:{0})-->{1}".format(tsecs, line)
+                    lastsec = tsecs + lastsec
+                    buff.append(line)
+                    if not silent:
+                        print(line)
+                    for fword in failed_words:
+                        if fword in line:
+                            success = False
+                            break
+            if proc.poll() is not None:
+                break
+        proc.wait()
+        thread.join(timeout=1)
+        buff.extend(proc.stdout.readlines())
+        proc.stdout.close()
+
+        for line in buff:
+            if normal_msg in line:
+                print("success")
+                success = True
+                break
+
+        if pause:
+            input('Press Enter to continue...')
+        return success, buff
 
 
 class SpatialReference():
