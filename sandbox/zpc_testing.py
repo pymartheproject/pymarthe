@@ -93,10 +93,11 @@ mm = MartheModel('/Users/apryet/recherche/adeqwat/dev/adeqwat/MONA_V3/mona.rma')
 mm.add_parameter('kepon',1e-3)
 
 # load zpc parameter values from file
-kepon.read_zpc_df()
+mm.param['kepon'].read_zpc_df()
 
 # set parameter array
 kepon.set_array_from_zpc_df()
+kepon.set_array_from_pp_df()
 
 # -- model run
 
