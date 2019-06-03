@@ -194,7 +194,7 @@ class MartheModel():
         if prn_file == None : 
             prn_file = os.path.join(self.mldir,'historiq.prn')
         if out_dir == None : 
-            out_dir = os.path.join(self.mldir,'obs','')
+            out_dir = os.path.join(self.mldir,'sim','')
 
         marthe_utils.extract_prn(prn_file, out_dir)
 
@@ -210,14 +210,10 @@ class MartheModel():
         ----------
         exe_name : str
             Executable name (with path, if necessary) to run.
-        namefile : str
-            Namefile of model to run. The namefile must be the
+        rma_file : str
+            rma file of model to run. The rma_file must be the
             filename of the namefile without the path. Namefile can be None
-            to allow programs that do not require a control file (name file)
-            to be passed as a command line argument.
-        model_ws : str
-            Path to the location of the namefile. (default is the
-            current working directory - './')
+            if it follows the syntax model_name.rma
         silent : boolean
             Echo run information to screen (default is True).
         pause : boolean, optional
@@ -238,8 +234,6 @@ class MartheModel():
         buff = []
         normal_msg='normal termination'
 
-        if rma_file is None : 
-            rma_file = os.path.join(self.mldir,self.mlname + '.rma')
 
         # Check to make sure that program and namefile exist
         exe = which(exe_name)
@@ -252,23 +246,20 @@ class MartheModel():
                 exe_name)
             raise Exception(s)
         
-        if namefile is not None:
-            if not os.path.isfile(os.path.join(model_ws, namefile)):
-                s = 'The namefile for this model ' + \
-                    'does not exists: {}'.format(namefile)
-                raise Exception(s)
+
+        # Marthe rma file 
+        if rma_file is None : 
+            rma_file = os.path.join(self.mldir,self.mlname + '.rma')
 
         # simple little function for the thread to target
         def q_output(output, q):
             for line in iter(output.readline, b''):
                 q.put(line)
-                # time.sleep(1)
-                # output.close()
 
         # create a list of arguments to pass to Popen
         argv = [exe_name]
-        if namefile is not None:
-            argv.append(namefile)
+        if rma_file is not None:
+            argv.append(rma_file)
 
         # add additional arguments to Popen arguments
         if cargs is not None:
@@ -279,9 +270,8 @@ class MartheModel():
 
         # run the model with Popen
         proc = sp.Popen(argv,
-                        stdout=sp.PIPE, stderr=sp.STDOUT, cwd=model_ws)
+                        stdout=sp.PIPE, stderr=sp.STDOUT, cwd=self.mldir)
 
-      
         # some tricks for the async stdout reading
         q = Queue.Queue()
         thread = threading.Thread(target=q_output, args=(proc.stdout, q))
