@@ -1,8 +1,8 @@
  Logiciel : Marthe, Version : 7.6  (Août 2017)
      J /M/ Ann
- le 25/02/2019 à 18h10
+ le  3/06/2019 à  9h16
 
- Fichier Projet : mona.rma
+ Fichier Projet : /Users/raissat/Programmes/python/adeqwat/MONA_V3/mona.rma
 
 MONAPAR
  
@@ -691,37 +691,3 @@ MONAPAR
                        ou          Largeur = 0. ou      Longueur = 0.
                        ou Manning  +   Rugosité = 0. ou Pente du lit = 0.
 
-
- *** Attention !                                                            ***
-
-=========================================================================
- Au cours de toute la simulation hydrodynamique (calcul des charges hydrauliques) :
- il y a eu des pompages dénoyés.
- => Dénoyage maximal =   -101.339 unités de charge.
-=========================================================================
-
-                Fin normale des calculs           
-
-     Temps écoulé pour les calculs                     =      4.76 mn
-
-     Temps CPU pour calcul des Charges                 =     128.2
-     Temps CPU pour Routage Rivières                   =       0.1
-     Temps CPU pour bilans des débits                  =       2.2
-     Temps CPU pour bilans des débits par zones        =     141.3
-     Temps CPU pour sauv. des grilles calculées        =       8.2
-     Temps CPU solveur hydrodynamique                  =      59.2
-     Temps CPU pour calcul total (hors initialisation) =     282.8
-
-    (Temps CPU pour calcul total                       =     283.3)
-    ==========================================================================
-    *  Les fichiers suivants ont été créés :
-    *  mart_ver.txt  = Vérifications ou Erreurs
-    *  marthe.txt    = Listing général (fichier liste)
-    *  bilandeb.txt  = Bilan des Débits
-    *  historiq.out  = Historiques Successifs (format libre)
-    *  historiq.prn  = Historiques pour dessins (format compatible Excel)
-    *  histobil_debit.prn  = Historique bilans débits (compatible Excel)
-    *  chasim.out    = Grille champs calculés
-    *                  (charges, concentrations, températures etc.)
-    * reseau_hydrog.txt = Réseau Hydrographique, Drains, Lacs
-    ==========================================================================

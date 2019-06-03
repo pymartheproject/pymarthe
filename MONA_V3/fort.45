@@ -1,8 +1,8 @@
  Logiciel : Marthe, Version : 7.6  (Août 2017)
      J /M/ Ann
- le 11/10/2018 à 17h37
+ le  3/06/2019 à  9h16
 
- Fichier Projet : mona.rma
+ Fichier Projet : /Users/raissat/Programmes/python/adeqwat/MONA_V3/mona.rma
 
 MONAPAR
  
@@ -14,5 +14,33 @@ MONAPAR
  
  ** Impossible de créer le fichier de nom :                                 **
  ** => reseau_hydrog.txt                                                    **
+ ** Un fichier de ce nom est peut être actuellement ouvert                  **
+ ** ou bien existe en Lecture Seule                                         **
+ 
+   Précision = 15 chiffres
+
+ 
+ ** Impossible de créer le fichier de nom :                                 **
+ ** => bilandeb.txt                                                         **
+ ** Un fichier de ce nom est peut être actuellement ouvert                  **
+ ** ou bien existe en Lecture Seule                                         **
+ 
+ ** Impossible de créer le fichier de nom :                                 **
+ ** => historiq.prn                                                         **
+ ** Un fichier de ce nom est peut être actuellement ouvert                  **
+ ** ou bien existe en Lecture Seule                                         **
+ 
+ ** Impossible de créer le fichier de nom :                                 **
+ ** => histobil_debit.prn                                                   **
+ ** Un fichier de ce nom est peut être actuellement ouvert                  **
+ ** ou bien existe en Lecture Seule                                         **
+ 
+ ** Impossible de créer le fichier de nom :                                 **
+ ** => histoclim.prn                                                        **
+ ** Un fichier de ce nom est peut être actuellement ouvert                  **
+ ** ou bien existe en Lecture Seule                                         **
+ 
+ ** Impossible de créer le fichier de nom :                                 **
+ ** => histobil_nap_pastp.prn                                               **
  ** Un fichier de ce nom est peut être actuellement ouvert                  **
  ** ou bien existe en Lecture Seule                                         **

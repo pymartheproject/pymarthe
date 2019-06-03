@@ -1,0 +1,13 @@
+MONAPAR
+ 
+ Logiciel : Marthe, Version : 7.6  (Août 2017)
+     J /M/ Ann
+ le  3/06/2019 à  9h16
+
+ Fichier Projet : /Users/raissat/Programmes/python/adeqwat/MONA_V3/mona.rma
+
+ Méthode de Résolution de l'Hydrodynamique :
+ Résolution Hydrodynamique : Gradients Conjugués Eisenstat
+   Précision = 15 chiffres
+
+   Résolution avec schéma Pseudo Non-Saturé (1.0 %)
