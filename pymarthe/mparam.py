@@ -455,10 +455,10 @@ class MartheParam() :
 
         self.zpc_df['value'] = self.zpc_df.value_y
 
-        self.zpc_df.drop(columns=['value_x','value_y'], inplace=True)
+        self.zpc_df.drop(['value_x','value_y'],1, inplace=True)
 
         # check for missing parameters
-        missing_parnames = self.zpc_df.index[ self.zpc_df.value.isna() ]
+        missing_parnames = self.zpc_df.index[ self.zpc_df.value == np.nan ]
         
         if len(missing_parnames) > 0 : 
             print('Following parameter values are missing in zpc parameter file:\n{0}'.format(' '.join(missing_parnames))
