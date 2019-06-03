@@ -10,6 +10,8 @@ import numpy as np
 import subprocess as sp
 from shutil import which
 import queue 
+import threading
+from datetime import datetime
 
 from .utils import marthe_utils
 import pandas as pd 
@@ -285,12 +287,12 @@ class MartheModel():
         while True:
             try:
                 line = q.get_nowait()
-            except Queue.Empty:
+            except queue.Empty:
                 pass
             else:
                 if line == '':
                     break
-                line = line.decode().lower().strip()
+                line = line.decode('latin-1').lower().strip()
                 if line != '':
                     now = datetime.now()
                     dt = now - last
