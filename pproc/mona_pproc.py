@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('C:/Documents these/Dev/adeqwat/')
+sys.path.append('C:/Users/raissat/Programmes/python/adeqwat/pymarthe/utils/')
 import marthe_utils 
 
-marthe_utils.read_write_file_sim ('C:/Documents these/Script_python/txt_file/historiqprn.txt','C:/Documents these/MONA V3/pest_files/')
+marthe_utils.extract_prn ('C:/Documents these/Script_python/txt_file/historiqprn.txt','C:/Users/raissat/Programmes/python/adeqwat/MONA_V3/sim/')
