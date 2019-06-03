@@ -9,6 +9,7 @@ import numpy as np
 
 import subprocess as sp
 from shutil import which
+import queue 
 
 from .utils import marthe_utils
 import pandas as pd 
@@ -273,7 +274,7 @@ class MartheModel():
                         stdout=sp.PIPE, stderr=sp.STDOUT, cwd=self.mldir)
 
         # some tricks for the async stdout reading
-        q = Queue.Queue()
+        q = queue.Queue()
         thread = threading.Thread(target=q_output, args=(proc.stdout, q))
         thread.daemon = True
         thread.start()
