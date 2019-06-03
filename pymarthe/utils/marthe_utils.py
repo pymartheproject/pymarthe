@@ -103,30 +103,37 @@ def read_grid_file(path_file):
     return (x_vals,y_vals,grid)
     
 
-def write_grid_file(path_file,grid_list,x,y,m_size):
+def write_grid_file(path_file, x, y, grid):
     
     '''
     Description
     -----------
-
+    Writer for regular grids, square cells.     
     This function writes text file with the same structure than parameter file in grid form
-   
+    
     Parameters
     ----------
-    path_file : directory path to write the file. The extension file must match the name of the parameter. Example : './*.kepon'
-    grid  : 3d numpy array with shape (nlay,nrow,ncol) 
+    path_file : directory path to write the file. 
+    The extension file must match the name of the parameter. Example : 'model.kepon'
     x : np.array grid x coordinates  
     y : np.array grid y coordinates  
-    m_size (float or int) mesh size
+    grid  : 3d numpy array with shape (nlay,nrow,ncol) 
+   
 
     Example
     -----------
-    write_grid_file(path_file,grid,x,y,m_size)
+    write_grid_file(path_file,grid,x,y)
         
     '''
-    grid_pp = open(path_file , "a")
+    # check regular mesh with square cell
+    assert abs(x[1] - x[0]) == abs(y[1] - y[0])
+    
+    # infer square cell size 
+    m_size = x[1] - x[0]
 
-    nrow,ncol = grid[0].shape
+    grid_pp = open(path_file , "w")
+
+    nrow, ncol = grid[0].shape
 
     nprow =  np.arange(1,nrow+1,1)
     npcol =  np.arange(0,ncol+1,1)
@@ -136,14 +143,14 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
     #create a list of heights of the lines
     delr = [int(m_size)]*nrow
 
-    xmin = x[0]  - 1
-    ymin = y[-1] - 1
-
+    xmin = x[0]  - 1 # NOTE why 1 ?
+    ymin = y[-1] - 1 # NOTE why 1 ? 
 
     #Add two 0 [0,0,...] to the numpy array x coordinates
     x = np.append([0,0],x,axis = 0)
 
     i = 0
+
     #Extract the name of the paramter from the file path
     parse_path = Path(path_file).parts
     file_name = parse_path[-1]
@@ -184,7 +191,7 @@ def write_grid_file(path_file,grid_list,x,y,m_size):
         grid_pp.write('\n')
         grid_pp.write('[End_Grid]\n')
 
-    return ()
+    return
 
 def read_obs(path_file):
     
