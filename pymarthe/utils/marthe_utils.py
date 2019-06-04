@@ -127,7 +127,7 @@ def write_grid_file(path_file, x, y, grid):
     '''
     # check regular mesh with square cell
     assert abs(x[1] - x[0]) == abs(y[1] - y[0])
-    
+
     # infer square cell size 
     m_size = x[1] - x[0]
 
@@ -137,7 +137,7 @@ def write_grid_file(path_file, x, y, grid):
 
     nprow =  np.arange(1,nrow+1,1)
     npcol =  np.arange(0,ncol+1,1)
-     
+
     #create a list of widths of the columns
     delc = [0,0] + [int(m_size)]*ncol
     #create a list of heights of the lines
@@ -146,8 +146,6 @@ def write_grid_file(path_file, x, y, grid):
     xmin = x[0]  - 1 # NOTE why 1 ?
     ymin = y[-1] - 1 # NOTE why 1 ? 
 
-    #Add two 0 [0,0,...] to the numpy array x coordinates
-    x = np.append([0,0],x,axis = 0)
 
     i = 0
 
@@ -155,7 +153,7 @@ def write_grid_file(path_file, x, y, grid):
     parse_path = Path(path_file).parts
     file_name = parse_path[-1]
     param = file_name.split('.')[-1]
-    
+
     for layer in grid:
         i = i + 1
         parameter = zip(*layer)
@@ -181,6 +179,7 @@ def write_grid_file(path_file, x, y, grid):
         grid_pp.write('0 \t')
         [grid_pp.write(str(i)+'\t') for i in npcol]
         grid_pp.write('\n')
+        grid_pp.write(('0 \t 0 \t'))
         [grid_pp.write(str(i)+'\t') for i in x]
         grid_pp.write('\n')
         for row, cols, param_line, col_size in zip(nprow, y,layer, delr) :
