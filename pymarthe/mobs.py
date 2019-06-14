@@ -82,7 +82,7 @@ class MartheObs() :
 
         # Write instruction and observatin line for each value
         for i in range(self.df.shape[0]):
-            obs_id = '{0}n{1:03d}'.format(self.prefix, i+1)
+            obs_id = '{0}n{1:04d}'.format(self.prefix, i+1)
             ins_file.write('l1 ({0}){1}:{2}\n'.format(obs_id, VAL_START, VAL_CHAR_LEN))
             obs_ids.append(obs_id)
 
