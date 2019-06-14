@@ -106,7 +106,7 @@ class MartheModel():
         
         self.nobs_loc += 1
         # prefix will be used to set individual obs name
-        prefix = 'loc{0:02d}'.format(self.nobs_loc)
+        prefix = 'loc{0:03d}'.format(self.nobs_loc)
 
         # infer loc_name from file name if loc_name not provided
         if loc_name is None : 
