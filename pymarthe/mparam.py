@@ -345,19 +345,17 @@ class MartheParam() :
                               index=True,
                               index_names=False))
 
-    def pp_from_rgrid(zone,n_cell,lay):
-
+    def pp_from_rgrid(self, lay, zone, n_cell):
         '''
         Description
         -----------
-
-        This function defines the coordinates of pilot points 
+        This function sets up a regular grid of pilot points 
        
         Parameters
         ----------
-        zone (int) : area of a layer where pilot points would be used 
+        lay (int) : layer for which pilot points should be placed
+        zone (int) : zone of layer where pilot points should be placed 
         n_cell (int) : Number of cells between pilot points 
-        izone_2d (2d np.array) : layer where poilot points are genrated 
         x_vals (1d np.array) :  grid x coordinates 
         y_vals (1d np.array) :  grid y coordinates 
      
@@ -368,7 +366,7 @@ class MartheParam() :
         
         Example
         -----------
-        pp_x, pp_y = get_rgrid_pp(zone,n_cell,izone_2d,x_vals,y_vals)
+        pp_x, pp_y = get_rgrid_pp(lay, zone, n_cell)
         
         '''
         izone_2d = self.izone[lay,:,:]

@@ -31,7 +31,7 @@ class MartheModel():
         """
         Parameters
         ----------
-        path_to_rma : string
+        rma_path : string
             The path to the Marthe rma file from which the model name 
             and working directory will be identified.
 
@@ -41,11 +41,12 @@ class MartheModel():
         mm = MartheModel('/Users/john/models/model/mymodel.rma')
 
         """
-        # initialize grids dictionary
-        self.grid_keys = ['permh','kepon']
+        # initialize grid dics to None
+        #self.grid_keys = ['permh','kepon','emmli','emmca']
+        self.grid_keys = ['permh']
         self.grids = { key : None for key in self.grid_keys }
 
-        # initialize parameter list 
+        # initialize parameter and observation dics
         self.param = {}
         self.obs = {}
 
@@ -56,12 +57,13 @@ class MartheModel():
         self.mlname = self.rma_file.split('.')[0]
 
         # read permh data
+        # NOTE : permh data also provides data on active/inactive cells
         self.x_vals, self.y_vals, self.grids['permh'] = self.read_grid('permh')
 
         # get nlay nrow, ncol
         self.nlay, self.nrow, self.ncol = self.grids['permh'].shape
 
-        # set up mask of active/inactive cells.
+        # set up mask of active/inactive cells from permh data
         # value : 1 for active cells. 0 for inactive cells
         # imask is a 3D array (nlay,nrow,ncol)
         self.imask = (self.grids['permh'] != 0).astype(int)
@@ -297,7 +299,7 @@ class MartheModel():
                     now = datetime.now()
                     dt = now - last
                     tsecs = dt.total_seconds() - lastsec
-                    line = "(elapsed:{0})-->{1}".format(tsecs, line)
+                    line = "elapsed:{0}-->{1}".format(tsecs, line)
                     lastsec = tsecs + lastsec
                     buff.append(line)
                     if not silent:
