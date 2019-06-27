@@ -196,6 +196,9 @@ class MartheModel():
         marthe_utils.grid_data_to_shp(self.x_vals, self.y_vals, data, file_path, field_name_list=[key])
 
     def extract_prn(self, prn_file = None, out_dir = None):
+        """ 
+        Simple wrapper to marthe_utils_extract_prn()
+        """
         if prn_file == None : 
             prn_file = os.path.join(self.mldir,'historiq.prn')
         if out_dir == None : 
@@ -324,6 +327,81 @@ class MartheModel():
         if pause:
             input('Press Enter to continue...')
         return success, buff
+
+    def read_sim(self, prn_file = None):
+        """
+        Description
+        ----------
+        Reads Marthe prn file and append a "sim" columns to
+        observation dataframe. 
+
+        Parameters 
+        ----------
+        prn_file (optional) : str
+            path to prn file 
+
+        Example 
+        --------
+        mm = MartheModel('./model.rma')
+        mm.add_obs(obs_file = 'piezo1.dat')
+        mm.read_sim()
+        mm.obs['piezo1'].df
+
+                          value    weight       sim
+        date                                       
+        1972-12-31          32.5  1.000000  33.41174
+        ...
+
+        """
+        if prn_file == None : 
+            prn_file = os.path.join(self.mldir,'historiq.prn')
+
+        # load simulated values 
+        df_sim = marthe_utils.read_prn(prn_file)
+
+        for loc in self.obs.keys() :
+            # build up dataframe with a single column containing 
+            # simulated data at loc
+            # case : one single aquifer
+            if isinstance(df_sim[loc],pd.core.series.Series) :
+                df_sim_loc = pd.DataFrame({'sim':df_sim[loc]},index=df_sim.index)
+            # case : several aquifers intercepted 
+            else : 
+                # compute mean over several columns when multiple aquifers are considered
+                df_sim_loc = pd.DataFrame({'sim':df_sim[loc].mean(axis=1)},index=df_sim.index)
+            # perform outer join with observation 
+            self.obs[loc].df = self.obs[loc].df.merge(df_sim_loc,how='outer',left_index=True, right_index=True)
+
+    def compute_phi(self,type='sum_weighted_squared_res') : 
+        """
+        Description
+        ----------
+        Returns weighted objective function
+        Parameters 
+        ----------
+        prn_file (optional) : str
+            path to prn file
+        """
+        
+        self.read_sim()
+
+        df_comp = df = pd.DataFrame(columns=['obs', 'sim', 'weight'])
+
+        for loc in self.obs.keys() :
+            # build up dataframe for current loc 
+            df_loc = pd.DataFrame( {'obs':self.obs[loc].df.value,
+                'sim':self.obs[loc].df.sim,
+                'weight':self.obs[loc].df.value})
+            # append current loc to maindataframe. 
+            df_comp.append(df_loc)
+
+        if type == 'sum_weighted_squared_res': 
+            phi = pest_utils.sum_weighted_squared_res(df_comp.sim,df_comp.obs,df_comp.weight)
+        else : 
+            print('Phi type currently not implemented')
+            return
+
+        return(phi)
 
 
 class SpatialReference():

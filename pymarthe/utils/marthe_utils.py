@@ -194,25 +194,23 @@ def write_grid_file(path_file, x, y, grid):
 
 def read_obs(path_file):
     
-    df_obs    = pd.read_csv(path_file, sep='\t', skiprows=1, decimal =",",low_memory=False) 
-    id_points = list(df_obs.columns[1:])
-    df_obs.columns = ['DATE'] + id_points 
-    df_obs.DATE = pd.to_datetime(df_obs.DATE,  format="%d/%m/%Y")
-    df_obs = df_obs.set_index(df_obs.DATE)
+    df_obs = pd.read_csv(path_file, sep='\t', skiprows=1, decimal =",",low_memory=False) 
+    loc_ids = list(df_obs.columns[1:])
+    df_obs.columns = ['date'] + loc_ids 
+    df_obs.date = pd.to_datetime(df_obs.date,  format="%d/%m/%Y")
+    df_obs = df_obs.set_index(df_obs.date)
     df_obs = df_obs.iloc[0:-2,:]
 
-    return id_points,df_obs
+    return loc_ids,df_obs
 
 
-def prn_read(path_file):
-
-
+def read_prn(prn_file):
     '''
     Description
     -----------
 
     This function reads file of simulated data (historiq.prn)
-    and writes files for every points. Each file contains two columns : date and its simulation value
+    and returns files for every points. Each file contains two columns : date and its simulation value
    
     Parameters
     ----------
@@ -220,32 +218,30 @@ def prn_read(path_file):
 
     Return
     ------
-    id_points : List of boreholes names (old code bss)
     df_sim : Dataframe containing the same columns than in the reading file
 
     
     Example
     -----------
-    read_file_sim (path_file,'./output_data/')
+    read_prn(path_file)
         
     '''
-    df_sim = pd.read_csv(path_file, sep='\t', skiprows=3)  # Dataframe
-    id_points = [x.rstrip('.1') for x in df_sim.columns][1:] 
-    id_points = [x.rstrip(' ') for x in id_points]
-    df_sim.columns = ['DATE'] + id_points  # Indicates the name of the columns in the DataFrame
-    df_sim.DATE = pd.to_datetime(df_sim.DATE,  format="%d/%m/%Y")
-    df_sim = df_sim.set_index(df_sim.DATE)
+    df_sim = pd.read_csv(prn_file, sep='\t', skiprows=3)  # Dataframe
+    loc_ids = [x.rstrip('.1') for x in df_sim.columns][1:] 
+    loc_ids = [x.rstrip(' ') for x in loc_ids]
+    df_sim.columns = ['date'] + loc_ids  # Indicates the name of the columns in the DataFrame
+    df_sim.date = pd.to_datetime(df_sim.date,  format="%d/%m/%Y")
+    df_sim = df_sim.set_index(df_sim.date)
     df_sim = df_sim.iloc[:,2:-1]
-    id_points = id_points[1:-1]
 
-    return  id_points, df_sim
+    return  df_sim
 
 
 def extract_prn(prn_file, out_dir ="./"):
     '''
     Description
     -----------
-    Reads model.prn extracts simulated records to individual files. 
+    Reads model.prn read_prn() and writes individual files for each locations. 
     Each file contains two columns : date and its simulation value
    
     Parameters
@@ -258,22 +254,15 @@ def extract_prn(prn_file, out_dir ="./"):
         
     Example
     -----------
-    read_write_file_sim (path_file,'./output_data/')
+    extract_prn(path_file,'./output_data/')
         
     '''
-    df_sim = pd.read_csv(prn_file, sep='\t', skiprows=3)  # Dataframe
-    id_points = [x.rstrip('.1') for x in df_sim.columns][1:] 
-    id_points = [x.rstrip(' ') for x in id_points]
-    df_sim.columns = ['DATE'] + id_points  # Indicates the name of the columns in the DataFrame
-    df_sim.DATE = pd.to_datetime(df_sim.DATE,  format="%d/%m/%Y")
-    df_sim = df_sim.set_index(df_sim.DATE)
-    df_sim = df_sim.iloc[:,2:-1]
-    id_points = id_points[1:-1]
+    # read prn file
+    df_sim = read_prn(prn_file)
 
-    # write individual files of simulated records
-    n = len(id_points) 
-    for i in range(1,n) :
-        df_sim.to_csv(out_dir+str(id_points[i])+ '.dat', columns = [id_points[i]], sep='\t', index=True, header=False)
+    # write individual files of simulated records 
+    for loc in df_sim.columns :
+        df_sim.to_csv(out_dir+loc+ '.dat', columns = [loc], sep='\t', index=True, header=False)
 
     return
 
@@ -302,7 +291,6 @@ def read_histo_file (path_file):
     df_histo  = df_histo.iloc[0:-1,:]
     df_histo  = df_histo.set_index(df_histo.ID_FORAGE)
     return df_histo
-
 
 
 def grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,crs):
