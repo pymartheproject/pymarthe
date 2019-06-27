@@ -31,7 +31,7 @@ class MartheModel():
         """
         Parameters
         ----------
-        path_to_rma : string
+        rma_path : string
             The path to the Marthe rma file from which the model name 
             and working directory will be identified.
 
@@ -41,11 +41,12 @@ class MartheModel():
         mm = MartheModel('/Users/john/models/model/mymodel.rma')
 
         """
-        # initialize grids dictionary
-        self.grid_keys = ['permh','kepon']
+        # initialize grid dics to None
+        #self.grid_keys = ['permh','kepon','emmli','emmca']
+        self.grid_keys = ['permh']
         self.grids = { key : None for key in self.grid_keys }
 
-        # initialize parameter list 
+        # initialize parameter and observation dics
         self.param = {}
         self.obs = {}
 
@@ -56,12 +57,13 @@ class MartheModel():
         self.mlname = self.rma_file.split('.')[0]
 
         # read permh data
+        # NOTE : permh data also provides data on active/inactive cells
         self.x_vals, self.y_vals, self.grids['permh'] = self.read_grid('permh')
 
         # get nlay nrow, ncol
         self.nlay, self.nrow, self.ncol = self.grids['permh'].shape
 
-        # set up mask of active/inactive cells.
+        # set up mask of active/inactive cells from permh data
         # value : 1 for active cells. 0 for inactive cells
         # imask is a 3D array (nlay,nrow,ncol)
         self.imask = (self.grids['permh'] != 0).astype(int)
@@ -194,6 +196,9 @@ class MartheModel():
         marthe_utils.grid_data_to_shp(self.x_vals, self.y_vals, data, file_path, field_name_list=[key])
 
     def extract_prn(self, prn_file = None, out_dir = None):
+        """ 
+        Simple wrapper to marthe_utils_extract_prn()
+        """
         if prn_file == None : 
             prn_file = os.path.join(self.mldir,'historiq.prn')
         if out_dir == None : 
@@ -297,7 +302,7 @@ class MartheModel():
                     now = datetime.now()
                     dt = now - last
                     tsecs = dt.total_seconds() - lastsec
-                    line = "(elapsed:{0})-->{1}".format(tsecs, line)
+                    line = "elapsed:{0}-->{1}".format(tsecs, line)
                     lastsec = tsecs + lastsec
                     buff.append(line)
                     if not silent:
@@ -322,6 +327,81 @@ class MartheModel():
         if pause:
             input('Press Enter to continue...')
         return success, buff
+
+    def read_sim(self, prn_file = None):
+        """
+        Description
+        ----------
+        Reads Marthe prn file and append a "sim" columns to
+        observation dataframe. 
+
+        Parameters 
+        ----------
+        prn_file (optional) : str
+            path to prn file 
+
+        Example 
+        --------
+        mm = MartheModel('./model.rma')
+        mm.add_obs(obs_file = 'piezo1.dat')
+        mm.read_sim()
+        mm.obs['piezo1'].df
+
+                          value    weight       sim
+        date                                       
+        1972-12-31          32.5  1.000000  33.41174
+        ...
+
+        """
+        if prn_file == None : 
+            prn_file = os.path.join(self.mldir,'historiq.prn')
+
+        # load simulated values 
+        df_sim = marthe_utils.read_prn(prn_file)
+
+        for loc in self.obs.keys() :
+            # build up dataframe with a single column containing 
+            # simulated data at loc
+            # case : one single aquifer
+            if isinstance(df_sim[loc],pd.core.series.Series) :
+                df_sim_loc = pd.DataFrame({'sim':df_sim[loc]},index=df_sim.index)
+            # case : several aquifers intercepted 
+            else : 
+                # compute mean over several columns when multiple aquifers are considered
+                df_sim_loc = pd.DataFrame({'sim':df_sim[loc].mean(axis=1)},index=df_sim.index)
+            # perform outer join with observation 
+            self.obs[loc].df = self.obs[loc].df.merge(df_sim_loc,how='outer',left_index=True, right_index=True)
+
+    def compute_phi(self,type='sum_weighted_squared_res') : 
+        """
+        Description
+        ----------
+        Returns weighted objective function
+        Parameters 
+        ----------
+        prn_file (optional) : str
+            path to prn file
+        """
+        
+        self.read_sim()
+
+        df_comp = df = pd.DataFrame(columns=['obs', 'sim', 'weight'])
+
+        for loc in self.obs.keys() :
+            # build up dataframe for current loc 
+            df_loc = pd.DataFrame( {'obs':self.obs[loc].df.value,
+                'sim':self.obs[loc].df.sim,
+                'weight':self.obs[loc].df.value})
+            # append current loc to maindataframe. 
+            df_comp.append(df_loc)
+
+        if type == 'sum_weighted_squared_res': 
+            phi = pest_utils.sum_weighted_squared_res(df_comp.sim,df_comp.obs,df_comp.weight)
+        else : 
+            print('Phi type currently not implemented')
+            return
+
+        return(phi)
 
 
 class SpatialReference():

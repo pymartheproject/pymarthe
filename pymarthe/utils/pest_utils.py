@@ -154,3 +154,10 @@ def write_obs_data(obs_points, input_dir, output_dir, dates_out, date_string_for
     obs_data_file.close()
 
     return( obs_num, nobs_grp, obs_dates)
+
+
+def sum_weighted_squared_res(sim,obs,weight):
+    """
+    Returns sum of weighted squared residuals
+    """
+    return( np.sum( np.pow(weight(sim-obs), 2) ) )

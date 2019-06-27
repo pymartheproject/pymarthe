@@ -15,8 +15,7 @@ import pyemu
 # width of values (number of characters)
 VAL_CHAR_LEN = 21
 VAL_START = 12
-
-
+NO_DATA_VALUES = [-9999,-8888]
 
 class MartheObs() : 
     """
@@ -68,6 +67,10 @@ class MartheObs() :
             print('Cannot convert date for ' + obs_file)
 
         df.set_index('date', inplace = True)
+
+        # convert no data values to nan 
+        for no_data_string in NO_DATA_VALUES :
+            df.loc[df.value == no_data_string,'value'] = np.nan
 
         self.df = df
 
