@@ -71,6 +71,7 @@ class MartheObs() :
         # convert no data values to nan 
         for no_data_string in NO_DATA_VALUES :
             df.loc[df.value == no_data_string,'value'] = np.nan
+			df.dropna()
 
         self.df = df
 
