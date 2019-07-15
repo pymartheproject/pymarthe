@@ -16,19 +16,22 @@ from matplotlib import style
 from math import sqrt
 import seaborn as sns
 import sys
-sys.path.append('C:/Documents these/Dev/adeqwat/') # Directory path where the marthe utils library is located
+sys.path.append('C:/Users/raissat/Programmes/python/adeqwat/pymarthe/utils')
+
+# Directory path where the marthe utils library is located
 from marthe_utils import*
 
 #===============================================================================================================
 
 #Read mona.histo 
-df_histo = read_histo_file('./txt_file/mona.histo')
+df_histo = read_histo_file('./mona.histo')
 
 # Read obs file 
-id_points_obs,df_obs = read_obs('./txt_file/Piezo_2015_Ryma.txt')
+id_points_obs,df_obs = read_obs('Piezo_2015_Ryma.txt')
+obs_number= df_obs.groupby(pd.Grouper(freq='Y'))[id_points_obs].count()
 
 #Read sim file 
-id_points_sim,df_sim = read_file_sim('./txt_file/historiq.prn')
+df_sim = read_prn('historiq.prn')
 
 #Extract common columns 
 common_cols = list(set(df_histo['ID_FORAGE']).intersection(id_points_obs))
@@ -76,12 +79,13 @@ for i in range(1,nb_layer+1):
     list_mean_rmse.append(mean_rmse)
     list_mean_bias.append(mean_bias)
 
+'''
 #Plot boxplot : 
 dfcrit.boxplot('rmse','layer', grid = False, showfliers = False)
 plt.savefig('./boxplot_rmse.png', dpi = 1000)
 dfcrit.boxplot('bias','layer', grid = False, showfliers = False)
 plt.savefig('./boxplot_bias.png', dpi = 1000)
-
+'''
 
 # Plot comparaison
 for id in list_id :
@@ -97,6 +101,5 @@ for id in list_id :
     plt.ylabel ('H (mNGF)')
     plt.xlabel ('Année')
     plt.legend()
-    plt.show()
-    plt.savefig('./'+id+'.png', dpi = 1000)
+    plt.savefig('./fig_comp/'+id+'.png', dpi = 1000)
     plt.close()
