@@ -73,6 +73,7 @@ class MartheObs() :
             df.loc[df.value == no_data_string,'value'] = np.nan
 
         self.df = df
+        
 
     def write_ins(self) :
         # open instruction and observation files for obs_point
