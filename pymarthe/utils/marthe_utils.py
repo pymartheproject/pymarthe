@@ -285,7 +285,7 @@ def read_histo_file (path_file):
 
         
     ''' 
-    df_histo = pd.read_fwf('./txt_file/mona.histo',skiprows = 1,widths= [30,7,2,7,2,7,1,12,30])
+    df_histo = pd.read_fwf(path_file,skiprows = 1,widths= [30,7,2,7,2,7,1,12,30])
     id_columns =  ['TITRE','Xcoord', 'Y=','Ycoord','P=','Couche',';','ID_FORAGE','Commune']
     df_histo.columns = id_columns
     df_histo  = df_histo.iloc[0:-1,:]
