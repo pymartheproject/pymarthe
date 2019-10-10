@@ -116,7 +116,17 @@ class MartheModel():
             obs_dir, obs_filename = os.path.split(obs_file)
             loc_name = obs_filename.split('.')[0]
 
-        self.obs[loc_name] = MartheObs(self, prefix, obs_file, loc_name)
+        # create new MartheObs object
+        obs  = MartheObs(self, prefix, obs_file, loc_name)
+        
+        # remove NAs
+        obs.df.dropna(inplace=True)
+
+        # Check number of records
+        if obs.df.shape[0] > 0 : 
+            self.obs[loc_name] = obs
+        else :
+            print('No records in current obs')
 
     def load_grid(self,key) : 
         """

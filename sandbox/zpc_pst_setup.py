@@ -86,6 +86,12 @@ for param in list(mm.param.keys()):
     pst.parameter_data.loc[ mm.param[param].zpc_df.index , "pargp"] = param
 
 # write pst 
+pst.parameter_data.loc['kepon_l01_zpc01','partrans'] = 'fixed'
+pst.parameter_data.loc['kepon_l01_zpc01',"parlbnd"]  = 0.
+
+#pyemu.utils.helpers.zero_order_tikhonov(pst,par_groups=["drn_cond"])
+
+# write pst 
 pst.write(mm.mlname + '.pst')
 
 
