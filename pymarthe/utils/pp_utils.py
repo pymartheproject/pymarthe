@@ -1,30 +1,56 @@
+import os 
 import numpy as np
 import pandas as pd
 import geopandas 
 
-def ppoints_from_file(pp_file):
-    return(pp_df)
+PP_NAMES = ["name","x","y","zone","value"]
+PPFMT = lambda name, lay, zone, ppid: '{0}_l{1:02d}_z{2:02d}_{3:03d}'.format(name,int(lay+1),int(zone),int(ppid)) 
 
 
-def ppoints_from_shp(shp_file) : 
-    pp_df = geopandas.read_file(pp_shp_file)
+def ppoints_from_shp(shp_file, prefix, zone = 1, value = 1e-2, zone_field = None, value_field = None) :
+    """
+    Collect pilot points x, y and initial value 
+    Parameters
+    ----------
+
+    Returns
+    -------
+    
+    Example
+    -------
+    >>> ppoints_from_shp('points_pilotes_eponte2.shp', prefix = 'kepon_l02', zone_field='zone', value_field='value')
+    """
+    pp_df = geopandas.read_file(shp_file)
     pp_df['x'] = pp_df.geometry.x
     pp_df['y'] = pp_df.geometry.y
-    #pp_df['name'] =  [ 'pp' + str(id) for id in pp_df['id'] ]
-    pp_df['zone'] = 1
-    pp_df['parval1'] = pp_df['y']
-    return(pp_df)
-    
-def ppoints_to_file(pp_df,pp_file)
-    pp_df.to_csv('./data/ppoints.csv',sep=' ',index = False, header=False, columns=['name','x','y','zone','parval1'])
 
+    # context dependent zone definition
+    if 'zone' not in pp_df.columns :
+        if zone_field is not None : 
+            pp_df['zone'] = pp_df[zone_field]
+        else :
+            pp_df['zone'] = zone
+    # context dependent initial value 
+    if 'value' not in pp_df.columns :
+        if value_field is not None : 
+            pp_df['value'] = pp_df[zone_field]
+        else :
+            pp_df['value'] = value
+
+    # name pilot points
+    pp_df['name'] =  [ '{0}_z{1:02d}_{2:03d}'.format(prefix,zone,id) for id,zone in zip(pp_df['id'],pp_df['zone']) ]
+
+    # extract only column selection and return a copy of pp_df
+    return(pp_df[PP_NAMES].copy())
+    
+def ppoints_to_file(pp_df,pp_file):
+    pp_df.to_csv('./data/ppoints.csv',sep=' ',index = False, header=False, columns=['name','x','y','zone','value'])
 
 # ----------------------------------------------------------------------------------------------------------
 #Extraction from PyEMU 
 #https://github.com/jtwhite79/pyemu/blob/develop/pyemu/
 # ----------------------------------------------------------------------------------------------------------
 
-PP_NAMES = ["name","x","y","zone","parval1"]
 
 def fac2real(pp_file=None,factors_file="factors.dat",
              upper_lim=1.0e+30,lower_lim=-1.0e+30,fill_value=1.0e+30):
@@ -52,8 +78,7 @@ def fac2real(pp_file=None,factors_file="factors.dat",
         if out_file it not None
     Example
     -------
-    ``>>>import pyemu``
-    ``>>>pyemu.utils.geostats.fac2real("hkpp.dat",out_file="hk_layer_1.ref")``
+    ``>>>fac2real("hkpp.dat",out_file="hk_layer_1.ref")``
     """
 
     if pp_file is not None and isinstance(pp_file,str):
@@ -62,7 +87,7 @@ def fac2real(pp_file=None,factors_file="factors.dat",
         pp_data.loc[:,"name"] = pp_data.name.apply(lambda x: x.lower())
     elif pp_file is not None and isinstance(pp_file,pd.DataFrame):
         assert "name" in pp_file.columns
-        assert "parval1" in pp_file.columns
+        assert "value" in pp_file.columns
         pp_data = pp_file
     else:
         raise Exception("unrecognized pp_file arg: must be str or pandas.DataFrame, not {0}"\
@@ -86,9 +111,9 @@ def fac2real(pp_file=None,factors_file="factors.dat",
                         "between the factors file and the pilot points file " +\
                         ','.join(list(diff)))
 
-    pp_dict = {int(name):val for name,val in zip(pp_data.index,pp_data.parval1)}
+    pp_dict = {int(name):val for name,val in zip(pp_data.index,pp_data.value)}
     try:
-        pp_dict_log = {name:np.log10(val) for name,val in zip(pp_data.index,pp_data.parval1)}
+        pp_dict_log = {name:np.log10(val) for name,val in zip(pp_data.index,pp_data.value)}
     except:
         pp_dict_log = {}
 

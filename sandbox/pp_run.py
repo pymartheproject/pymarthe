@@ -26,7 +26,7 @@ mm = MartheModel('./mona.rma')
 # -- parameter
 mm.add_param('kepon')
 
-# load zpc parameter values from file
+# load pp parameter values from file
 mm.param['kepon'].read_pp_df()
 
 # set corresponding mm grid array from zpc_values 

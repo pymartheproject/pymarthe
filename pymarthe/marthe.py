@@ -68,14 +68,15 @@ class MartheModel():
         # imask is a 3D array (nlay,nrow,ncol)
         self.imask = (self.grids['permh'] != 0).astype(int)
 
-        # set up izone
+        # NOTE : izone is now parameter-based
+        #set up izone
         # similarly to self.grids, based on a dic with parameter name as key
         # values for izone arrays 3D arrays : 
         # - int, zone of piecewise constancy
         # + int, zone with pilot points
         # 0, for inactive cells
         # default value from imask, -1 zone of piecewise constancy
-        self.izone = { key : -1*self.imask for key in self.grid_keys } 
+        #self.izone = { key : -1*self.imask for key in self.grid_keys } 
 
         # set up pilot point data frame 
         self.pp_df = pd.DataFrame({'name': pd.Series(None, dtype=str),
