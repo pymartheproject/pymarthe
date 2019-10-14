@@ -28,11 +28,14 @@ mm.add_param('kepon',1e-6)
 
 # set initial values
 # layer-based parameter assignation
+values = {0: 1.5e-5, 1: 2.3e-4}
+mm.param['kepon'].set_zpc_values(values)
 
 # write template file and initial parameter input file
 for parname in list(mm.param.keys()):
-    mm.param[parname].write_pp_tpl()
-    mm.param[parname].write_pp_data()
+    mm.param[parname].write_zpc_tpl()
+    mm.param[parname].write_zpc_data()
+
 
 # --- Observations ---
 
@@ -83,6 +86,13 @@ for param in list(mm.param.keys()):
     pst.parameter_data.loc[ mm.param[param].zpc_df.index , "pargp"] = param
 
 # write pst 
+pst.parameter_data.loc['kepon_l01_zpc01','partrans'] = 'fixed'
+pst.parameter_data.loc['kepon_l01_zpc01',"parlbnd"]  = 0.
+
+#pyemu.utils.helpers.zero_order_tikhonov(pst,par_groups=["drn_cond"])
+
+# write pst 
 pst.write(mm.mlname + '.pst')
+
 
 

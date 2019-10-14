@@ -236,7 +236,7 @@ class MartheParam() :
 
     def pp_df_from_shp(self, shp_path, lay, zone = 1, value = None , zone_field = None, value_field = None) :
         """
-        Function
+       Reads input shape file, builds up pilot dataframe, and insert into pp_dic 
 
         Parameters
         ----------
@@ -375,11 +375,12 @@ class MartheParam() :
                               index=False,
                               index_names=False))
 
-    def pp_from_rgrid(self, lay, zone, n_cell):
+    def pp_from_rgrid(self, lay, n_cell):
         '''
         Description
         -----------
         This function sets up a regular grid of pilot points 
+        NOTE : current version does not handle zone 
        
         Parameters
         ----------
@@ -399,6 +400,9 @@ class MartheParam() :
         pp_x, pp_y = pp_from_rgrid(lay, zone, n_cell)
         
         '''
+        # current version does not handle zones
+        zone = 1 
+
         izone_2d = self.izone[lay,:,:]
 
         x_vals = self.mm.x_vals
@@ -421,7 +425,17 @@ class MartheParam() :
         pp_x  = xx[pp_select==1].ravel()
         pp_y  = yy[pp_select==1].ravel()
 
-        return pp_x, pp_y
+        # number of selected pilot points
+        n_pp = len(pp_x)
+
+        # name pilot points
+        prefix = '{0}_l{1:02d}_z{2:02d}'.format(self.name,lay,zone)
+        pp_names = [ '{0}_{1:03d}'.format(prefix,id) for id in range(n_pp)  ]
+        
+        # build up pp_df
+        pp_df = pd.DataFrame({"name":pp_names,"x":pp_x,"y":pp_y, "zone":zone, "value":self.default_value})
+        self.pp_dic[lay] = pp_df
+        
 
     def read_zpc_df(self,filename = None) :
         """
