@@ -31,12 +31,25 @@ id_points_obs,df_obs = read_obs('Piezo_2015_Ryma.txt')
 obs_number= df_obs.groupby(pd.Grouper(freq='Y'))[id_points_obs].count()
 
 #Read sim file 
-df_sim = read_prn('historiq.prn')
+df_sim = read_prn('./historiq.prn')
+df_sim_p1 = read_prn('./historiq_p1.prn')
+df_sim_p2 = read_prn('./historiq_p2.prn')
+df_sim_p3 = read_prn('./historiq_p3.prn')
+df_sim_p4 = read_prn('./historiq_p4.prn')
+df_sim_p5 = read_prn('./historiq_p5.prn')
 
 #Extract common columns 
 common_cols = list(set(df_histo['ID_FORAGE']).intersection(id_points_obs))
 df_obs = df_obs[common_cols]
+
 df_sim = df_sim[common_cols]
+df_sim_p1 = df_sim_p1[common_cols]
+df_sim_p2 = df_sim_p2[common_cols]
+df_sim_p3 = df_sim_p3[common_cols]
+df_sim_p4 = df_sim_p4[common_cols]
+df_sim_p5 = df_sim_p5[common_cols]
+
+
 df_histo  = df_histo.loc[common_cols]
 # ID_FORAGE in index
 df_histo  = df_histo.set_index(df_histo.ID_FORAGE)
@@ -44,12 +57,19 @@ df_histo  = df_histo.set_index(df_histo.ID_FORAGE)
 yearly_data_obs = df_obs.resample('Y').mean()
 # Replace 9999 by nan
 yearly_data_sim   =  df_sim.replace( 9999, np.nan)
+yearly_data_sim1   =  df_sim_p1.replace( 9999, np.nan)
+yearly_data_sim2   =  df_sim_p2.replace( 9999, np.nan)
+yearly_data_sim3   =  df_sim_p3.replace( 9999, np.nan)
+yearly_data_sim4   =  df_sim_p4.replace( 9999, np.nan)
+yearly_data_sim5   =  df_sim_p5.replace( 9999, np.nan)
+
 
 # Create a list of id points
 list_id =  yearly_data_obs.columns
 
 res   = ((yearly_data_sim   -  yearly_data_obs)**2).mean()
 biais = (yearly_data_sim    -  yearly_data_obs).mean()
+
 biais_list = []
 rmse_list  = []
 for id in list_id :
@@ -90,10 +110,25 @@ plt.savefig('./boxplot_bias.png', dpi = 1000)
 # Plot comparaison
 for id in list_id :
     rmse = (res [id].mean())**.5
+
     df_sim_column = yearly_data_sim[id]
+    df_sim1_column = yearly_data_sim1[id]
+    df_sim2_column = yearly_data_sim2[id]
+    df_sim3_column = yearly_data_sim3[id]
+    df_sim4_column = yearly_data_sim4[id]
+    df_sim5_column = yearly_data_sim5[id]
+
+
     df_obs_column = yearly_data_obs[id]
+    
     df_sim_column.plot(alpha =0.6, label = "SIM ")
+    df_sim1_column.plot(alpha =0.6, label = "SIM1 ")
+    df_sim2_column.plot(alpha =0.6, label = "SIM2 ")
+    df_sim3_column.plot(alpha =0.6, label = "SIM3 ")
+    df_sim4_column.plot(alpha =0.6, label = "SIM4 ")
+    df_sim5_column.plot(alpha =0.6, label = "SIM5 ")
     df_obs_column.plot(style = '.',  label = "OBS ")
+    
     if type(layer[id]) ==  pd.core.series.Series:
         plt.title('RMSE = '+str(round(rmse,2))+'m '+ '   '+'BIAIS = '+str(round(biais[id].mean(),2))+'m '+'   '+id+'   '+'Couches'+'  '+str((layer[id].values[0]))+' et '+str((layer[id].values[1]))+' ', fontsize = 12)
     else:
@@ -101,5 +136,5 @@ for id in list_id :
     plt.ylabel ('H (mNGF)')
     plt.xlabel ('Année')
     plt.legend()
-    plt.savefig('./fig_comp/'+id+'.png', dpi = 1000)
+    plt.savefig('./fig_run_jac/'+id+'.png', dpi = 1000)
     plt.close()

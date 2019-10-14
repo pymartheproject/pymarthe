@@ -69,11 +69,17 @@ class MartheObs() :
         df.set_index('date', inplace = True)
 
         # convert no data values to nan 
+<<<<<<< HEAD
+        for no_data_string in NO_DATA_VALUES :
+            df.loc[df.value == no_data_string,'value'] = np.nan
+            df.dropna()
+=======
         # NOTE : issues with incomplete series simul/obs mismatch
 	#for no_data_string in NO_DATA_VALUES :
         #    df.loc[df.value == no_data_string,'value'] = np.nan
 	#		df.dropna()
 
+>>>>>>> f1063cae19e34903d8c25110415c1d402f472d36
         self.df = df
         
 
