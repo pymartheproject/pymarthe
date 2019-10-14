@@ -29,17 +29,14 @@ def SFMT(item):
 SFMT_LONG = lambda x: "{0:<50s} ".format(str(x))
 IFMT = lambda x: "{0:<10d} ".format(int(x))
 FFMT = lambda x: "{0:<20.10E} ".format(float(x))
+PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value": FFMT}
 
 
-PP_FMT = {"parname": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT,
-"value": FFMT}
-
-
-def write_tpl_from_df(tpl_file,df) :  
+def write_tpl_from_df(tpl_file,df, columns = ["name","tpl"] ) :  
     f_tpl = open(tpl_file,'w')
     f_tpl.write("ptf ~\n")
     f_tpl.write(df.to_string(col_space=0,
-        columns=["parname","tpl"],
+        columns=columns,
         formatters=PP_FMT,
         justify="left",
         header=False,

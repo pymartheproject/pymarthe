@@ -33,7 +33,7 @@ value = 1e-7 # initial, default value m/s
 a = 16 # variogram range, km
 minpts_interp=1
 maxpts_interp=20
-search_radius=25
+search_radius=500
 
 # --- parameter setup 
 
@@ -98,10 +98,22 @@ kriged_array_2d = np.array(mm.imask[lay,:,:],dtype = float)
 # build up 2d array, seems to match without sorting 
 kriged_array_2d[idx] = data_df['vals']
 
+# define current zone 
+zones = np.unique(mm.param[par].izone)
+
+for zone in zones :
+    if zone == 0 : # inactive cells
+        continue
+    elif zone < 0 :  # zones of piecewise constancy
+        continue
+    elif zone > 0 : # parameterization with pilot points
+        continue
+
+
+
 
 # ----------------------------------------------------------------------------
 # ----------------------- PEST control file  ---------------------------------
 # ----------------------------------------------------------------------------
-
 
 

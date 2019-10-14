@@ -11,5 +11,5 @@ __author__ = 'Ryma Aissat, Yohann Cousquer, Alexandre Pryet'
 __version__ = 0.1
 
 # imports
-from .utils import marthe_utils, pest_utils
+from .utils import marthe_utils, pest_utils, pp_utils
 from .marthe import MartheModel, SpatialReference

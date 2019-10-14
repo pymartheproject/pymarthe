@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib import pyplot as plt 
 from .utils import marthe_utils
 from .utils import pest_utils
+from .utils import pp_utils
 import pandas as pd 
 import pyemu
 
@@ -19,9 +20,12 @@ import pyemu
 # example: kepon_l02_zpc03
 ZPCFMT = lambda name, lay, zone: '{0}_l{1:02d}_zpc{2:02d}'.format(name,int(lay+1),int(abs(zone)))
 
-# name format for pilot points  
-# example : kepon_l02_z02_pp001
-PPFMT = lambda name, lay, zone, ppid: '{0}_l{1:02d}_z{2:02d}_{3:03d}'.format(name,int(lay+1),int(zone),int(ppid)) 
+# float and integer formats
+FFMT = lambda x: "{0:<20.10E} ".format(float(x))
+IFMT = lambda x: "{0:<10d} ".format(int(x))
+
+# columns for pilot point df
+PP_NAMES = ["name","x","y","zone","value"]
 
 # string format
 def SFMT(item):
@@ -31,8 +35,8 @@ def SFMT(item):
         s = "{0:<20s} ".format(str(item))
     return s
 
-# float format
-FFMT = lambda x: "{0:<20.10E} ".format(float(x))
+# name format for pilot points files  
+PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value": FFMT}
 
 class MartheParam() :
     """
@@ -58,17 +62,28 @@ class MartheParam() :
       
     def set_izone(self,izone = None):
         """
-        Load izone array from data. 
-        If data is None, a single constant zone per layer is considered. 
-        Former izone data for given parameter will be reset. 
+        Set izone 3D array (nlay, nrow, ncol) of integer
+        Former izone data for given parameter will be reset.
 
+        Where mm.imask values are 0, izone data are fixed to 0
+
+        izone value < 0, zone of piecewise constancy
+        izone value > 0, zone with pilot points
+        izone value = 0 for inactive cells
+
+        If data is None, a single constant zone (-1) per layer is considered.
 
         Parameters
         ----------
-        data : None, int or np array of int, shape (nlay,nrow,ncol)
+        izone : None, int or np array of int, shape (nlay,nrow,ncol)
 
         Examples
         --------
+        >> mm.param['kepon'].set_izone()
+
+        >> izone = -1*np.ones( (nlay, nrow, ncol) )
+        >> izone[0,:,:] = 1
+        >> mm.param['kepon'].set_izone(izone)
 
         """
         # reset izone for current parameter from imask
@@ -83,38 +98,36 @@ class MartheParam() :
 
         # case an izone array is provided
         elif isinstance(izone,np.ndarray) : 
-            assert izone.shape == (nlay,nrow,ncol) 
+            assert izone.shape == (self.mm.nlay, self.mm.nrow, self.mm.ncol) 
             # only update active cells  
             self.izone[idx_active_cells] = izone[idx_active_cells]
 
         # update zpc_df and pp_dic
-        self.update_zpc_df()
-        self.update_pp_dic()
+        # this resets any modification applied to zpc_df and pp_df
+        self.init_zpc_df()
+        self.init_pp_dic()
 
 
-    def update_pp_dic(self) :
+    def init_pp_dic(self) :
         """
-        Parameters
-        ----------
-        key : str
-            
-        Examples
-        --------
+        Initialize the nested dic of pp_df
+        Example format : 
+        pp_dic = { 0:pp_df_0, 3:pp_df_3 }
         """
         nlay = self.mm.nlay
-        self.pp_dic  = {lay:[] for lay in range(nlay) }
+        self.pp_dic  = {}
       
+        # append lay to pp_dic if it contains zones > 0
         for lay in range(nlay) :
             zones = np.unique(self.izone[lay,:,:])
-            for zone in zones :
-                if zone > 0 :
-                    self.pp_dic[lay].append(zone)
+            # number of zones > 0 
+            if len( [zone for zone in zones if zone >0] ) > 0 :
+                self.pp_dic[lay] = None
 
-    def update_zpc_df(self) :
+    def init_zpc_df(self) :
         """
         Set up dataframe of zones of piecewise constancy from izone
         """
-
         nlay = self.mm.nlay
 
         parnames = []
@@ -179,23 +192,6 @@ class MartheParam() :
             print('Invalid input, check the help')
             return
 
-    def set_pp_names(self):
-        """
-        updates pp names from self.dic_pp
-        """
-        """
-        Function
-
-        Parameters
-        ----------
-        key : str
-            parameter
-        data : type
-
-        Examples
-        --------
-
-        """
     
     def set_array(self, lay, zone, values) : 
         """
@@ -238,48 +234,56 @@ class MartheParam() :
                 print('Parameter value is NA for ZPC zone {0} in lay {1}').format(abs(zone),int(lay)+1)
             self.set_array(lay,zone,value)
 
-    def setup_pp(self) :
+    def pp_df_from_shp(self, shp_path, lay, zone = 1, value = None , zone_field = None, value_field = None) :
         """
         Function
 
         Parameters
         ----------
-        key : str
-            parameter
-        data : type
+        path : full path to shp with pilot points
+        lay : layer id (0-based)
+        zone : zone id (>0)
 
         Examples
         --------
+        mm.param['permh'].pp_df_from_shp('./data/points_pilotes_eponte2.shp', lay, zone)
 
         """
+        if value is None : 
+            value = self.default_value
 
-        self.pp_df
-
-
-    def zone_interp_coords(self, mm, lay, zone_id) :
+        # init pp name prefix
+        prefix = 'pp_{0}_l{1:02d}'.format(self.name,lay)
+        # get data from shp and update pp_df for given layer
+        # NOTE will be further extended for multi-zones
+        # and allow update of current pp_d
+        self.pp_dic[lay] = pp_utils.ppoints_from_shp(shp_path, prefix, zone, value, zone_field, value_field)
+        
+    def zone_interp_coords(self, lay, zone) :
         """
-        Function
+        Returns grid coordinates where interpolation
+        should be performed for given lay and zone
 
         Parameters
         ----------
-        key : str
+        lay: model layer (0-based)
             parameter
-        data : type
+        zone : zone layer (>0 for pilot points)
 
         Examples
         --------
-
+        x_coords, y_coords = mm.param['permh'].zone_interp_coords(lay=0,zone=1)
+        
         """
         # set up index for current zone and lay
-        idx = self.izone[lay,:,:] == zone_id
 
         # point where interpolation shall be conducted for current zone
-        xx, yy = np.meshgrid(mm.x_vals,mm.y_vals)
-        x_select = xx[idx].ravel()
-        y_select = yy[idx].ravel()
+        idx = self.izone[lay,:,:] == zone
+        xx, yy = np.meshgrid(self.mm.x_vals, self.mm.y_vals)
+        x_coords = xx[idx].ravel()
+        y_coords = yy[idx].ravel()
 
-        return(x_select,y_select)
-
+        return(x_coords, y_coords)
 
     def write_zpc_tpl(self, filename = None):
         """
@@ -306,18 +310,24 @@ class MartheParam() :
             pest_utils.write_tpl_from_df(os.path.join(self.mm.mldir,'tpl',filename), zpc_df)
 
     def write_pp_tpl(self) : 
-        """ set up template data frame for pilot points
-        Parameters
-        ----------
-        Returns 
-        -------
-            pp_df : pandas.DataFrame
-                a dataframe with pilot point information (name,x,y,zone,parval1)
-                 with the parameter information (parnme,tpl_str)
+        """ 
+        set up and write template files for pilot points
+        one file per model layer
+
         """
-
-
-        return pp_df
+        for lay in self.pp_dic.keys():
+            pp_df = self.pp_dic[lay]
+            tpl_filename = '{0}_pp_l{1:2d}.tpl'.format(self.name,lay+1)
+            tpl_file = os.path.join(self.mm.mldir,'tpl',tpl_filename)
+            tpl_entries = ["~  {0}  ~".format(parname) for parname in pp_df.name]
+            pp_tpl_df = pd.DataFrame({
+                'parname' : pp_df.name ,
+                'x': pp_df.x,
+                'y': pp_df.y,
+                'zone': pp_df.zone,
+                'tpl' : tpl_entries
+                })
+            pest_utils.write_tpl_from_df(tpl_file, pp_tpl_df, columns = ["parname", "x", "y", "zone", "tpl"] )
 
     def write_zpc_data(self, filename = None):
         """
@@ -336,13 +346,33 @@ class MartheParam() :
         zpc_names = self.zpc_df.index
 
         if len(zpc_names) > 0 :
-            f_param = open(os.path.join('param',filename),'w')
+            f_param = open(os.path.join(self.mm.mldir,'param',filename),'w')
             f_param.write(self.zpc_df.to_string(col_space=0,
-                              columns=['value'],
+                              columns=["parname", "x", "y", "zone", "value"],
                               formatters={'value':FFMT},
                               justify="left",
                               header=False,
-                              index=True,
+                              index=False,
+                              index_names=False))
+
+    def write_pp_df(self):
+        """
+        write pp_df to files
+        """
+        for lay in self.pp_dic.keys():
+            # pointer to pp_df for current layer
+            pp_df = self.pp_dic[lay]
+            # set up output file 
+            pp_df_filename = 'pp_{0}_l{1:02d}.dat'.format(self.name, lay+1)
+            pp_df_file = os.path.join(self.mm.mldir,'param',pp_df_filename)
+            # write output file 
+            f_param = open(pp_df_file,'w')
+            f_param.write(pp_df.to_string(col_space=0,
+                              columns=["name", "x", "y", "zone", "value"],
+                              formatters=PP_FMT,
+                              justify="left",
+                              header=False,
+                              index=False,
                               index_names=False))
 
     def pp_from_rgrid(self, lay, zone, n_cell):
@@ -366,32 +396,32 @@ class MartheParam() :
         
         Example
         -----------
-        pp_x, pp_y = get_rgrid_pp(lay, zone, n_cell)
+        pp_x, pp_y = pp_from_rgrid(lay, zone, n_cell)
         
         '''
         izone_2d = self.izone[lay,:,:]
 
         x_vals = self.mm.x_vals
         y_vals = self.mm.y_vals
+        xx, yy = np.meshgrid(x_vals,y_vals)
+
         nrow = self.mm.nrow
         ncol = self.mm.ncol
             
         rows = range(0,nrow,n_cell)
         cols = range(0,ncol,n_cell)
         
-        srows,scols = np.meshgrid(rows,cols)
+        srows, scols = np.meshgrid(rows,cols)
 
         pp_select = np.zeros((nrow,ncol))
         pp_select[srows,scols] = 1
 
         pp_select[izone_2d != zone] = 0
 
-        xx, yy = np.meshgrid(x_vals,y_vals)
-        
         pp_x  = xx[pp_select==1].ravel()
         pp_y  = yy[pp_select==1].ravel()
 
-        return pp_x,pp_y
+        return pp_x, pp_y
 
     def read_zpc_df(self,filename = None) :
         """
@@ -419,7 +449,7 @@ class MartheParam() :
             filename = self.name + '_zpc.dat'
 
         # read dataframe
-        df = pd.read_csv(os.path.join('param',filename), delim_whitespace=True,
+        df = pd.read_csv(os.path.join(self.mm.mldir,'param',filename), delim_whitespace=True,
                 header=None,names=['parname','value'], usecols=[0,1])
         df.set_index('parname',inplace=True)
         
@@ -463,4 +493,39 @@ class MartheParam() :
                     )
 
         return
+
+    def read_pp_df(self):
+        """
+        Read pp_df for all layers and fill self.pp_dic
+        """
+        for lay in self.pp_dic.keys():
+            # read dataframe
+            filename = 'pp_{0}_l{1:02d}.dat'.format(self.name,lay+1)
+            pp_file = os.path.join(self.mm.mldir,'param',filename)
+            pp_df = pd.read_csv(pp_file, delim_whitespace=True,
+                    header=None,names=PP_NAMES)
+            #pp_df.set_index('name',inplace=True)
+            # set pp_df for current layer
+            self.pp_dic[lay]=pp_df
+
+
+    def interp_from_factors(self):
+        """
+        Interpolate from pilot points df files with fac2real()
+        and update parameter array
+        """
+        for lay in self.pp_dic.keys():
+            zones = [zone for zone in np.unique(self.izone[lay,:,:]) if zone >0]
+            for zone in zones : 
+                # path to factor file
+                kfac_filename = 'kfac_{0}_l{1:02d}.dat'.format(self.name,lay+1)
+                kfac_file = os.path.join(self.mm.mldir,'param',kfac_filename)
+                # fac2real
+                kriged_values_df = pp_utils.fac2real(pp_file = self.pp_dic[lay] ,factors_file = kfac_file)
+                # update parameter array
+                idx = self.izone[lay,:,:] == zone
+                # NOTE for some (welcome) reasons it seems that the order of values
+                # from self.array[lay][idx] and kriged_value_df.vals do match
+                self.array[lay][idx] = kriged_values_df.vals
+
 
