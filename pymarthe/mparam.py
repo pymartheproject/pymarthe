@@ -142,8 +142,8 @@ class MartheParam() :
                     parlays.append(lay)
                     parzones.append(zone)
 
-        self.zpc_df = pd.DataFrame({'parname':parnames, 'lay':parlays, 'zone':parzones, 'value': self.default_value})
-        self.zpc_df.set_index('parname',inplace=True)
+        self.zpc_df = pd.DataFrame({'name':parnames, 'lay':parlays, 'zone':parzones, 'value': self.default_value})
+        self.zpc_df.set_index('name',inplace=True)
 
     def set_zpc_values(self,values) : 
         """
@@ -306,7 +306,7 @@ class MartheParam() :
 
         if len(zpc_names) > 0 :
             tpl_entries = ["~  {0}  ~".format(parname) for parname in zpc_names]
-            zpc_df = pd.DataFrame({'parname' : zpc_names,'tpl' : tpl_entries})
+            zpc_df = pd.DataFrame({'name' : zpc_names,'tpl' : tpl_entries})
             pest_utils.write_tpl_from_df(os.path.join(self.mm.mldir,'tpl',filename), zpc_df)
 
     def write_pp_tpl(self) : 
@@ -319,15 +319,15 @@ class MartheParam() :
             pp_df = self.pp_dic[lay]
             tpl_filename = '{0}_pp_l{1:2d}.tpl'.format(self.name,lay+1)
             tpl_file = os.path.join(self.mm.mldir,'tpl',tpl_filename)
-            tpl_entries = ["~  {0}  ~".format(parname) for parname in pp_df.name]
+            tpl_entries = ["~  {0}  ~".format(parname) for parname in pp_df.index]
             pp_tpl_df = pd.DataFrame({
-                'parname' : pp_df.name ,
+                'name' : pp_df.index ,
                 'x': pp_df.x,
                 'y': pp_df.y,
                 'zone': pp_df.zone,
                 'tpl' : tpl_entries
                 })
-            pest_utils.write_tpl_from_df(tpl_file, pp_tpl_df, columns = ["parname", "x", "y", "zone", "tpl"] )
+            pest_utils.write_tpl_from_df(tpl_file, pp_tpl_df, columns = ["name", "x", "y", "zone", "tpl"] )
 
     def write_zpc_data(self, filename = None):
         """
@@ -348,11 +348,11 @@ class MartheParam() :
         if len(zpc_names) > 0 :
             f_param = open(os.path.join(self.mm.mldir,'param',filename),'w')
             f_param.write(self.zpc_df.to_string(col_space=0,
-                              columns=["parname", "x", "y", "zone", "value"],
+                              columns=["lay", "zone", "value"],
                               formatters={'value':FFMT},
                               justify="left",
                               header=False,
-                              index=False,
+                              index=True,
                               index_names=False))
 
     def write_pp_df(self):
@@ -368,11 +368,11 @@ class MartheParam() :
             # write output file 
             f_param = open(pp_df_file,'w')
             f_param.write(pp_df.to_string(col_space=0,
-                              columns=["name", "x", "y", "zone", "value"],
+                              columns=["x", "y", "zone", "value"],
                               formatters=PP_FMT,
                               justify="left",
                               header=False,
-                              index=False,
+                              index=True,
                               index_names=False))
 
     def pp_from_rgrid(self, lay, n_cell):
@@ -434,6 +434,9 @@ class MartheParam() :
         
         # build up pp_df
         pp_df = pd.DataFrame({"name":pp_names,"x":pp_x,"y":pp_y, "zone":zone, "value":self.default_value})
+        pp_df.set_index('name',inplace=True)
+        pp_df['name'] = pp_df.index
+
         self.pp_dic[lay] = pp_df
         
 
@@ -464,8 +467,8 @@ class MartheParam() :
 
         # read dataframe
         df = pd.read_csv(os.path.join(self.mm.mldir,'param',filename), delim_whitespace=True,
-                header=None,names=['parname','value'], usecols=[0,1])
-        df.set_index('parname',inplace=True)
+                header=None,names=['name','value'], usecols=[0,1])
+        df.set_index('name',inplace=True)
         
         # parse layer and zone from parameter name 
         parnames = []
@@ -491,8 +494,8 @@ class MartheParam() :
             '{1}'.format(self.name, ' '.join(not_found_parnames))
                     )
         # merge new dataframe with existing zpc_df
-        df = pd.DataFrame({'parname':parnames, 'value':values})
-        df.set_index('parname', inplace=True)
+        df = pd.DataFrame({'name':parnames, 'value':values})
+        df.set_index('name', inplace=True)
         self.zpc_df = pd.merge(self.zpc_df, df, how='left', left_index=True, right_index=True)
 
         self.zpc_df['value'] = self.zpc_df.value_y

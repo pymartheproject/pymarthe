@@ -39,6 +39,10 @@ def ppoints_from_shp(shp_file, prefix, zone = 1, value = 1e-2, zone_field = None
 
     # name pilot points
     pp_df['name'] =  [ '{0}_z{1:02d}_{2:03d}'.format(prefix,zone,id) for id,zone in zip(pp_df['id'],pp_df['zone']) ]
+    
+    # set index
+    pp_df.set_index('name',inplace=True) 
+    pp_df['name'] = pp_df.index 
 
     # extract only column selection and return a copy of pp_df
     return(pp_df[PP_NAMES].copy())
