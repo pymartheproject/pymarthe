@@ -317,7 +317,7 @@ class MartheParam() :
         """
         for lay in self.pp_dic.keys():
             pp_df = self.pp_dic[lay]
-            tpl_filename = '{0}_pp_l{1:2d}.tpl'.format(self.name,lay+1)
+            tpl_filename = '{0}_pp_l{1:02d}.tpl'.format(self.name,lay+1)
             tpl_file = os.path.join(self.mm.mldir,'tpl',tpl_filename)
             tpl_entries = ["~  {0}  ~".format(parname) for parname in pp_df.index]
             pp_tpl_df = pd.DataFrame({
