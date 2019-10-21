@@ -126,7 +126,7 @@ class MartheModel():
         if obs.df.shape[0] > 0 : 
             self.obs[loc_name] = obs
         else :
-            print('No records in current obs')
+            print('No records in current obs ' + str(loc_name))
 
     def load_grid(self,key) : 
         """
