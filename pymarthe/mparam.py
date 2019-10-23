@@ -171,7 +171,7 @@ class MartheParam() :
 
         # case same value for all zones of all layers
         if isinstance(values,(int, float)) : 
-            self.zpc_df['values'] = value
+            self.zpc_df['value'] = value
             return
         # if a dictionary is provided
         elif isinstance(values, dict) :
@@ -348,7 +348,7 @@ class MartheParam() :
         if len(zpc_names) > 0 :
             f_param = open(os.path.join(self.mm.mldir,'param',filename),'w')
             f_param.write(self.zpc_df.to_string(col_space=0,
-                              columns=["lay", "zone", "value"],
+                              columns=["value"],
                               formatters={'value':FFMT},
                               justify="left",
                               header=False,
