@@ -536,7 +536,7 @@ class MartheParam() :
             for zone in zones : 
                 # path to factor file
                 kfac_filename = 'kfac_{0}_l{1:02d}.dat'.format(self.name,lay+1)
-                kfac_file = os.path.join(self.mm.mldir,'param',kfac_filename)
+                kfac_file = os.path.join(self.mm.mldir,kfac_filename)
                 # fac2real
                 kriged_values_df = pp_utils.fac2real(pp_file = self.pp_dic[lay] ,factors_file = kfac_file)
                 # update parameter array
