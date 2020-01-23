@@ -237,7 +237,7 @@ def read_prn(prn_file):
     return  df_sim
 
 
-def extract_prn(prn_file, out_dir ="./"):
+def extract_prn(prn_file, out_dir ="./", obs_dir = None):
     '''
     Description
     -----------
@@ -248,6 +248,7 @@ def extract_prn(prn_file, out_dir ="./"):
     ----------
     path_file : Directory path with simulated data
     path_out  : Directory path to write data
+    obs_dir : Directory of observed values used for sim subset
     
     Return
     ------
@@ -260,10 +261,24 @@ def extract_prn(prn_file, out_dir ="./"):
     # read prn file
     df_sim = read_prn(prn_file)
 
-    # write individual files of simulated records 
-    for loc in df_sim.columns :
-        df_sim.to_csv(out_dir+loc+ '.dat', columns = [loc], sep='\t', index=True, header=False)
+    # if obs_dir is not provided, write all simulated dates  
+    if obs_dir == None :
+        for loc in df_sim.columns :
+            # write individual files of simulated records
+            df_sim.to_csv(out_dir+loc+ '.dat', columns = [loc], sep='\t', index=True, header=False)
 
+    # if obs_dir is provided, get observed dates for each loc 
+    else :         
+        # iterate over simulated locations and get observed data 
+        for obs_loc in df_sim.columns : 
+            obs_file = os.path.join(obs_dir, obs_loc + '.dat'
+            df_obs = pd.read_csv(obs_file, delim_whitespace=True,header=None,skiprows=1)
+            df_obs.rename(columns ={0 : 'date', 1 :'value'}, inplace =True)
+            df_obs.date = pd.to_datetime(df.date, format="%Y-%m-%d")
+            df_obs.set_index('date', inplace = True)
+            dates_out_dic[obs_loc] = df_obs.index
+            # write individual files of simulated records
+            df_sim.loc[df_obs.index].to_csv(out_dir+loc+ '.dat', columns = [loc], sep='\t', index=True, header=False)
     return
 
 def read_histo_file (path_file):

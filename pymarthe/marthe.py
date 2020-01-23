@@ -206,7 +206,7 @@ class MartheModel():
         data = self.grids[key][lay,:,:]
         marthe_utils.grid_data_to_shp(self.x_vals, self.y_vals, data, file_path, field_name_list=[key])
 
-    def extract_prn(self, prn_file = None, out_dir = None):
+    def extract_prn(self, prn_file = None, out_dir = None , obs_dir = None):
         """ 
         Simple wrapper to marthe_utils_extract_prn()
         """
@@ -215,7 +215,7 @@ class MartheModel():
         if out_dir == None : 
             out_dir = os.path.join(self.mldir,'sim','')
 
-        marthe_utils.extract_prn(prn_file, out_dir)
+        marthe_utils.extract_prn(prn_file, out_dir, obs_dir)
 
 
     def run_model(self,exe_name = 'marthe', rma_file = None, 
