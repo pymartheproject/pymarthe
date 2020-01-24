@@ -271,7 +271,7 @@ def extract_prn(prn_file, out_dir ="./", obs_dir = None):
     else :         
         # iterate over simulated locations and get observed data 
         for obs_loc in df_sim.columns : 
-            obs_file = os.path.join(obs_dir, obs_loc + '.dat'
+            obs_file = os.path.join(obs_dir, obs_loc + '.dat')
             df_obs = pd.read_csv(obs_file, delim_whitespace=True,header=None,skiprows=1)
             df_obs.rename(columns ={0 : 'date', 1 :'value'}, inplace =True)
             df_obs.date = pd.to_datetime(df.date, format="%Y-%m-%d")
