@@ -149,7 +149,7 @@ def write_grid_file(path_file, x, y, grid):
 
     i = 0
 
-    #Extract the name of the paramter from the file path
+    #Extract the name of the parameter from the file path
     parse_path = Path(path_file).parts
     file_name = parse_path[-1]
     param = file_name.split('.')[-1]

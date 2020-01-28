@@ -363,7 +363,7 @@ class MartheParam() :
             # pointer to pp_df for current layer
             pp_df = self.pp_dic[lay]
             # set up output file 
-            pp_df_filename = 'pp_{0}_l{1:02d}.dat'.format(self.name, lay+1)
+            pp_df_filename = '{0}_pp_l{1:02d}.dat'.format(self.name, lay+1)
             pp_df_file = os.path.join(self.mm.mldir,'param',pp_df_filename)
             # write output file 
             f_param = open(pp_df_file,'w')
@@ -517,7 +517,7 @@ class MartheParam() :
         """
         for lay in self.pp_dic.keys():
             # read dataframe
-            filename = 'pp_{0}_l{1:02d}.dat'.format(self.name,lay+1)
+            filename = '{0}_pp_l{1:02d}.dat'.format(self.name,lay+1)
             pp_file = os.path.join(self.mm.mldir,'param',filename)
             pp_df = pd.read_csv(pp_file, delim_whitespace=True,
                     header=None,names=PP_NAMES)
@@ -532,6 +532,7 @@ class MartheParam() :
         and update parameter array
         """
         for lay in self.pp_dic.keys():
+            print(lay)
             zones = [zone for zone in np.unique(self.izone[lay,:,:]) if zone >0]
             for zone in zones : 
                 # path to factor file
