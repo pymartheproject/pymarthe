@@ -311,6 +311,8 @@ class MartheParam() :
             tpl_entries = ["~  {0}  ~".format(parname) for parname in zpc_names]
             zpc_df = pd.DataFrame({'name' : zpc_names,'tpl' : tpl_entries})
             pest_utils.write_tpl_from_df(os.path.join(self.mm.mldir,'tpl',filename), zpc_df)
+        else : 
+            print('No ZPC identified for parameter {0} in izone data.'.format(self.name))
 
     def write_pp_tpl(self) : 
         """ 
@@ -382,7 +384,7 @@ class MartheParam() :
             pp_df_file = os.path.join(self.mm.mldir,'param',pp_df_filename)
             # write output file 
             f_param = open(pp_df_file,'w')
-            if log_transform == True :
+            if self.log_transform == True :
                 pp_df['log_value'] = np.log10(pp_df['value'])
                 f_param.write(pp_df.to_string(col_space=0,
                                   columns=["x", "y", "zone", "log_value"],
@@ -565,7 +567,6 @@ class MartheParam() :
         and update parameter array
         """
         for lay in self.pp_dic.keys():
-            print(lay)
             zones = [zone for zone in np.unique(self.izone[lay,:,:]) if zone >0]
             for zone in zones : 
                 # path to factor file

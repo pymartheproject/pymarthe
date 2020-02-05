@@ -99,7 +99,7 @@ class MartheModel():
         else : 
             # fetch mask from mm
             self.grids[name] = np.array(self.imask, dtype=np.float)
-            # fill array with nan within mask
+            # fill array with default value within mask
             self.grids[name][ self.grids[name] != 0 ] = default_value
 
         # create new instance of MartheParam
