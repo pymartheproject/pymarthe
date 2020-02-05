@@ -246,8 +246,8 @@ def extract_prn(prn_file, out_dir ="./", obs_dir = None):
    
     Parameters
     ----------
-    path_file : Directory path with simulated data
-    path_out  : Directory path to write data
+    prn_file : Directory path with simulated data
+    out_dir  : Directory path to write data
     obs_dir : Directory of observed values used for sim subset
     
     Return

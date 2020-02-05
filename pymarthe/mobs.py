@@ -25,6 +25,7 @@ class MartheObs() :
     ----------
     mm : MartheModel instance
         The MartheModel instance to which the observation pertains
+    prefix : prefix for observation id (ex. loc001)
     loc_name : str
         observation location name (ex. BSS id) 
         will correspond to the name of the observation group in PEST files

@@ -90,7 +90,7 @@ class MartheModel():
         # init number of observation locations
         self.nobs_loc = 0
 
-    def add_param(self, name, default_value = np.nan, izone = None, array = None) :
+    def add_param(self, name, default_value = np.nan, izone = None, array = None, log_transform = False) :
 
         # case an array is provided
         if isinstance(array, np.ndarray) :
@@ -103,7 +103,7 @@ class MartheModel():
             self.grids[name][ self.grids[name] != 0 ] = default_value
 
         # create new instance of MartheParam
-        self.param[name] = MartheParam(self, name, default_value, izone, array)       
+        self.param[name] = MartheParam(self, name, default_value, izone, array, log_transform)       
 
     def add_obs(self, obs_file, loc_name = None) :
         
@@ -120,6 +120,8 @@ class MartheModel():
         obs  = MartheObs(self, prefix, obs_file, loc_name)
         
         # remove NAs
+        # NOTE currently -9999 are not considered as NAs
+        # but weights are zeros for these observations
         obs.df.dropna(inplace=True)
 
         # Check number of records

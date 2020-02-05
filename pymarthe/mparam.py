@@ -36,7 +36,7 @@ def SFMT(item):
     return s
 
 # name format for pilot points files  
-PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value": FFMT}
+PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value": FFMT, "log_value": FFMT}
 
 class MartheParam() :
     """
@@ -49,15 +49,18 @@ class MartheParam() :
     default_value : int or np.array with shape (nlay,nrow,ncol)
         default values
     izone : (optional) array with shape (nlay,nrow,ncol))
+    array : parameter value
+
 
     Examples
     --------
     """
-    def __init__(self, mm, name, default_value, izone = None, array = None) :
+    def __init__(self, mm, name, default_value, izone = None, array = None, log_transform = False) :
         self.mm = mm # pointer to the instance of MartheModel
         self.name = name # parameter name
         self.array = mm.grids[self.name] # pointer to grid in MartheModel instance
         self.default_value = default_value 
+        self.log_transform = log_transform
         self.set_izone(izone)
       
     def set_izone(self,izone = None):
@@ -347,13 +350,25 @@ class MartheParam() :
 
         if len(zpc_names) > 0 :
             f_param = open(os.path.join(self.mm.mldir,'param',filename),'w')
-            f_param.write(self.zpc_df.to_string(col_space=0,
-                              columns=["value"],
-                              formatters={'value':FFMT},
-                              justify="left",
-                              header=False,
-                              index=True,
-                              index_names=False))
+            # log-transform values to parameter file 
+            if self.log_transform == True :
+                self.zpc_df['log_value'] = np.log10(self.zpc_df['value'])
+                f_param.write(self.zpc_df.to_string(col_space=0,
+                  columns=["log_value"],
+                  formatters={'log_value':FFMT},
+                  justify="left",
+                  header=False,
+                  index=True,
+                  index_names=False))
+            else :
+                f_param.write(self.zpc_df.to_string(col_space=0,
+                                  columns=["value"],
+                                  formatters={'value':FFMT},
+                                  justify="left",
+                                  header=False,
+                                  index=True,
+                                  index_names=False))
+
 
     def write_pp_df(self):
         """
@@ -367,13 +382,23 @@ class MartheParam() :
             pp_df_file = os.path.join(self.mm.mldir,'param',pp_df_filename)
             # write output file 
             f_param = open(pp_df_file,'w')
-            f_param.write(pp_df.to_string(col_space=0,
-                              columns=["x", "y", "zone", "value"],
-                              formatters=PP_FMT,
-                              justify="left",
-                              header=False,
-                              index=True,
-                              index_names=False))
+            if log_transform == True :
+                pp_df['log_value'] = np.log10(pp_df['value'])
+                f_param.write(pp_df.to_string(col_space=0,
+                                  columns=["x", "y", "zone", "log_value"],
+                                  formatters=PP_FMT,
+                                  justify="left",
+                                  header=False,
+                                  index=True,
+                                  index_names=False))
+            else : 
+                f_param.write(pp_df.to_string(col_space=0,
+                                  columns=["x", "y", "zone", "value"],
+                                  formatters=PP_FMT,
+                                  justify="left",
+                                  header=False,
+                                  index=True,
+                                  index_names=False))
 
     def pp_from_rgrid(self, lay, n_cell):
         '''
@@ -498,7 +523,11 @@ class MartheParam() :
         df.set_index('name', inplace=True)
         self.zpc_df = pd.merge(self.zpc_df, df, how='left', left_index=True, right_index=True)
 
-        self.zpc_df['value'] = self.zpc_df.value_y
+        # back transform to natural values if they are log-transformed in the parameter file 
+        if self.log_transform == True :
+            self.zpc_df['value'] = 10**np.array(self.zpc_df.value_y)
+        else :
+            self.zpc_df['value'] = self.zpc_df.value_y
 
         self.zpc_df.drop(['value_x','value_y'],1, inplace=True)
 
@@ -521,7 +550,11 @@ class MartheParam() :
             pp_file = os.path.join(self.mm.mldir,'param',filename)
             pp_df = pd.read_csv(pp_file, delim_whitespace=True,
                     header=None,names=PP_NAMES)
-            #pp_df.set_index('name',inplace=True)
+
+            # back transform to natural values if they are log-transformed in the parameter file 
+            if self.log_transform == True: 
+                pp_df['value'] = 10**np.array(pp_df['value'])
+
             # set pp_df for current layer
             self.pp_dic[lay]=pp_df
 
