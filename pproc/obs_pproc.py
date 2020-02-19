@@ -83,7 +83,7 @@ for id in common_cols :
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
-					std = np.sqrt(std_m² + std_mes²)
+					std = np.sqrt(std_m**2 + std_mes**2)
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean
@@ -92,7 +92,7 @@ for id in common_cols :
 					layer = layer.Couche
 					l = layer.iloc[0]
 					std_m = df_wlayer [l][0]
-					std   = np.sqrt(std_m² + std_mes²)
+					std   = np.sqrt(std_m**2 + std_mes**2)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
 		else :
@@ -107,7 +107,7 @@ for id in common_cols :
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
-					std = np.sqrt(std_m² + std_mes²)
+					std = np.sqrt(std_m**2 + std_mes**2)
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean	
@@ -116,7 +116,7 @@ for id in common_cols :
 					layer = layer.Couche
 					l = layer.iloc[0]
 					std_m = df_wlayer [l][0]
-					std   = np.sqrt(std_m² + std_mes²)
+					std   = np.sqrt(std_m**2 + std_mes**2)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
 		# append new element to the lists
