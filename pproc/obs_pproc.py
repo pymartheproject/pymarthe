@@ -57,7 +57,7 @@ for i in range(1,nb_layer+1):
 	df_wlayer = df_std_mean_layer
 
 nobs_min = 6
-std_mes  = 0.05
+std_mes  = 0.1
 nobs  = yearly_data_obs.count()
 nobs  = pd.Series(nobs)
 dfw = pd.DataFrame()
@@ -83,7 +83,7 @@ for id in common_cols :
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
-					std = std_m + std_mes
+					std = np.sqrt(std_m² + std_mes²)
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean
@@ -92,7 +92,7 @@ for id in common_cols :
 					layer = layer.Couche
 					l = layer.iloc[0]
 					std_m = df_wlayer [l][0]
-					std   = std_m + std_mes
+					std   = np.sqrt(std_m² + std_mes²)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
 		else :
@@ -107,7 +107,7 @@ for id in common_cols :
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
-					std = std_m + std_mes
+					std = np.sqrt(std_m² + std_mes²)
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean	
@@ -116,7 +116,7 @@ for id in common_cols :
 					layer = layer.Couche
 					l = layer.iloc[0]
 					std_m = df_wlayer [l][0]
-					std   = std_m + std_mes
+					std   = np.sqrt(std_m² + std_mes²)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
 		# append new element to the lists
