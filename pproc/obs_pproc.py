@@ -19,7 +19,7 @@ df_histo = marthe_utils.read_histo_file('./txt_file/mona.histo')
 id_points_obs,df_obs = marthe_utils.read_obs('./txt_file/Piezo_2015_Ryma.txt')
 
 #Read sim file 
-id_points_sim,df_sim = marthe_utils.prn_read('./txt_file/historiq.prn')
+df_sim = marthe_utils.read_prn('./txt_file/historiq.prn')
 
 common_cols = list(set(df_histo['ID_FORAGE']).intersection(id_points_obs))
 #comm = list(set(id_points_sim).intersection(id_points_obs))
@@ -28,8 +28,6 @@ df_sim = df_sim[common_cols]
 df_sim.iloc[:,0:-1]
 df_histo  = df_histo.loc[common_cols]
 df_histo  = df_histo.set_index(df_histo.Couche)
-
-
 
 #*******************************************************************************************
 # Create a dataframe of weights
@@ -50,22 +48,21 @@ var_all_years = std_all_years**2
 nb_layer= 15
 df_wlayer = pd.DataFrame()
 for i in range(1,nb_layer+1):
-	wells_selection     = list(df_histo.loc[str(i)]['ID_FORAGE'])
+	wells_selection = list(df_histo.loc[str(i)]['ID_FORAGE'])
 	var_wells_selection = var_all_years[wells_selection]
 	var_mean_layer      = (var_wells_selection.mean())
 	std_mean_layer = sqrt(var_mean_layer)
 	std_mean_layer      = pd.DataFrame({str(i) : std_mean_layer}, index=[0])
-    df_std_mean_layer   = pd.concat([df_wlayer,std_mean_layer],axis = 1)
-    df_wlayer = df_std_mean_layer
+	df_std_mean_layer   = pd.concat([df_wlayer,std_mean_layer],axis = 1)
+	df_wlayer = df_std_mean_layer
 
 nobs_min = 6
 std_mes  = 0.05
-nobs   = yearly_data_obs.count()
-nobs   = pd.Series(nobs)
+nobs  = yearly_data_obs.count()
+nobs  = pd.Series(nobs)
 dfw = pd.DataFrame()
 
 for id in common_cols :
-
 	weights_list = []
 	means_list = []
 	std_forage = std_yearly[id]
@@ -74,7 +71,6 @@ for id in common_cols :
 	sim_data =  df_sim[id]
 	# iterate over years 
 	for j in range (len(count_data)):
-
 		if type(sim_data) == pd.core.frame.DataFrame :
 			if sim_data.iloc[j,0] == 9999:
 				w = 0.
@@ -87,7 +83,7 @@ for id in common_cols :
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
-					std = std_m**2 + std_mes**2
+					std = std_m + std_mes
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean
@@ -96,7 +92,7 @@ for id in common_cols :
 					layer = layer.Couche
 					l = layer.iloc[0]
 					std_m = df_wlayer [l][0]
-					std   = std_m**2 + std_mes**2
+					std   = std_m + std_mes
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
 		else :
@@ -111,7 +107,7 @@ for id in common_cols :
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
-					std = std_m**2 + std_mes**2
+					std = std_m + std_mes
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean	
@@ -120,16 +116,16 @@ for id in common_cols :
 					layer = layer.Couche
 					l = layer.iloc[0]
 					std_m = df_wlayer [l][0]
-					std   = std_m**2 + std_mes**2
+					std   = std_m + std_mes
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
 		# append new element to the lists
 		weights_list.append(w)
 		means_list.append(m)
 	mean_weight = pd.DataFrame(np.column_stack([list(dates),means_list, weights_list]),columns=['Year','Mean','Weight'])
-	mean_weight.to_csv('./obs_data/'+id+'.dat',sep='\t', index = False)
+	mean_weight.to_csv('./txt_file/obs_data/'+id+'.dat',sep='\t', index = False)
 
-
+'''
 # --------------- Preamble ----------------------------------------------
 path_obs_files    = './obs_data/'
 path_output_files = './pest_files/'
@@ -148,14 +144,13 @@ for filename in os.listdir('./obs_data/'):
 # =============== PEST Preprocessing tools ==============================
 # =======================================================================
 # -- Time discretization ---
-
 date_start_string = '1972'
 dates_out = pd.date_range(date_start_string, periods=40, freq= 'A')
 
 
 # Generation of pest instruction files
 nobs, nobs_grp, obs_dates = pest_utils.write_obs_data (obs_points, path_obs_files, path_output_files, dates_out)
-
+'''
 '''
 # build parameter dictionary & set parameters initial values
 params = {}
