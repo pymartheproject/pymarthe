@@ -402,7 +402,7 @@ class MartheParam() :
                                   index=True,
                                   index_names=False))
 
-    def pp_from_rgrid(self, lay, n_cell):
+    def pp_from_rgrid(self, lay, n_cell, n_cell_buffer = False):
         '''
         Description
         -----------
@@ -414,9 +414,9 @@ class MartheParam() :
         lay (int) : layer for which pilot points should be placed
         zone (int) : zone of layer where pilot points should be placed 
         n_cell (int) : Number of cells between pilot points 
-        x_vals (1d np.array) :  grid x coordinates 
-        y_vals (1d np.array) :  grid y coordinates 
-     
+        n_cell_buffer (Bool or int) : Buffer around the zone. If True, value = n_cell/2.
+                                      This is useful to include pilot points that lie close to the zone
+    
         Returns
         ------
         pp_x : 1d np.array pilot points x coordinates  
@@ -447,8 +447,26 @@ class MartheParam() :
         pp_select = np.zeros((nrow,ncol))
         pp_select[srows,scols] = 1
 
-        pp_select[izone_2d != zone] = 0
+        buffered_zone = izone_2d 
 
+        if n_cell_buffer is not False :
+            # set to default value if value is not provided
+            if n_cell_buffer is True : 
+                n_cell_buffer = np.int(n_cell/2)
+            # iterate over every cells from the zone and apply buffer 
+            for i,j in np.argwhere(izone_2d==zone):
+                # identify min and max indices of the buffer for current cell
+                i_min = max(0,i-n_cell_buffer)
+                i_max = min(izone_2d.shape[0] - 1, i+n_cell_buffer+1)
+                j_min = max(0,j-n_cell_buffer)
+                j_max = min(izone_2d.shape[1] - 1, j+n_cell_buffer+1)
+                # get all indices within buffer for current cell
+                igrid = np.mgrid[i_min:i_max,j_min:j_max]
+                # set values within buffer to zone value for current cell
+                buffered_zone[ igrid[0].ravel(), igrid[1].ravel() ] = zone
+
+        # select points within (buffered) zone 
+        pp_select[izone_2d != buffered_zone] = 0
         pp_x  = xx[pp_select==1].ravel()
         pp_y  = yy[pp_select==1].ravel()
 
@@ -456,7 +474,7 @@ class MartheParam() :
         n_pp = len(pp_x)
 
         # name pilot points
-        prefix = '{0}_l{1:02d}_z{2:02d}'.format(self.name,lay,zone)
+        prefix = '{0}_l{1:02d}_z{2:02d}'.format(self.name,lay+1,zone)
         pp_names = [ '{0}_{1:03d}'.format(prefix,id) for id in range(n_pp)  ]
         
         # build up pp_df
