@@ -447,7 +447,7 @@ class MartheParam() :
         pp_select = np.zeros((nrow,ncol))
         pp_select[srows,scols] = 1
 
-        buffered_zone = izone_2d 
+        buffered_zone = izone_2d.copy() 
 
         if n_cell_buffer is not False :
             # set to default value if value is not provided
@@ -466,7 +466,7 @@ class MartheParam() :
                 buffered_zone[ igrid[0].ravel(), igrid[1].ravel() ] = zone
 
         # select points within (buffered) zone 
-        pp_select[izone_2d != buffered_zone] = 0
+        pp_select[buffered_zone != zone] = 0
         pp_x  = xx[pp_select==1].ravel()
         pp_y  = yy[pp_select==1].ravel()
 
