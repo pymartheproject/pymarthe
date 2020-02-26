@@ -483,7 +483,98 @@ class MartheParam() :
         pp_df['name'] = pp_df.index
 
         self.pp_dic[lay] = pp_df
+
+
+      def pp_refine(self, lay, pp_df, base_spacing):
+        '''
+        Description
+        -----------
+        This function refines an existing set of pilot points 
+        given a boolean 'refine'column. Pilot points selected
+        for refinements are split into 4 new points
+        NOTE : current version does not handle zones 
+       
+        Parameters
+        ----------
+        lay (int) : layer for which pilot points should be placed
+        pp_df : pandas dataframe with (at least) following required 
+        columns : x,y,value,refine
+        base_spacing (float) : spacing (length) of the initial pilot
+        point grid obtained with pp_from_rgrid()
+
+        Returns
+        ------
         
+        Example
+        -----------
+        pp_refine(lay=2, pp_df = pp_df, base_spacing = 32.)
+        
+        '''
+        # zone currently not handled
+        zone = 1
+
+        # initialize new pilot point df
+        df_new = df[['x','y','value']].copy()
+
+        # select points to refine given criteria
+        pp_select = df.loc[df['refine'] == True] 
+
+        # init output lists with new points data
+        new_pp_xvals, new_pp_yvals, new_pp_values = [], [], []
+
+        # iterate over points to refine
+        for pp_id in pp_select.index :
+            # compute the spacing of the grid from which pp_id pertains
+            # only points sharing the same x or y values are selected
+            # to make sure to select pilot points from the same generation
+            # find nearest neighbors along x 
+            pp_same_x = df['x'] == df.loc[pp_id,'x']
+            pp_same_x.loc[pp_id] = False #remove pp_id
+            pp_dist_y = min(abs(df.loc[pp_same_x,'y'] - df.loc[pp_id,'y']))
+            # find nearest neighbor along y 
+            pp_same_y = df['y'] == df.loc[pp_id,'y']
+            pp_same_y.loc[pp_id] = False #remove pp_id 
+            pp_dist_x = min(abs(df.loc[pp_same_y,'x'] - df.loc[pp_id,'x']))
+            # get maximum value
+            spacing = min(pp_dist_x, pp_dist_y,base_spacing)
+            # compute coordinate increment
+            coord_inc = spacing/4.
+            # add 4 new points
+            pp_id_x = df.loc[pp_id,'x']
+            pp_id_y = df.loc[pp_id,'y']
+            # counter-clockwise from upper-right
+            new_pp_xvals.extend([pp_id_x + coord_inc,pp_id_x - coord_inc,
+                    pp_id_x - coord_inc,pp_id_x + coord_inc])
+            new_pp_yvals.extend([pp_id_y + coord_inc,pp_id_y + coord_inc,
+                    pp_id_y - coord_inc,pp_id_y - coord_inc])
+            # set new pp value to parent pp value
+            new_pp_values.extend([df.loc[pp_id,'value']]*4)
+            # remove pp_id  
+            df_new.drop(pp_id,inplace=True)
+
+        # extend df_new with new points
+        df_new = df_new.append(pd.DataFrame({
+            'x':new_pp_xvals,
+            'y':new_pp_yvals,
+            'value':new_pp_values
+            }))
+
+        # number of selected pilot points
+        n_pp = df_new.shape[0]
+
+        # name pilot points
+        prefix = '{0}_l{1:02d}_z{2:02d}'.format(self.name,lay+1,zone)
+        pp_names = [ '{0}_{1:03d}'.format(prefix,id) for id in range(n_pp)  ]
+        
+        # build up pp_df
+        pp_df = pd.DataFrame({'name':pp_names,'x':df_new['x'],'y':df_new['y'],
+            'zone':zone, 'value':df_new['value']},index = 'name')
+        
+        # NOTE this makes little sense but I keep it for the moment 
+        pp_df['name'] = pp_df.index
+
+        self.pp_dic[lay] = pp_df
+      
 
     def read_zpc_df(self,filename = None) :
         """
