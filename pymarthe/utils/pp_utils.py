@@ -115,7 +115,9 @@ def fac2real(pp_file=None,factors_file="factors.dat",
                         "between the factors file and the pilot points file " +\
                         ','.join(list(diff)))
 
-    pp_dict = {int(name):val for name,val in zip(pp_data.index,pp_data.value)}
+    #pp_dict = {int(name):val for name,val in zip(pp_data.index,pp_data.value)}
+    # fix as pp names are used as index (cannot convert to int)
+    pp_dict = {name:val for name,val in zip(pp_data.index,pp_data.value)}
     try:
         pp_dict_log = {name:np.log10(val) for name,val in zip(pp_data.index,pp_data.value)}
     except:

@@ -484,8 +484,7 @@ class MartheParam() :
 
         self.pp_dic[lay] = pp_df
 
-
-      def pp_refine(self, lay, pp_df, base_spacing):
+    def pp_refine(self, lay, df, base_spacing):
         '''
         Description
         -----------
@@ -493,29 +492,28 @@ class MartheParam() :
         given a boolean 'refine'column. Pilot points selected
         for refinements are split into 4 new points
         NOTE : current version does not handle zones 
-       
+
         Parameters
         ----------
         lay (int) : layer for which pilot points should be placed
-        pp_df : pandas dataframe with (at least) following required 
+        df : pandas dataframe with (at least) following required 
         columns : x,y,value,refine
         base_spacing (float) : spacing (length) of the initial pilot
         point grid obtained with pp_from_rgrid()
 
         Returns
         ------
-        
+
         Example
         -----------
-        pp_refine(lay=2, pp_df = pp_df, base_spacing = 32.)
-        
+        pp_refine(lay=2, df = df, base_spacing = 32.)
+
         '''
         # zone currently not handled
         zone = 1
 
         # initialize new pilot point df
         df_new = df[['x','y','value']].copy()
-
         # select points to refine given criteria
         pp_select = df.loc[df['refine'] == True] 
 
@@ -530,11 +528,17 @@ class MartheParam() :
             # find nearest neighbors along x 
             pp_same_x = df['x'] == df.loc[pp_id,'x']
             pp_same_x.loc[pp_id] = False #remove pp_id
-            pp_dist_y = min(abs(df.loc[pp_same_x,'y'] - df.loc[pp_id,'y']))
+            try : 
+                pp_dist_y = min(abs(df.loc[pp_same_x,'y'] - df.loc[pp_id,'y']))
+            except :
+                pp_dist_y = base_spacing
             # find nearest neighbor along y 
             pp_same_y = df['y'] == df.loc[pp_id,'y']
             pp_same_y.loc[pp_id] = False #remove pp_id 
-            pp_dist_x = min(abs(df.loc[pp_same_y,'x'] - df.loc[pp_id,'x']))
+            try : 
+                pp_dist_x = min(abs(df.loc[pp_same_y,'x'] - df.loc[pp_id,'x']))
+            except :
+                pp_dist_x = base_spacing
             # get maximum value
             spacing = min(pp_dist_x, pp_dist_y,base_spacing)
             # compute coordinate increment
@@ -565,16 +569,14 @@ class MartheParam() :
         # name pilot points
         prefix = '{0}_l{1:02d}_z{2:02d}'.format(self.name,lay+1,zone)
         pp_names = [ '{0}_{1:03d}'.format(prefix,id) for id in range(n_pp)  ]
-        
+
         # build up pp_df
         pp_df = pd.DataFrame({'name':pp_names,'x':df_new['x'],'y':df_new['y'],
-            'zone':zone, 'value':df_new['value']},index = 'name')
-        
-        # NOTE this makes little sense but I keep it for the moment 
+            'zone':zone, 'value':df_new['value']})
+        pp_df.set_index('name',inplace=True)
         pp_df['name'] = pp_df.index
 
         self.pp_dic[lay] = pp_df
-      
 
     def read_zpc_df(self,filename = None) :
         """
@@ -660,7 +662,8 @@ class MartheParam() :
             filename = '{0}_pp_l{1:02d}.dat'.format(self.name,lay+1)
             pp_file = os.path.join(self.mm.mldir,'param',filename)
             pp_df = pd.read_csv(pp_file, delim_whitespace=True,
-                    header=None,names=PP_NAMES)
+                    header=None,names=PP_NAMES, index_col='name')
+            pp_df['name'] = pp_df.index
 
             # back transform to natural values if they are log-transformed in the parameter file 
             if self.log_transform == True: 
@@ -676,13 +679,15 @@ class MartheParam() :
         and update parameter array
         """
         for lay in self.pp_dic.keys():
+            # select zones with pilot points
             zones = [zone for zone in np.unique(self.izone[lay,:,:]) if zone >0]
             for zone in zones : 
                 # path to factor file
                 kfac_filename = 'kfac_{0}_l{1:02d}.dat'.format(self.name,lay+1)
                 kfac_file = os.path.join(self.mm.mldir,kfac_filename)
-                # fac2real
-                kriged_values_df = pp_utils.fac2real(pp_file = self.pp_dic[lay] ,factors_file = kfac_file)
+                # fac2real (requires integer index)
+                pp_df = self.pp_dic[lay].reset_index(drop=True) # reset index (names)
+                kriged_values_df = pp_utils.fac2real(pp_file = pp_df ,factors_file = kfac_file)
                 # update parameter array
                 idx = self.izone[lay,:,:] == zone
                 # NOTE for some (welcome) reasons it seems that the order of values
