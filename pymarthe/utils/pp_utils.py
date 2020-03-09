@@ -57,7 +57,7 @@ def ppoints_to_file(pp_df,pp_file):
 
 
 def fac2real(pp_file=None,factors_file="factors.dat",
-             upper_lim=1.0e+30,lower_lim=-1.0e+30,fill_value=1.0e+30):
+             upper_lim=1.0e+30,lower_lim=-1.0e+30,fill_value=1.0e+30, kfac_sty='pyemu'):
     """A python replication of the PEST fac2real utility for creating a
     structure grid array from previously calculated kriging factors (weights)
     Parameters
@@ -84,7 +84,7 @@ def fac2real(pp_file=None,factors_file="factors.dat",
     -------
     ``>>>fac2real("hkpp.dat",out_file="hk_layer_1.ref")``
     """
-
+    # read pp file if provided as argument
     if pp_file is not None and isinstance(pp_file,str):
         assert os.path.exists(pp_file)
         pp_data = pp_file_to_dataframe(pp_file)
@@ -97,32 +97,38 @@ def fac2real(pp_file=None,factors_file="factors.dat",
         raise Exception("unrecognized pp_file arg: must be str or pandas.DataFrame, not {0}"\
                         .format(type(pp_file)))
     assert os.path.exists(factors_file)
+    # read factor file 
     f_fac = open(factors_file,'r')
     fpp_file = f_fac.readline()
+    # get pp file if not provided as argument
     if pp_file is None and pp_data is None:
         pp_data = pp_file_to_dataframe(fpp_file)
         pp_data.loc[:, "name"] = pp_data.name.apply(lambda x: x.lower())
-
+    # get zone file 
     fzone_file = f_fac.readline()
-    ncol,nrow = [int(i) for i in f_fac.readline().strip().split()]
-    npp = int(f_fac.readline().strip())
-    pp_names = [f_fac.readline().strip().lower() for _ in range(npp)]
+    if kfac_sty == 'pyemu' : 
+        # get ncol, nrow 
+        ncol,nrow = [int(i) for i in f_fac.readline().strip().split()]
+        # number of pilot points
+        npp = int(f_fac.readline().strip())
+        # pilot point names 
+        pp_names = [f_fac.readline().strip().lower() for _ in range(npp)]
 
-    # check that pp_names is sync'd with pp_data
-    diff = set(list(pp_data.name)).symmetric_difference(set(pp_names))
-    if len(diff) > 0:
-        raise Exception("the following pilot point names are not common " +\
-                        "between the factors file and the pilot points file " +\
-                        ','.join(list(diff)))
-
-    #pp_dict = {int(name):val for name,val in zip(pp_data.index,pp_data.value)}
-    # fix as pp names are used as index (cannot convert to int)
-    pp_dict = {name:val for name,val in zip(pp_data.index,pp_data.value)}
+        # check that pp_names is sync'd with pp_data
+        diff = set(list(pp_data.name)).symmetric_difference(set(pp_names))
+        if len(diff) > 0:
+            raise Exception("the following pilot point names are not common " +\
+                            "between the factors file and the pilot points file " +\
+                            ','.join(list(diff)))
+    else :
+        trash_lines = [f_fac.readline() for _ in range(4)]
+    # mind that pp_data must have integer index
+    pp_dict = {int(name):val for name,val in zip(pp_data.index,pp_data.value)}
     try:
         pp_dict_log = {name:np.log10(val) for name,val in zip(pp_data.index,pp_data.value)}
     except:
         pp_dict_log = {}
-
+    print(pp_dict_log)
     out_index = []
     out_vals = []
     while True:
@@ -130,7 +136,11 @@ def fac2real(pp_file=None,factors_file="factors.dat",
         if len(line) == 0:
             break
         try:
-            inode,itrans,fac_data = parse_factor_line(line)
+            if kfac_sty =='pyemu':
+                inode,itrans,fac_data = parse_factor_line(line)
+            else : 
+                inode,fac_data = parse_factor_line_plproc(line)
+                itrans = 1
         except Exception as e:
             raise Exception("error parsing factor line {0}:{1}".format(line,str(e)))
         if itrans == 0:
@@ -168,6 +178,27 @@ def parse_factor_line(line):
     fac_data = {int(raw[ifac])-1:float(raw[ifac+1]) for ifac in range(4,4+nfac*2,2)}
     return inode,itrans,fac_data
 
+
+def parse_factor_line_plproc(line):
+    """ function to parse a factor file line.  Used by fac2real()
+    Parameters
+    ----------
+    line : (str)
+        a factor line from a factor file
+    Returns
+    -------
+    inode : int
+        the inode of the grid node
+    itrans : int
+        flag for transformation of the grid node
+    fac_data : dict
+        a dictionary of point number, factor
+    """
+
+    raw = line.strip().split()
+    inode,nfac = [int(i) for i in raw[:2]]
+    fac_data = {int(raw[ifac])-1:float(raw[ifac+1]) for ifac in range(3,3+nfac*2,2)}
+    return inode,fac_data
 
 def pp_file_to_dataframe(pp_filename):
 

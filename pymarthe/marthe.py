@@ -13,14 +13,13 @@ import queue
 import threading
 from datetime import datetime
 
-from .utils import marthe_utils
 import pandas as pd 
+import pyemu
 
+from .utils import marthe_utils
 from .mparam import MartheParam
 from .mobs import MartheObs
 
-
-# ----- from PyEMU ----------------
 
 
 class MartheModel():
@@ -59,6 +58,9 @@ class MartheModel():
         # read permh data
         # NOTE : permh data also provides data on active/inactive cells
         self.x_vals, self.y_vals, self.grids['permh'] = self.read_grid('permh')
+
+        # get cell size (only valid for regular grid of square cells
+        self.cell_size = abs(self.x_vals[1] - self.x_vals[0])
 
         # get nlay nrow, ncol
         self.nlay, self.nrow, self.ncol = self.grids['permh'].shape
@@ -416,6 +418,145 @@ class MartheModel():
 
         return(phi)
 
+    def setup_pst_tpl(self,izone_dic, log_transform = None, pp_ncells = None):
+        """
+        -------- UNDER DEVELOPMENT  ----------------------
+        
+        Description
+        ----------
+        Setup PEST templates files from dictionary of izone data
+        
+        For pilot points parameters :
+             - pp_ncell defines the density, default value is 10
+             - a buffer is considered to allow pilot points to lie at the border of the active parameter zone
+             - an exponential variogram with 3 times the pilot point spacing is considered
+
+        Parameters
+        ----------
+        izone_dic : dic, keys parameter type name 
+        dictionary of izone 3d arrays
+
+        log_transform :  boolean or dic with keys parameter type name 
+        dictonary of boolean 
+
+        pp_ncells : int, dic, or nested dic 
+        values with number of cells for given parameter,
+        ex : {'permh': 12, kepon: 18}
+        or a dic with keys as layers,
+        ex : {'permh':{1:12, 2:18}}
+        The value associated with the -1 key will be considered as the default value
+
+        Exemple 
+        --------
+        izone = np.ones(nlay,nrow,ncol)
+        izone_dic = {'permh':izone}
+        log_transform = True
+        pp_ncells_dic = 12
+
+        setup_pst_io(izone_dic, log_transform_dic, pp_ncells_dic)
+
+        # alternative with dictionaries (equivalent in this case)
+        log_transform = {'permh':True}
+        pp_ncells_dic = {'permh':12}
+
+        setup_pst_io(izone_dic, log_transform_dic, pp_ncells_dic)
+
+        """
+
+        # initialize parameters
+        assert isinstance(izone_dic,dict), 'izone_dic should be a dictionary'
+
+        params = izone_dic.keys()
+
+        # initialize log_transform dictionary
+        if log_transform is None :
+            # default value 
+            log_transform_dic = {lay:'none' for lay in range(self.nlay)}
+        elif isinstance(log_transform, bool) :
+            # propagate value to all parameters
+            log_transform_dic = {par:log_transform for par in params}
+        elif isinstance(log_transform, dict):
+            log_transform_dic = log_transform
+        else : 
+            print('Error processing log_transform parmater')
+            return
+
+        # initialize pp_ncells dictionary
+        if pp_ncells is None :
+            # default value
+            default_value = 10
+            # setup nested dictionary
+            pp_ncells_dic = { par: {lay:default_value for lay in range(self.nlay)} for par in izone_dic.keys }
+        elif isinstance(pp_ncells,int):
+            # setup nested dictionary from provided integer value
+            pp_ncells_dic = { par: {lay:pp_ncells for lay in range(self.nlay)} for par in izone_dic.keys }
+        elif isinstance(pp_ncells,dict) :
+            pp_ncells_dic = {}
+            # check nested dictionary 
+            for par in params :
+                assert par in pp_ncells.keys(), 'Key {0} not found in dic pp_ncells'.format(par)
+                if isinstance(pp_ncells[par],int) :
+                    # propagate provided integer value to all layers
+                    pp_ncells_dic[par] = {lay:pp_ncells[par] for lay in range(self.nlay)}
+                elif isinstance(pp_ncells[par],dict):
+                    pp_ncells_dic[par] = pp_ncells[par]
+                else : 
+                    print('Error processing pp_ncells for parameter {0}'.format(par))
+                    return
+        else : 
+            print('Error processing pp_ncells argument, check type and content')
+            return
+
+        # iterate over parameters with izone data  
+        for par in params:
+            print('Processing parameter {0}...'.format(par))
+            # add parameter 
+            self.add_param(par, izone = izone_dic[par], default_value = 1e-5, log_transform=log_transform_dic[par])
+            # write izone to disk for future use by model_run
+            marthe_utils.write_grid_file('{0}.i{1}'.format(self.mlname,par),self.x_vals,self.y_vals,izone_dic[par])
+            # parameters with pilot points (izone with positive values)
+            if np.max(np.unique(izone_dic[par])) > 0  :
+                print('Setting up pilot points for parameter {0}'.format(par))
+                # iterate over layers 
+                for lay in range(self.nlay):
+                    # layers with pilot points (izone with positive values)
+                    if np.max(np.unique(izone_dic[par][lay,:,:])) > 0 :
+                        # layer-dependent variogram settings
+                        print(self.param.keys())
+                        self.param[par].pp_from_rgrid(lay, n_cell=pp_ncells_dic[par][lay], n_cell_buffer = True)
+                        # pointer to pilot point dataframe generated by pp_from_rgrid
+                        pp_df = self.param[par].pp_dic[lay]
+                        print('{0} pilot points seeded for parameter {1}, layer {2}'.format(pp_df.shape[0],par,lay+1))
+                        # desired variogram range (3 times pilot point spacing)
+                        vario_range = 3*self.cell_size*pp_ncells_dic[par][lay]
+                        # variogram setup :
+                        #   - parameter a is considered as a proxy for range
+                        #   - the contribution has no effect
+                        v = pyemu.utils.ExpVario(contribution=1, a=vario_range)
+                        # build up GeoStruct
+                        gs = pyemu.utils.GeoStruct(variograms=v,transform="log")
+                        # get covariance matrix 
+                        self.param[par].ppcov_dic[lay] = gs.covariance_matrix(pp_df.x,pp_df.y,pp_df.name)
+                        # set up kriging
+                        ok = pyemu.utils.OrdinaryKrige(geostruct=gs,point_data=pp_df)
+                        # spatial reference (for pyemu compatibility only)
+                        ok.spatial_reference = SpatialReference(self) 
+                        # pandas dataframe of point where interpolation shall be conducted
+                        # set up index for current zone and lay
+                        x_coords, y_coords = self.param[par].zone_interp_coords(lay,zone=1)
+                        # compute kriging factors
+                        kfac_df = ok.calc_factors(x_coords, y_coords,pt_zone=1, num_threads=4)
+                        # write kriging factors to file
+                        kfac_file = os.path.join(self.mldir,'kfac_{0}_l{1:02d}.dat'.format(par,lay+1))
+                        ok.to_grid_factors_file(kfac_file)
+                # write initial parameter value file (all zones)
+                self.param[par].write_pp_df()
+                self.param[par].write_pp_tpl()
+            # set up ZPCs if present
+            # will have not effect for parameters and layers with pilot points
+            self.param[par].write_zpc_data()
+            self.param[par].write_zpc_tpl()
+        
 
 class SpatialReference():
     """

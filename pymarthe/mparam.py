@@ -118,7 +118,8 @@ class MartheParam() :
         pp_dic = { 0:pp_df_0, 3:pp_df_3 }
         """
         nlay = self.mm.nlay
-        self.pp_dic  = {}
+        self.pp_dic  = {} # dict of pandas dataframe 
+        self.ppcov_dic = {} # dict of pyemu covariance matrix 
       
         # append lay to pp_dic if it contains zones > 0
         for lay in range(nlay) :
@@ -126,6 +127,7 @@ class MartheParam() :
             # number of zones > 0 
             if len( [zone for zone in zones if zone >0] ) > 0 :
                 self.pp_dic[lay] = None
+                self.ppcov_dic[lay] = None
 
     def init_zpc_df(self) :
         """
@@ -673,7 +675,7 @@ class MartheParam() :
             self.pp_dic[lay]=pp_df
 
 
-    def interp_from_factors(self):
+    def interp_from_factors(self,kfac_sty='pyemu'):
         """
         Interpolate from pilot points df files with fac2real()
         and update parameter array
@@ -687,11 +689,48 @@ class MartheParam() :
                 kfac_file = os.path.join(self.mm.mldir,kfac_filename)
                 # fac2real (requires integer index)
                 pp_df = self.pp_dic[lay].reset_index(drop=True) # reset index (names)
-                kriged_values_df = pp_utils.fac2real(pp_file = pp_df ,factors_file = kfac_file)
+                kriged_values_df = pp_utils.fac2real(pp_file = pp_df ,factors_file = kfac_file,kfac_sty=kfac_sty)
+                kriged_values_df = pyemu.fac2real(pp_file = pp_df ,factors_file = kfac_file)
                 # update parameter array
                 idx = self.izone[lay,:,:] == zone
                 # NOTE for some (welcome) reasons it seems that the order of values
                 # from self.array[lay][idx] and kriged_value_df.vals do match
                 self.array[lay][idx] = kriged_values_df.vals
+
+        
+    def plproc_kfac(self,lay,zone=1) :
+        """
+        -------- UNDER DEVELOPMENT  ----------------------
+
+        
+        # get grid cell coordinates where interpolation shall be conducted
+        x_coords, y_coords = self.zone_interp_coords(lay,zone)
+        # write coordinate list for plproc
+        clist_df = pd.DataFrame( {'x':x_coords , 'y':y_coords, 'zone':zone })
+        clist_filename = open('clist_{0}_l{1:02d}_z{2:02d}.dat'.format(par,lay+1,zone),'w')
+        clist_file.write(clist_df.to_string(col_space=0,
+            formatters={'x':FFMT,'y':FFMT},
+            justify="left",
+            header=True,
+            index=True)
+            )
+        clist_file.close()
+        # write script file for plproc
+
+        # write plist
+
+        # write plproc script
+        # call plproc
+
+        # perform interpolation
+
+        mm.param[par].read_pp_df()
+        pp_df = mm.param[par].pp_dic[lay].reset_index(drop=True)
+
+        kriged_values_df = pp_utils.fac2real(pp_file = pp_df ,factors_file = 'fac_permh_pp_l04.dat',kfac_sty='plproc')
+
+        idx = mm.param[par].izone[lay,:,:] == zone
+        mm.param[par].array[lay][idx] = kriged_values_df.vals
+        """
 
 
