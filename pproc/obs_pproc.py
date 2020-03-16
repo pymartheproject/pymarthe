@@ -13,14 +13,12 @@ from utils import pest_utils
 from utils import marthe_utils
 
 #Read mona.histo 
-df_histo = marthe_utils.read_histo_file('./txt_file/mona.histo')
-
+df_histo = marthe_utils.read_histo_file('./mona.histo')
 # Read obs file 
-id_points_obs,df_obs = marthe_utils.read_obs('./txt_file/Piezo_2015_Ryma.txt')
+id_points_obs,df_obs = marthe_utils.read_obs('./Piezo_2015_Ryma.txt')
 
 #Read sim file 
-df_sim = marthe_utils.read_prn('./txt_file/historiq.prn')
-
+df_sim = marthe_utils.read_prn('./historiq.prn')
 common_cols = list(set(df_histo['ID_FORAGE']).intersection(id_points_obs))
 #comm = list(set(id_points_sim).intersection(id_points_obs))
 df_obs = df_obs[common_cols]
@@ -34,7 +32,10 @@ df_histo  = df_histo.set_index(df_histo.Couche)
 #*******************************************************************************************
 yearly_data_obs = df_obs.resample('Y').mean()
 yearly_data_obs = yearly_data_obs.loc[df_sim.index]
+df_fluct = yearly_data_obs - yearly_data_obs.mean()
 mean_yearly  = yearly_data_obs.fillna(-9999)
+df_fluct = df_fluct.fillna(-9999)
+
 std_yearly   = df_obs.resample('Y').std()
 std_yearly   = std_yearly.fillna(0)
 std_yearly = std_yearly.loc[df_sim.index]
@@ -61,12 +62,13 @@ std_mes  = 0.1
 nobs  = yearly_data_obs.count()
 nobs  = pd.Series(nobs)
 dfw = pd.DataFrame()
-
 for id in common_cols :
 	weights_list = []
 	means_list = []
+	fluct_list = []
 	std_forage = std_yearly[id]
 	mean_forage = mean_yearly[id]
+	fluct_forage = df_fluct[id]
 	count_data=count_yearly[id]
 	sim_data =  df_sim[id]
 	# iterate over years 
@@ -75,17 +77,20 @@ for id in common_cols :
 			if sim_data.iloc[j,0] == 9999:
 				w = 0.
 				m = mean_forage[j]
+				fluct = fluct_forage[j]
 			else : 
 			#case no obs for  the j-th year
 				if (count_data[j] == 0)  :
 					w = 0.
 					m =mean_forage[j]
+					fluct = fluct_forage[j]
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
 					std = np.sqrt(std_m**2 + std_mes**2)
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
+					fluct = fluct_forage[j]
 				# case not enough obs for the couputation of the error on the mean
 				else :
 					layer = df_histo.loc[df_histo.ID_FORAGE == id]
@@ -95,21 +100,25 @@ for id in common_cols :
 					std   = np.sqrt(std_m**2 + std_mes**2)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
+					fluct = fluct_forage[j]
 		else :
 			if sim_data[j] == 9999:
 				w = 0.
 				m =mean_forage[j]
+				fluct = fluct_forage[j]
 			else: 
 				#case no obs for  the j-th year
 				if (count_data[j] == 0):
 					w = 0.
 					m = mean_forage[j]
+					fluct =fluct_forage[j]
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
 					std = np.sqrt(std_m**2 + std_mes**2)
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
+					fluct = fluct_forage[j]
 				# case not enough obs for the couputation of the error on the mean	
 				else : 
 					layer = df_histo.loc[df_histo.ID_FORAGE == id]
@@ -119,11 +128,13 @@ for id in common_cols :
 					std   = np.sqrt(std_m**2 + std_mes**2)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
+					fluct = fluct_forage[j]
 		# append new element to the lists
 		weights_list.append(w)
 		means_list.append(m)
-	mean_weight = pd.DataFrame(np.column_stack([list(dates),means_list, weights_list]),columns=['Year','Mean','Weight'])
-	mean_weight.to_csv('./txt_file/obs_data/'+id+'.dat',sep='\t', index = False)
+		fluct_list.append(fluct)
+	mean_weight = pd.DataFrame(np.column_stack([list(dates),means_list,fluct_list, weights_list]),columns=['Year','Mean','Fluct','Weight'])
+	mean_weight.to_csv('./obs/'+id+'.dat',sep='\t', index = False)
 
 '''
 # --------------- Preamble ----------------------------------------------
