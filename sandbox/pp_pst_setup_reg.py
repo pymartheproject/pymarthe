@@ -40,7 +40,6 @@ for lay in range(nlay-2,1,-1):
 idx = np.logical_or(chasim == NO_EPON_VAL, chasim == NO_EPON_OUT_VAL    )
 #Replace 9999 and 8888 values by nan
 chasim[idx] = np.nan 
-
 #Create 4d numpy array by joining arrays of the same time step
 heads = np.stack ([chasim[i:i+nlay] for i in range(0,nlay*nper,nlay)])  
 
@@ -153,6 +152,8 @@ for obs_file in obs_files :
 for obs_loc in mm.obs.keys() :
     mm.obs[obs_loc].write_ins()
 
+# Write instruction files for 
+
 # -------------------------------------------------------------
 # -------------- STEP 3: setup PEST control file  -------------
 # -------------------------------------------------------------
@@ -238,7 +239,7 @@ pst.rectify_pgroups()
 
 # Zero-order Tikhonov reg
 pyemu.helpers.zero_order_tikhonov(pst)
-pyemu.utils.helpersfirst_order_pearson_tikhonov(pst) 
+pyemu.utils.helpers.first_order_pearson_tikhonov(pst) 
 
 # First-order Tikhonov reg for pilot points
 for par in izone_dic.keys() :

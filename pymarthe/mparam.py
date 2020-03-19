@@ -690,7 +690,7 @@ class MartheParam() :
                 # fac2real (requires integer index)
                 pp_df = self.pp_dic[lay].reset_index(drop=True) # reset index (names)
                 kriged_values_df = pp_utils.fac2real(pp_file = pp_df ,factors_file = kfac_file,kfac_sty=kfac_sty)
-                kriged_values_df = pyemu.fac2real(pp_file = pp_df ,factors_file = kfac_file)
+                #kriged_values_df = pyemu.fac2real(pp_file = pp_df ,factors_file = kfac_file)
                 # update parameter array
                 idx = self.izone[lay,:,:] == zone
                 # NOTE for some (welcome) reasons it seems that the order of values

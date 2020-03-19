@@ -57,18 +57,20 @@ for i in range(1,nb_layer+1):
 	df_std_mean_layer   = pd.concat([df_wlayer,std_mean_layer],axis = 1)
 	df_wlayer = df_std_mean_layer
 
+
+# Obs data (Year, mean_value and weight) for absolute value of h 
 nobs_min = 6
-std_mes  = 0.1
+# Erreur de mesure pour les valeurs de charhe en absolue 
+# Erreur sur le nivellement + erreur du à la mesure 
+std_mes  = 3
 nobs  = yearly_data_obs.count()
 nobs  = pd.Series(nobs)
 dfw = pd.DataFrame()
 for id in common_cols :
 	weights_list = []
 	means_list = []
-	fluct_list = []
 	std_forage = std_yearly[id]
 	mean_forage = mean_yearly[id]
-	fluct_forage = df_fluct[id]
 	count_data=count_yearly[id]
 	sim_data =  df_sim[id]
 	# iterate over years 
@@ -77,20 +79,17 @@ for id in common_cols :
 			if sim_data.iloc[j,0] == 9999:
 				w = 0.
 				m = mean_forage[j]
-				fluct = fluct_forage[j]
 			else : 
 			#case no obs for  the j-th year
 				if (count_data[j] == 0)  :
 					w = 0.
 					m =mean_forage[j]
-					fluct = fluct_forage[j]
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
 					std = np.sqrt(std_m**2 + std_mes**2)
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
-					fluct = fluct_forage[j]
 				# case not enough obs for the couputation of the error on the mean
 				else :
 					layer = df_histo.loc[df_histo.ID_FORAGE == id]
@@ -100,25 +99,21 @@ for id in common_cols :
 					std   = np.sqrt(std_m**2 + std_mes**2)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
-					fluct = fluct_forage[j]
 		else :
 			if sim_data[j] == 9999:
 				w = 0.
 				m =mean_forage[j]
-				fluct = fluct_forage[j]
 			else: 
 				#case no obs for  the j-th year
 				if (count_data[j] == 0):
 					w = 0.
 					m = mean_forage[j]
-					fluct =fluct_forage[j]
 				# case enough obs for the compuation of the error on the mean
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
 					std = np.sqrt(std_m**2 + std_mes**2)
 					w = (1./std)/ nobs[id]
 					m = mean_forage[j]
-					fluct = fluct_forage[j]
 				# case not enough obs for the couputation of the error on the mean	
 				else : 
 					layer = df_histo.loc[df_histo.ID_FORAGE == id]
@@ -128,13 +123,83 @@ for id in common_cols :
 					std   = np.sqrt(std_m**2 + std_mes**2)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
-					fluct = fluct_forage[j]
 		# append new element to the lists
 		weights_list.append(w)
 		means_list.append(m)
-		fluct_list.append(fluct)
-	mean_weight = pd.DataFrame(np.column_stack([list(dates),means_list,fluct_list, weights_list]),columns=['Year','Mean','Fluct','Weight'])
-	mean_weight.to_csv('./obs/'+id+'.dat',sep='\t', index = False)
+	mean_weight = pd.DataFrame(np.column_stack([list(dates),means_list, weights_list]),columns=['Year','Mean','Weight'])
+	mean_weight.to_csv('./obs/'+id+'_abs.dat',sep='\t', index = False)
+
+
+
+
+# Obs data (Year, mean_value and weight) for fluctuations 
+nobs_min = 6
+std_mes  = 0.01
+nobs  = yearly_data_obs.count()
+nobs  = pd.Series(nobs)
+dfw = pd.DataFrame()
+
+for id in common_cols :
+	weights_list = []
+	fluct_list = []
+	fluct_forage = df_fluct[id]
+	count_data=count_yearly[id]
+	sim_data =  df_sim[id]
+	# iterate over years 
+	for j in range (len(count_data)):
+		if type(sim_data) == pd.core.frame.DataFrame :
+			if sim_data.iloc[j,0] == 9999:
+				w = 0.
+				m = fluct_forage[j]
+			else : 
+			#case no obs for  the j-th year
+				if (count_data[j] == 0)  :
+					w = 0.
+					m =fluct_forage[j]
+				# case enough obs for the compuation of the error on the mean
+				elif count_data.iloc[j] > nobs_min  :
+					std_m = std_forage[j] / sqrt(count_data[j])
+					std = np.sqrt(std_m**2 + std_mes**2)
+					w = (1./std)/ nobs[id]
+					m = fluct_forage[j]
+				# case not enough obs for the couputation of the error on the mean
+				else :
+					layer = df_histo.loc[df_histo.ID_FORAGE == id]
+					layer = layer.Couche
+					l = layer.iloc[0]
+					std_m = df_wlayer [l][0]
+					std   = np.sqrt(std_m**2 + std_mes**2)
+					w     = (1./(std))/ nobs[id]
+					m = fluct_forage[j]
+		else :
+			if sim_data[j] == 9999:
+				w = 0.
+				m =fluct_forage[j]
+			else: 
+				#case no obs for  the j-th year
+				if (count_data[j] == 0):
+					w = 0.
+					m = fluct_forage[j]
+				# case enough obs for the compuation of the error on the mean
+				elif count_data.iloc[j] > nobs_min  :
+					std_m = std_forage[j] / sqrt(count_data[j])
+					std = np.sqrt(std_m**2 + std_mes**2)
+					w = (1./std)/ nobs[id]
+					m = fluct_forage[j]
+				# case not enough obs for the couputation of the error on the mean	
+				else : 
+					layer = df_histo.loc[df_histo.ID_FORAGE == id]
+					layer = layer.Couche
+					l = layer.iloc[0]
+					std_m = df_wlayer [l][0]
+					std   = np.sqrt(std_m**2 + std_mes**2)
+					w     = (1./(std))/ nobs[id]
+					m = fluct_forage[j]
+		# append new element to the lists
+		weights_list.append(w)
+		fluct_list.append(m)
+	mean_weight = pd.DataFrame(np.column_stack([list(dates),fluct_list, weights_list]),columns=['Year','Mean','Weight'])
+	mean_weight.to_csv('./obs/'+id+'_fluct.dat',sep='\t', index = False)
 
 '''
 # --------------- Preamble ----------------------------------------------
