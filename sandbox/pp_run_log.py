@@ -48,3 +48,4 @@ for param in params :
 mm.run_model()
 # extract prn and write simulation files (read by PEST)
 mm.extract_prn()
+mm.extract_prn_fluct()

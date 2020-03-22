@@ -12,10 +12,9 @@ from pymarthe import *
 mm = MartheModel('./mona.rma')
 nlay, nrow, ncol = mm.nlay, mm.nrow, mm.ncol
 
-# ---------------------------------------------------------------
+# ----------------------------------------------------------------
 # Load geometry and identify confined/unconfined domains
-# ---------------------------------------------------------------
-
+# ----------------------------------------------------------------
 # load model geometry
 x, y, sepon  = marthe_utils.read_grid_file( mm.mlname + '.sepon')
 x, y, topog  = marthe_utils.read_grid_file(mm.mlname + '.topog')
@@ -41,7 +40,6 @@ for lay in range(nlay-2,1,-1):
 idx = np.logical_or(chasim == NO_EPON_VAL, chasim == NO_EPON_OUT_VAL    )
 #Replace 9999 and 8888 values by nan
 chasim[idx] = np.nan 
-
 #Create 4d numpy array by joining arrays of the same time step
 heads = np.stack ([chasim[i:i+nlay] for i in range(0,nlay*nper,nlay)])  
 
@@ -70,7 +68,7 @@ column_names = ['lay', 'parlbnd', 'parubnd','parval1']
 
 # read prior data of each param dfrom param.xlsx as a dataframe
 # assign new columns names and add a new column with the param name (assign)
-df_kepon = pd.read_excel(xls, 'kepon', names= column_names,index_name   = 'kepon').assign(parname='kepon')
+df_kepon = pd.read_excel(xls, 'kepon', names= column_names).assign(parname='kepon')
 df_permh = pd.read_excel(xls, 'permh', names= column_names).assign(parname = 'permh')
 df_Ss = pd.read_excel(xls, 'Ss', names= column_names).assign(parname = 'emmca')
 df_w  = pd.read_excel(xls, 'w', names= column_names).assign(parname = 'emmli')
@@ -130,7 +128,7 @@ for par in izone_dic.keys():
     for lay in range(0,11) : 
         pp_ncells_dic[par][lay] = 12
     for lay in range(11,nlay) : 
-        pp_ncells_dic[par][lay] = 20
+        pp_ncells_dic[par][lay] = 25
 
 # setup template files 
 mm.setup_pst_tpl(izone_dic, log_transform = log_transform_dic, pp_ncells=pp_ncells_dic)
@@ -153,6 +151,8 @@ for obs_file in obs_files :
 # write instruction files
 for obs_loc in mm.obs.keys() :
     mm.obs[obs_loc].write_ins()
+
+# Write instruction files for 
 
 # -------------------------------------------------------------
 # -------------- STEP 3: setup PEST control file  -------------
@@ -239,6 +239,7 @@ pst.rectify_pgroups()
 
 # Zero-order Tikhonov reg
 pyemu.helpers.zero_order_tikhonov(pst)
+pyemu.utils.helpers.first_order_pearson_tikhonov(pst) 
 
 # First-order Tikhonov reg for pilot points
 for par in izone_dic.keys() :

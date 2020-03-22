@@ -221,6 +221,17 @@ class MartheModel():
 
         marthe_utils.extract_prn(prn_file, out_dir, obs_dir)
 
+    def extract_prn_fluct(self, prn_file = None, out_dir = None , obs_dir = None):
+        """ 
+        Simple wrapper to marthe_utils_extract_prn()
+        """
+        if prn_file == None : 
+            prn_file = os.path.join(self.mldir,'historiq.prn')
+        if out_dir == None : 
+            out_dir = os.path.join(self.mldir,'sim','')
+
+        marthe_utils.extract_prn_fluct(prn_file, out_dir, obs_dir)
+
 
     def run_model(self,exe_name = 'marthe', rma_file = None, 
                   silent=False, pause=False, report=False,
@@ -531,13 +542,13 @@ class MartheModel():
                         # variogram setup :
                         #   - parameter a is considered as a proxy for range
                         #   - the contribution has no effect
-                        v = pyemu.utils.ExpVario(contribution=1, a=vario_range)
+                        v = pyemu.utils.geostats.ExpVario(contribution=1, a=vario_range)
                         # build up GeoStruct
-                        gs = pyemu.utils.GeoStruct(variograms=v,transform="log")
+                        gs = pyemu.utils.geostats.GeoStruct(variograms=v,transform="log")
                         # get covariance matrix 
                         self.param[par].ppcov_dic[lay] = gs.covariance_matrix(pp_df.x,pp_df.y,pp_df.name)
                         # set up kriging
-                        ok = pyemu.utils.OrdinaryKrige(geostruct=gs,point_data=pp_df)
+                        ok = pyemu.utils.geostats.OrdinaryKrige(geostruct=gs,point_data=pp_df)
                         # spatial reference (for pyemu compatibility only)
                         ok.spatial_reference = SpatialReference(self) 
                         # pandas dataframe of point where interpolation shall be conducted
