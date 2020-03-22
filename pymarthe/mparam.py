@@ -62,6 +62,7 @@ class MartheParam() :
         self.default_value = default_value 
         self.log_transform = log_transform
         self.set_izone(izone)
+        self.base_spacing = {} # resolution of the main pilot point grid
       
     def set_izone(self,izone = None):
         """
@@ -432,6 +433,9 @@ class MartheParam() :
         # current version does not handle zones
         zone = 1 
 
+        # set base spacing from n_cell
+        self.base_spacing[lay] = n_cell*self.mm.cell_size
+
         izone_2d = self.izone[lay,:,:]
 
         x_vals = self.mm.x_vals
@@ -486,29 +490,120 @@ class MartheParam() :
 
         self.pp_dic[lay] = pp_df
 
-    def pp_refine(self, lay, df, base_spacing):
+    def get_pp_spacing(self, pp_id, lay):
         '''
         Description
         -----------
-        This function refines an existing set of pilot points 
-        given a boolean 'refine'column. Pilot points selected
-        for refinements are split into 4 new points
+        Computes the spacing of the pilot point grid from which pp_id pertains
+
+        Parameters
+        ----------
+        pp_id (str) : pilot point id at which spacing should be computed
+        lay (int) : layer
+
+        Example
+        -----------
+        spacing = get_pp_spacing(pp_id = pp_id, lay=2)
+
+        '''
+        # pilot point dataframe 
+        assert self.pp_dic[lay] is not None
+        df = self.pp_dic[lay]
+
+        # get base spacing 
+        assert self.base_spacing[lay] is not None 
+        base_spacing= self.base_spacing[lay]
+
+        # only points sharing the same x or y values are selected
+        # to make sure to select pilot points from the same generation
+        # base_spacing is required for 1st generation points
+        # find nearest neighbors along x 
+        pp_same_x = df['x'] == df.loc[pp_id,'x']
+        pp_same_x.loc[pp_id] = False #remove pp_id
+        try : 
+            pp_dist_y = min(abs(df.loc[pp_same_x,'y'] - df.loc[pp_id,'y']))
+        except :
+            pp_dist_y = base_spacing
+        # find nearest neighbor along y 
+        pp_same_y = df['y'] == df.loc[pp_id,'y']
+        pp_same_y.loc[pp_id] = False #remove pp_id 
+        try : 
+            pp_dist_x = min(abs(df.loc[pp_same_y,'x'] - df.loc[pp_id,'x']))
+        except :
+            pp_dist_x = base_spacing
+        # get maximum value
+        spacing = min(pp_dist_x, pp_dist_y,base_spacing)
+
+        return(spacing)
+
+    def get_pp_nobs(self, lay, loc_df):
+        '''
+        Description
+        -----------
+        Returns pp_df of current layer with a new "nobs" column
+        corresponding to the number of observations
+        lying within the cell centered on each pilot point.
+        Useful for pilot point meshing adaptive 
+        to observation density.
+
+        Parameters
+        ----------
+        lay (int) : model layer
+        loc_df (pd.DataFrame) : location dataframe from 
+                                marthe_utils.read_histo())
+        
+        Example
+        -----------
+        mm.param['kepon'].get_pp_nobs(lay, loc_df)
+
+        '''
+        # get current pilot point dataframe 
+        assert self.pp_dic[lay] is not None
+        pp_df = self.pp_dic[lay] 
+
+        # init output list with number of obs.
+        nobs_list = []
+
+        # iterate over points
+        for pp_id in pp_df.index :
+            # get spacing for current pilot point
+            spacing = self.get_pp_spacing(pp_id, lay)
+            # get coordinates of search cell (square centered on current pp)
+            xmin = pp_df.loc[pp_id,'x'] - spacing/2.
+            xmax = pp_df.loc[pp_id,'x'] + spacing/2.
+            ymin = pp_df.loc[pp_id,'y'] - spacing/2.
+            ymax = pp_df.loc[pp_id,'y'] + spacing/2.
+            # get number of observation locations in the cell
+            idx = (loc_df['x'] > xmin) & (loc_df['x'] < xmax) & \
+                    (loc_df['y'] > ymin) & (loc_df['y'] < ymax)
+            nobs = idx.sum()
+            nobs_list.append(nobs)
+
+        # add new column and return dataframe 
+        pp_df_nobs = pp_df.copy()
+        pp_df_nobs['nobs'] = nobs_list
+        
+        return(pp_df_nobs)
+
+    def pp_refine(self, lay, df):
+        '''
+        Description
+        -----------
+        Sets an existing set of pilot points for current parameter given a boolean 'refine' column. 
+        Pilot points selected for refinements are split into 4 new points
         NOTE : current version does not handle zones 
 
         Parameters
         ----------
         lay (int) : layer for which pilot points should be placed
         df : pandas dataframe with (at least) following required 
-        columns : x,y,value,refine
+             columns : x,y,value,refine
         base_spacing (float) : spacing (length) of the initial pilot
-        point grid obtained with pp_from_rgrid()
-
-        Returns
-        ------
+             point grid obtained with pp_from_rgrid()
 
         Example
         -----------
-        pp_refine(lay=2, df = df, base_spacing = 32.)
+        mm.param['kepon'].pp_refine(lay=2, df = df)
 
         '''
         # zone currently not handled
@@ -519,30 +614,15 @@ class MartheParam() :
         # select points to refine given criteria
         pp_select = df.loc[df['refine'] == True] 
 
+        print('Refining {0} pilot points ' \
+                'for parameter {1}, layer {2}'.format(pp_select.shape[0], self.name,lay+1))
+
         # init output lists with new points data
         new_pp_xvals, new_pp_yvals, new_pp_values = [], [], []
 
         # iterate over points to refine
         for pp_id in pp_select.index :
-            # compute the spacing of the grid from which pp_id pertains
-            # only points sharing the same x or y values are selected
-            # to make sure to select pilot points from the same generation
-            # find nearest neighbors along x 
-            pp_same_x = df['x'] == df.loc[pp_id,'x']
-            pp_same_x.loc[pp_id] = False #remove pp_id
-            try : 
-                pp_dist_y = min(abs(df.loc[pp_same_x,'y'] - df.loc[pp_id,'y']))
-            except :
-                pp_dist_y = base_spacing
-            # find nearest neighbor along y 
-            pp_same_y = df['y'] == df.loc[pp_id,'y']
-            pp_same_y.loc[pp_id] = False #remove pp_id 
-            try : 
-                pp_dist_x = min(abs(df.loc[pp_same_y,'x'] - df.loc[pp_id,'x']))
-            except :
-                pp_dist_x = base_spacing
-            # get maximum value
-            spacing = min(pp_dist_x, pp_dist_y,base_spacing)
+            spacing = self.get_pp_spacing(pp_id, lay)
             # compute coordinate increment
             coord_inc = spacing/4.
             # add 4 new points
@@ -578,6 +658,7 @@ class MartheParam() :
         pp_df.set_index('name',inplace=True)
         pp_df['name'] = pp_df.index
 
+        # set pp_df
         self.pp_dic[lay] = pp_df
 
     def read_zpc_df(self,filename = None) :
