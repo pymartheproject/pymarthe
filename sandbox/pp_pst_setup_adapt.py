@@ -55,7 +55,6 @@ l = [ os.remove(os.path.join(tpl_dir,f)) for f in os.listdir(tpl_dir) if f.endsw
 l = [ os.remove(os.path.join(par_dir,f)) for f in os.listdir(par_dir) if f.endswith(".dat") ]
 l = [ os.remove(os.path.join(ins_dir,f)) for f in os.listdir(ins_dir) if f.endswith(".ins") ]
 
-
 # --------------------------------------------------------------
 # ------------------- parameter settings  ----------------------
 # --------------------------------------------------------------
@@ -115,7 +114,7 @@ for par in izone_dic.keys():
                 pp_df = mm.param[par].pp_dic[lay]
                 print('{0} pilot points seeded for parameter {1}, layer {2}'.format(pp_df.shape[0],par,lay+1))
                 # refine pilot point grid where observations are dense
-                loc_df = df_histo.loc[df_histo['layer'] == lay]
+                loc_df = df_histo.loc[df_histo['layer'] == lay+1]
                 df = mm.param[par].get_pp_nobs(lay, loc_df)
                 df['refine'] = df['nobs'] > 4 # current criteria
                 mm.param[par].pp_refine(lay,df)
