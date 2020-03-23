@@ -293,7 +293,10 @@ def extract_prn(prn_file,fluct, out_dir ="./", obs_dir = None):
     return
 
 
+
 def read_histo_file (path_file):
+
+
 
     '''
     Description
@@ -310,13 +313,19 @@ def read_histo_file (path_file):
     ------
     df_histo : Dataframe containing the same columns than in the reading file
 
-        
     ''' 
-    df_histo = pd.read_fwf(path_file,skiprows = 1,widths= [30,7,2,7,2,7,1,12,30])
-    id_columns =  ['TITRE','Xcoord', 'Y=','Ycoord','P=','Couche',';','ID_FORAGE','Commune']
-    df_histo.columns = id_columns
-    df_histo  = df_histo.iloc[0:-1,:]
-    df_histo  = df_histo.set_index(df_histo.ID_FORAGE)
+    # read fixed-width format file 
+    df_histo = pd.read_fwf(path_file, skiprows = 1, widths= [30,7,2,7,2,7,1,12,30], header=None)
+    # drop last row
+    df_histo.drop(df_histo.tail(1).index,inplace=True)
+    # drop dummy columns
+    df_histo.drop([0,2,4,6], axis=1, inplace=True)
+    # rename columns
+    df_histo.columns = ['x','y','layer','id','label']
+    # set types 
+    df_histo = df_histo.astype({'x': float, 'y': float, 'layer': int})
+    # set id as index 
+    df_histo.set_index('id',inplace=True)
     return df_histo
 
 
