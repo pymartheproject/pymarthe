@@ -128,7 +128,6 @@ def fac2real(pp_file=None,factors_file="factors.dat",
         pp_dict_log = {name:np.log10(val) for name,val in zip(pp_data.index,pp_data.value)}
     except:
         pp_dict_log = {}
-    print(pp_dict_log)
     out_index = []
     out_vals = []
     while True:
