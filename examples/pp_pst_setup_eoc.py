@@ -18,9 +18,9 @@ nlay, nrow, ncol = mm.nlay, mm.nrow, mm.ncol
 
 # -------- PEST  settings   -----------
 
-# output pest control file
+# name of parameter estimation case
+case_name = 'cal_pp_example'
 
-control_file = 'cal_pp_example.pst'
 # prefered value regularization (zero order Tikhonov)
 reg_pref_value = False
 # prefered value regularization for pilot points (1st order Tikhonov)
@@ -36,10 +36,8 @@ par_layers = [5]
 
 # ---------- parameter settings --------
 
-
-# log-transformation 
-log_transform_dic = {'kepon': True,'permh': True,'emmca' : True,'emmli': False}
-
+# log-transformation
+log_transform_dic = {'kepon': True, 'permh': True, 'emmca': True, 'emmli': False}
 
 fixed_parameters = []
 #fixed_parameters = ['kepon_l01_zpc01','emmca_l01_zpc01']
@@ -81,7 +79,6 @@ refine_crit = 'nobs' # set not None to disable refinement
 refine_crit_type = 'quantile' # 'quantile' or 'absolute' (default)
 refine_value = 0.3 # value of quantile (ex. 0.3) if refine_crit_type is quantile, absolute value otherwise
 
-
 # ---------------------------------------------------------------
 # ---- STEP 2 : generate PEST template and instruction files  -----------
 # ---------------------------------------------------------------
@@ -113,10 +110,11 @@ for par in izone_dic.keys():
 
 # pymarthe helper function
 mm.setup_tpl(izone_dic = izone_dic, log_transform = log_transform_dic, pp_ncells = pp_ncells_dic, 
-            refine_crit = None, refine_threshold = None, reload = False)
+             save_settings = '{}.settings'.format(case_name))
 
 # reload is True to recover the parameters from previous parameter estimation
-#mm.setup_tpl(reload = True)
+mm.setup_tpl(refine_crit = 'ident', refine_crit_type = 'quantile', refine_value = 0.3, 
+        reload_settings = '{}.settings'.format(case_name))
 
 # --------------------------------------------------------------
 # -------------------- observations set up   -------------------
@@ -275,5 +273,5 @@ pst.pestpp_options['panther_agent_no_ping_timeout_secs'] = 36000
 
 #pst.observation_data['obgnme'] = pst.observation_data['obgnme'].str.lower()
 # write pst 
-pst.write(control_file, version=2)
+pst.write('{}.pst'.format(case_name), version=2)
 

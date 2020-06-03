@@ -421,8 +421,8 @@ class MartheModel():
         return(phi)
 
     def setup_tpl(self,izone_dic = None, log_transform = None, pp_ncells = None, 
-            refine_crit = None, refine_threshold = None,
-            reload = False):
+            refine_crit = None, refine_crit_type = None, refine_value = None,
+            save_settings = None, reload_settings = None):
         """
         Description
         ----------
@@ -451,13 +451,22 @@ class MartheModel():
 
         refine_crit : refinement criteria for pilot points
 
-        refine_threshold : threshold value for refinement criteria.
-                           Base regular grid will be refined  refined where 
-                           refine_crit > refine_threshold
+        refine_crit_type : type of criteria (absolute, quantile)
 
-        reload : reload parameter values and settings (pp_ncells_dic, log_transform_dic) 
+        refine_value : threshold value for refinement criteria.
+                       if refine_crit_type is absolute, regular grid will be refined
+                       where refine_crit > refine_value (e.g. parameter identifiability > 0.9)
+                       if refine_crit_type is quantile, regular grid will be refined
+                       for the upper quantile defined by refine_value (e.g. 0.25)
 
+        save_settings : None, or name of the file where settings should be saved (e.g. 'case.settings')
 
+        reload_settings : None, or name of the file where settings should be read. 
+                          When reload_settings is not None, parameter values are read from files
+                          and the grid of pilot points is kept, or refined (not generated).
+                          This can be used to recover a parameter set estimated by PEST and
+                          refine a series of pilot points. 
+                
         Example 
         --------
         izone = np.ones(nlay,nrow,ncol)
@@ -473,13 +482,20 @@ class MartheModel():
 
         setup_tpl(izone_dic, log_transform_dic, pp_ncells_dic)
 
+        # save settings 
+        setup_tpl(izone_dic, log_transform_dic, pp_ncells_dic, save_settings = 'case.settings')
+
+        # load settings, read parameter values from former PEST parameter estimation and refine 
+        setup_tpl(load_settings = 'case.settings', 
+                    refine_crit ='ident', refine_crit_type = 'quantile', refine_value = 0.3 )
+
         """
 
-        # If reload is True, recover settings 
-        if reload == True :
-            print('Reloading izone_dic, log_transform_dic and pp_ncells...')
+        # If reload_settings is not None, load settings 
+        if reload_settings is not None :
+            print('Reloading izone_dic, log_transform_dic and pp_ncells from {}'.format(reload_settings))
             try :
-                with open('{}.settings'.format(self.mlname),'rb') as handle : 
+                with open(reload_settings,'rb') as handle : 
                     izone_dic, log_transform_dic, pp_ncells_dic = pickle.load(
                         handle)
             except : 
@@ -488,7 +504,7 @@ class MartheModel():
             # infer adjustable parameter list from izone dictionary
             params = izone_dic.keys()
 
-        # If reload is False, check and initialize settings 
+        # If reload is None, check and initialize settings 
         else :
             # izone dictionary
             assert isinstance(izone_dic,dict), 'izone_dic should be a dictionary'
@@ -537,13 +553,15 @@ class MartheModel():
                 return
 
             # save settings
-            settings_tup = izone_dic, log_transform_dic, pp_ncells_dic
+            if save_settings is not None : 
 
-            try : 
-                with open('{}.settings'.format(self.mlname),'wb') as handle:
-                    pickle.dump(settings_tup,handle)
-            except :
-                print('I/O error, cannot save settings to file {}.settings'.format(self.mlname))
+                settings_tup = izone_dic, log_transform_dic, pp_ncells_dic
+
+                try : 
+                    with open(save_settings,'wb') as handle:
+                        pickle.dump(settings_tup,handle)
+                except :
+                    print('I/O error, cannot save settings to file {}'.format(save_settings))
 
         # iterate over parameters with izone data  
         for par in params:
@@ -555,16 +573,17 @@ class MartheModel():
             # parameters with pilot points (izone with positive values)
             if np.max(np.unique(izone_dic[par])) > 0  :
                 print('Setting up pilot points for parameter {0}'.format(par))
-                if reload == True :
+                if reload_settings is not None :
                     self.param[par].read_pp_df()
                 # iterate over layers 
                 for lay in range(self.nlay):
                     # layers with pilot points (izone with positive values)
                     if np.max(np.unique(izone_dic[par][lay,:,:])) > 0 :
-                        if reload == False : 
+                        if reload_settings is None : 
                             # generate pilot point grid
                             self.param[par].pp_from_rgrid(lay, n_cell=pp_ncells_dic[par][lay], n_cell_buffer = True)
                             # pointer to pilot point dataframe generated by pp_from_rgrid
+                            pp_df = self.param[par].pp_dic[lay]
                             print('{0} pilot points seeded for parameter {1}, layer {2}'.format(pp_df.shape[0],par,lay+1))
                         if refine_crit is not None:
                             df_crit_file = os.path.join('crit','{0}_pp_l{1:02d}_crit.dat'.format(par,lay+1))
@@ -585,8 +604,8 @@ class MartheModel():
                             # append  refine column into pp_df
                             pp_df = pd.merge(pp_df,df_crit['refine'], left_index=True, right_index=True)
                             mm.param[par].pp_refine(lay,pp_df)
-                        # update pointer to pp_df 
-                        pp_df = self.param[par].pp_dic[lay]
+                            # update pointer to pp_df 
+                            pp_df = self.param[par].pp_dic[lay]
                         # set variogram range (3 times base pilot point spacing)
                         vario_range = 3*self.cell_size*pp_ncells_dic[par][lay]
                         # variogram setup :
@@ -614,7 +633,7 @@ class MartheModel():
                 self.param[par].write_pp_tpl()
             # set up ZPCs if present
             # will have not effect for parameters and layers with pilot points
-            if reload == False :
+            if reload_settings is None :
                 # (over)write parameter values for ZPCs
                 # files are not overwritten when reload is True to keep parameter values
                 self.param[par].write_zpc_data()
