@@ -531,7 +531,7 @@ class MartheParam() :
             pp_dist_x = min(abs(df.loc[pp_same_y,'x'] - df.loc[pp_id,'x']))
         except :
             pp_dist_x = base_spacing
-        # get maximum value
+        # get minimum value
         spacing = min(pp_dist_x, pp_dist_y,base_spacing)
 
         return(spacing)

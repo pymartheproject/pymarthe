@@ -315,7 +315,11 @@ def read_histo_file (path_file):
 
     ''' 
     # read fixed-width format file 
-    df_histo = pd.read_fwf(path_file, skiprows = 1, widths= [30,7,2,7,2,7,1,12,30], header=None)
+    try : 
+        df_histo = pd.read_fwf(path_file, skiprows = 1, widths= [30,7,2,7,2,7,1,12,30], header=None)
+    except : 
+        print('Error reading history file {}'.format(path_file))
+    
     # drop last row
     df_histo.drop(df_histo.tail(1).index,inplace=True)
     # drop dummy columns

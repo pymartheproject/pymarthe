@@ -5,21 +5,21 @@ layered parameterization
 
 """
 import os 
-import numpy as np
 
+import pickle
 import subprocess as sp
 from shutil import which
 import queue 
 import threading
 from datetime import datetime
 
+import numpy as np
 import pandas as pd 
 import pyemu
 
 from .utils import marthe_utils
 from .mparam import MartheParam
 from .mobs import MartheObs
-
 
 
 class MartheModel():
@@ -420,10 +420,10 @@ class MartheModel():
 
         return(phi)
 
-    def setup_pst_tpl(self,izone_dic, log_transform = None, pp_ncells = None):
+    def setup_tpl(self,izone_dic = None, log_transform = None, pp_ncells = None, 
+            refine_crit = None, refine_threshold = None,
+            reload = False):
         """
-        -------- UNDER DEVELOPMENT  ----------------------
-        
         Description
         ----------
         Setup PEST templates files from dictionary of izone data
@@ -432,6 +432,7 @@ class MartheModel():
              - pp_ncell defines the density, default value is 10
              - a buffer is considered to allow pilot points to lie at the border of the active parameter zone
              - an exponential variogram with 3 times the pilot point spacing is considered
+             - a refinement criteria may be defined 
 
         Parameters
         ----------
@@ -442,72 +443,107 @@ class MartheModel():
         dictonary of boolean 
 
         pp_ncells : int, dic, or nested dic 
-        values with number of cells for given parameter,
-        ex : {'permh': 12, kepon: 18}
-        or a dic with keys as layers,
-        ex : {'permh':{1:12, 2:18}}
-        The value associated with the -1 key will be considered as the default value
+            values with number of cells for given parameter,
+            ex : {'permh': 12, kepon: 18}
+            or a dic with keys as layers,
+            ex : {'permh':{1:12, 2:18}}
+            The value associated with the -1 key will be considered as the default value
 
-        Exemple 
+        refine_crit : refinement criteria for pilot points
+
+        refine_threshold : threshold value for refinement criteria.
+                           Base regular grid will be refined  refined where 
+                           refine_crit > refine_threshold
+
+        reload : reload parameter values and settings (pp_ncells_dic, log_transform_dic) 
+
+
+        Example 
         --------
         izone = np.ones(nlay,nrow,ncol)
         izone_dic = {'permh':izone}
         log_transform = True
         pp_ncells_dic = 12
 
-        setup_pst_io(izone_dic, log_transform_dic, pp_ncells_dic)
+        setup_tpl(izone_dic, log_transform_dic, pp_ncells_dic)
 
         # alternative with dictionaries (equivalent in this case)
         log_transform = {'permh':True}
         pp_ncells_dic = {'permh':12}
 
-        setup_pst_io(izone_dic, log_transform_dic, pp_ncells_dic)
+        setup_tpl(izone_dic, log_transform_dic, pp_ncells_dic)
 
         """
 
-        # initialize parameters
-        assert isinstance(izone_dic,dict), 'izone_dic should be a dictionary'
+        # If reload is True, recover settings 
+        if reload == True :
+            print('Reloading izone_dic, log_transform_dic and pp_ncells...')
+            try :
+                with open('{}.settings'.format(self.mlname),'rb') as handle : 
+                    izone_dic, log_transform_dic, pp_ncells_dic = pickle.load(
+                        handle)
+            except : 
+                print('Could not find {}.settings in current directory'.format(self.mlname))
 
-        params = izone_dic.keys()
+            # infer adjustable parameter list from izone dictionary
+            params = izone_dic.keys()
 
-        # initialize log_transform dictionary
-        if log_transform is None :
-            # default value 
-            log_transform_dic = {lay:'none' for lay in range(self.nlay)}
-        elif isinstance(log_transform, bool) :
-            # propagate value to all parameters
-            log_transform_dic = {par:log_transform for par in params}
-        elif isinstance(log_transform, dict):
-            log_transform_dic = log_transform
-        else : 
-            print('Error processing log_transform parmeter')
-            return
+        # If reload is False, check and initialize settings 
+        else :
+            # izone dictionary
+            assert isinstance(izone_dic,dict), 'izone_dic should be a dictionary'
 
-        # initialize pp_ncells dictionary
-        if pp_ncells is None :
-            # default value
-            default_value = 10
-            # setup nested dictionary
-            pp_ncells_dic = { par: {lay:default_value for lay in range(self.nlay)} for par in izone_dic.keys }
-        elif isinstance(pp_ncells,int):
-            # setup nested dictionary from provided integer value
-            pp_ncells_dic = { par: {lay:pp_ncells for lay in range(self.nlay)} for par in izone_dic.keys }
-        elif isinstance(pp_ncells,dict) :
-            pp_ncells_dic = {}
-            # check nested dictionary 
-            for par in params :
-                assert par in pp_ncells.keys(), 'Key {0} not found in dic pp_ncells'.format(par)
-                if isinstance(pp_ncells[par],int) :
-                    # propagate provided integer value to all layers
-                    pp_ncells_dic[par] = {lay:pp_ncells[par] for lay in range(self.nlay)}
-                elif isinstance(pp_ncells[par],dict):
-                    pp_ncells_dic[par] = pp_ncells[par]
-                else : 
-                    print('Error processing pp_ncells for parameter {0}'.format(par))
-                    return
-        else : 
-            print('Error processing pp_ncells argument, check type and content')
-            return
+            # infer adjustable parameter list from izone dictionary
+            params = izone_dic.keys()
+
+            # log_transform dictionary
+            if log_transform is None :
+                # default value 
+                log_transform_dic = {lay:'none' for lay in range(self.nlay)}
+            elif isinstance(log_transform, bool) :
+                # propagate value to all parameters
+                log_transform_dic = {par:log_transform for par in params}
+            elif isinstance(log_transform, dict):
+                log_transform_dic = log_transform
+            else : 
+                print('Error processing log_transform parameter \
+                        Provide Boolean or dictionary of Boolean')
+                return
+
+            # initialize pp_ncells dictionary
+            if pp_ncells is None :
+                # default value
+                default_value = 10
+                # setup nested dictionary
+                pp_ncells_dic = { par: {lay:default_value for lay in range(self.nlay)} for par in izone_dic.keys }
+            elif isinstance(pp_ncells,int):
+                # setup nested dictionary from provided integer value
+                pp_ncells_dic = { par: {lay:pp_ncells for lay in range(self.nlay)} for par in izone_dic.keys }
+            elif isinstance(pp_ncells,dict) :
+                pp_ncells_dic = {}
+                # check nested dictionary 
+                for par in params :
+                    assert par in pp_ncells.keys(), 'Key {0} not found in dic pp_ncells'.format(par)
+                    if isinstance(pp_ncells[par],int) :
+                        # propagate provided integer value to all layers
+                        pp_ncells_dic[par] = {lay:pp_ncells[par] for lay in range(self.nlay)}
+                    elif isinstance(pp_ncells[par],dict):
+                        pp_ncells_dic[par] = pp_ncells[par]
+                    else : 
+                        print('Error processing pp_ncells for parameter {0}'.format(par))
+                        return
+            else : 
+                print('Error processing pp_ncells argument, check type and content')
+                return
+
+            # save settings
+            settings_tup = izone_dic, log_transform_dic, pp_ncells_dic
+
+            try : 
+                with open('{}.settings'.format(self.mlname),'wb') as handle:
+                    pickle.dump(settings_tup,handle)
+            except :
+                print('I/O error, cannot save settings to file {}.settings'.format(self.mlname))
 
         # iterate over parameters with izone data  
         for par in params:
@@ -519,20 +555,43 @@ class MartheModel():
             # parameters with pilot points (izone with positive values)
             if np.max(np.unique(izone_dic[par])) > 0  :
                 print('Setting up pilot points for parameter {0}'.format(par))
+                if reload == True :
+                    self.param[par].read_pp_df()
                 # iterate over layers 
                 for lay in range(self.nlay):
                     # layers with pilot points (izone with positive values)
                     if np.max(np.unique(izone_dic[par][lay,:,:])) > 0 :
-                        # layer-dependent variogram settings
-                        self.param[par].pp_from_rgrid(lay, n_cell=pp_ncells_dic[par][lay], n_cell_buffer = True)
-                        # pointer to pilot point dataframe generated by pp_from_rgrid
+                        if reload == False : 
+                            # generate pilot point grid
+                            self.param[par].pp_from_rgrid(lay, n_cell=pp_ncells_dic[par][lay], n_cell_buffer = True)
+                            # pointer to pilot point dataframe generated by pp_from_rgrid
+                            print('{0} pilot points seeded for parameter {1}, layer {2}'.format(pp_df.shape[0],par,lay+1))
+                        if refine_crit is not None:
+                            df_crit_file = os.path.join('crit','{0}_pp_l{1:02d}_crit.dat'.format(par,lay+1))
+                            df_crit = pd.read_csv(df_crit_file, delim_whitespace=True, index_col='param')
+                            # refinement based on quantile (highest values selected)
+                            if refine_crit_type == 'quantile' :
+                                # compute number of pilot points that will be refined 
+                                n_pp_refined = int(refine_value*pp_df.shape[0])
+                                # sort dataframe according to refine_crit column in decreasing order
+                                df_crit.sort_values(by=[refine_crit], inplace=True, ascending=False)
+                                # initialize refine column (boolean)
+                                df_crit['refine'] = False
+                                # select points that will be refined
+                                df_crit['refine'][:n_pp_refined] = True
+                            # refinement based on absolute criteria value (threshold)
+                            else : 
+                                df_crit['refine'] = df[refine_crit] > refine_value
+                            # append  refine column into pp_df
+                            pp_df = pd.merge(pp_df,df_crit['refine'], left_index=True, right_index=True)
+                            mm.param[par].pp_refine(lay,pp_df)
+                        # update pointer to pp_df 
                         pp_df = self.param[par].pp_dic[lay]
-                        print('{0} pilot points seeded for parameter {1}, layer {2}'.format(pp_df.shape[0],par,lay+1))
-                        # desired variogram range (3 times pilot point spacing)
+                        # set variogram range (3 times base pilot point spacing)
                         vario_range = 3*self.cell_size*pp_ncells_dic[par][lay]
                         # variogram setup :
                         #   - parameter a is considered as a proxy for range
-                        #   - the contribution has no effect
+                        #   - the contribution has no effect without nugget
                         v = pyemu.utils.geostats.ExpVario(contribution=1, a=vario_range)
                         # build up GeoStruct
                         gs = pyemu.utils.geostats.GeoStruct(variograms=v,transform="log")
@@ -555,9 +614,84 @@ class MartheModel():
                 self.param[par].write_pp_tpl()
             # set up ZPCs if present
             # will have not effect for parameters and layers with pilot points
-            self.param[par].write_zpc_data()
+            if reload == False :
+                # (over)write parameter values for ZPCs
+                # files are not overwritten when reload is True to keep parameter values
+                self.param[par].write_zpc_data()
+            # write template files 
             self.param[par].write_zpc_tpl()
+
+    def setup_ins(self, obs_dir = None, histo_file = None, obs_layers = None) :
+        """
+        Description
+        ----------
+        Setup instruction files from an inner join of observation files 
+        and simulated outputs (listed in .histo file)
+
+        Parameters
+        ----------
+        obs_dir (optional) : directory containing observations files (default './obs/')
+        histo_file (optional) : Marthe histo file with simulated outputs (default, 'case.histo')
+        obs_layer (optional) : list of model layers where observations should be considered (default, all layers)
+
+        Example 
+        --------
+        obs_dir = os.path.join(mm.mldir,'obs','')
+        mm.setup_ins(obs_dir, 'model.histo', obs_layers = [5])
+
+        """
+        print('Collecting observed and simulated historical records...')
+
+        # initialize arguments if not provided 
+        if obs_dir is None : 
+            obs_dir = os.path.join(self.mldir,'obs')
+        if histo_file is None : 
+            histo_file = '{}.histo'.format(self.mlname)
+        if obs_layers is None : 
+            obs_layers = list(range(self.nlay))
+
+        # load histo file 
+        print('Reading history file {}'.format(histo_file))
+        df_histo = marthe_utils.read_histo_file(histo_file)
+
+        # get sorted list of all observation files in obs_dir 
+        all_obs_files = [os.path.join(obs_dir, f) for f in sorted(os.listdir( obs_dir )) if f.endswith('.dat')]
+        print('Found {0} observation history files in {1}'.format(len(all_obs_files),obs_dir))
+
+        # observation locations (BSS ids) identified in model output file (model.histo)
+        sim_obs_loc = []
         
+        # iterate over obs_layers and get simulated observation locations
+        for lay in obs_layers:
+            # simulated records for lay
+            lay_sim_list = df_histo.loc[(df_histo.layer - 1)==lay].index
+            sim_obs_loc.extend(lay_sim_list)
+            print('{0} simulated locations found for layer {1}'.format(len(lay_sim_list),lay+1))
+
+        print('Found {} simulated history locations over selected model layers'.format(len(sim_obs_loc)))
+
+        #  observation files selected for history matching (with simulated counterparts)
+        obs_files = []
+
+        # iterate over observation files
+        for obs_file in all_obs_files:
+            # infer observation loc (BSS id) from filename
+            obs_filename = obs_file.split('/')[-1]
+            obs_loc = obs_filename[0:10] # BSS id is ten char long
+            # if obs_loc found in simulated outputs, append obs_loc 
+            if obs_loc in sim_obs_loc:
+                obs_files.append(obs_file)
+
+        print('{} simulation locations considered with observed counterparts'.format(len(obs_files)))
+
+        print('Generating instruction files for PEST...')
+        # add selected observations
+        for obs_file in obs_files :
+            self.add_obs(obs_file = obs_file)
+
+        # write instruction files
+        for obs_loc in self.obs.keys() :
+            self.obs[obs_loc].write_ins()
 
 class SpatialReference():
     """
