@@ -16,16 +16,16 @@ from utils import marthe_utils
 df_histo = marthe_utils.read_histo_file('./mona.histo')
 # Read obs file 
 id_points_obs,df_obs = marthe_utils.read_obs('./Piezo_2015_Ryma.txt')
-
 #Read sim file 
 df_sim = marthe_utils.read_prn('./historiq.prn')
-common_cols = list(set(df_histo['ID_FORAGE']).intersection(id_points_obs))
-#comm = list(set(id_points_sim).intersection(id_points_obs))
+
+common_cols = list(set(df_histo.index).intersection(id_points_obs))
 df_obs = df_obs[common_cols]
 df_sim = df_sim[common_cols]
 df_sim.iloc[:,0:-1]
-df_histo  = df_histo.loc[common_cols]
-df_histo  = df_histo.set_index(df_histo.Couche)
+#df_histo['ID_FORAGE'] = df_histo.index
+#df_histo  = df_histo.set_index(df_histo.layer)
+
 
 #*******************************************************************************************
 # Create a dataframe of weights
@@ -49,7 +49,7 @@ var_all_years = std_all_years**2
 nb_layer= 15
 df_wlayer = pd.DataFrame()
 for i in range(1,nb_layer+1):
-	wells_selection = list(df_histo.loc[str(i)]['ID_FORAGE'])
+	wells_selection = df_histo.loc[df_histo.layer == i].index
 	var_wells_selection = var_all_years[wells_selection]
 	var_mean_layer      = (var_wells_selection.mean())
 	std_mean_layer = sqrt(var_mean_layer)
@@ -92,10 +92,10 @@ for id in common_cols :
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean
 				else :
-					layer = df_histo.loc[df_histo.ID_FORAGE == id]
-					layer = layer.Couche
+					layer = df_histo.loc[df_histo.index == id]
+					layer = layer.layer
 					l = layer.iloc[0]
-					std_m = df_wlayer [l][0]
+					std_m = df_wlayer [str(l)][0]
 					std   = np.sqrt(std_m**2 + std_mes**2)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
@@ -116,10 +116,10 @@ for id in common_cols :
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean	
 				else : 
-					layer = df_histo.loc[df_histo.ID_FORAGE == id]
-					layer = layer.Couche
+					layer = df_histo.loc[df_histo.index == id]
+					layer = layer.layer
 					l = layer.iloc[0]
-					std_m = df_wlayer [l][0]
+					std_m = df_wlayer [str(l)][0]
 					std   = np.sqrt(std_m**2 + std_mes**2)
 					w     = (1./(std))/ nobs[id]
 					m = mean_forage[j]
@@ -131,7 +131,7 @@ for id in common_cols :
 
 
 
-
+'''
 # Obs data (Year, mean_value and weight) for fluctuations 
 nobs_min = 6
 std_mes  = 0.01
@@ -200,7 +200,7 @@ for id in common_cols :
 		fluct_list.append(m)
 	mean_weight = pd.DataFrame(np.column_stack([list(dates),fluct_list, weights_list]),columns=['Year','Mean','Weight'])
 	mean_weight.to_csv('./obs/'+id+'_fluct.dat',sep='\t', index = False)
-
+'''
 '''
 # --------------- Preamble ----------------------------------------------
 path_obs_files    = './obs_data/'
