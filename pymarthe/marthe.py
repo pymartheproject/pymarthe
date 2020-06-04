@@ -598,7 +598,7 @@ class MartheModel():
                                 # initialize refine column (boolean)
                                 df_crit['refine'] = False
                                 # select points that will be refined
-                                df_crit['refine'][:n_pp_refined] = True
+                                df_crit['refine'][:n_pp_refined] == True
                             # refinement based on absolute criteria value (threshold)
                             else : 
                                 df_crit['refine'] = df[refine_crit] > refine_value
