@@ -126,9 +126,9 @@ pp_ncells_dic = {}
 for par in izone_dic.keys():
     pp_ncells_dic[par] = {}
     for lay in range(0,11) : 
-        pp_ncells_dic[par][lay] = 12
+        pp_ncells_dic[par][lay] = 10
     for lay in range(11,nlay) : 
-        pp_ncells_dic[par][lay] = 25
+        pp_ncells_dic[par][lay] = 10
 
 # setup template files 
 mm.setup_pst_tpl(izone_dic, log_transform = log_transform_dic, pp_ncells=pp_ncells_dic)

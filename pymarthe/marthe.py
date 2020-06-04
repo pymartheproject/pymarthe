@@ -614,6 +614,7 @@ class MartheModel():
                             # refinement based on quantile (highest values selected)
                             if refine_crit_type == 'quantile' :
                                 # compute number of pilot points that will be refined 
+                                pp_df = self.param[par].pp_dic[lay]
                                 n_pp_refined = int(refine_value*pp_df.shape[0])
                                 # sort dataframe according to refine_crit column in decreasing order
                                 df_crit.sort_values(by=[refine_crit], inplace=True, ascending=False)

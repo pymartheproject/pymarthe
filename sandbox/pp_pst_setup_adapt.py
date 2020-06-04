@@ -86,9 +86,9 @@ pp_ncells_dic = {}
 for par in izone_dic.keys():
     pp_ncells_dic[par] = {}
     for lay in range(0,11) : 
-        pp_ncells_dic[par][lay] = 12
+        pp_ncells_dic[par][lay] = 18
     for lay in range(11,nlay) : 
-        pp_ncells_dic[par][lay] = 20
+        pp_ncells_dic[par][lay] = 18
 
 # get observation locations for pilot point adaptive refinement 
 df_histo = marthe_utils.read_histo_file('mona.histo')
@@ -116,7 +116,7 @@ for par in izone_dic.keys():
                 # refine pilot point grid where observations are dense
                 loc_df = df_histo.loc[df_histo['layer'] == lay+1]
                 df = mm.param[par].get_pp_nobs(lay, loc_df)
-                df['refine'] = df['nobs'] > 4 # current criteria
+                df['refine'] = df['nobs'] > 2 # current criteria
                 mm.param[par].pp_refine(lay,df)
                 # desired variogram range (3 times pilot base point spacing)
                 vario_range = 3*mm.cell_size*pp_ncells_dic[par][lay]
