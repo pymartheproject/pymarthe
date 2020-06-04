@@ -493,7 +493,6 @@ class MartheModel():
 
         # If reload_settings is not None, load settings 
         if reload_settings is not None :
-            pp_df = self.param[par].pp_dic[lay]
             print('Reloading izone_dic, log_transform_dic and pp_ncells from {}'.format(reload_settings))
             try :
                 with open(reload_settings,'rb') as handle : 
@@ -504,6 +503,7 @@ class MartheModel():
 
             # infer adjustable parameter list from izone dictionary
             params = izone_dic.keys()
+            pp_df = self.param[par].pp_dic[lay]
 
         # If reload is None, check and initialize settings 
         else :
