@@ -606,7 +606,7 @@ class MartheModel():
                             pp_df = pd.merge(pp_df,df_crit['refine'], left_index=True, right_index=True)
                             self.param[par].pp_refine(lay,pp_df)
                             # update pointer to pp_df 
-                            pp_df = self.param[par].pp_dic[lay]
+                        pp_df = self.param[par].pp_dic[lay]
                         # set variogram range (3 times base pilot point spacing)
                         vario_range = 3*self.cell_size*pp_ncells_dic[par][lay]
                         # variogram setup :
