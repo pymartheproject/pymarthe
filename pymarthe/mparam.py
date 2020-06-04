@@ -199,37 +199,75 @@ class MartheParam() :
             return
 
     
-    def set_array(self, lay, zone, values) : 
+    def set_array(self, value, lay = None, zone = None) : 
         """
-        Set parameter array for given lay and zone
+        Set value for given layer(s) and zone(s)
+        Value can be a float or array of float.
+        Only active cells can be set (zone !=0)
 
         Parameters
         ----------
-        lay : int
-            layer, zero based 
-        zone : int
-            zone id (<0 or >0)
-        values = int or np.ndarray
+        value = int or np.ndarray
             int for zones < 0, ndarray for zone > 0 
+        lay : None, int or list of int. 
+              layer, zero based. If None, all layers considered
+        zone : None, int or list of int
+            zone id (<0 or >0). If None, all zones considered
 
         Example
         -------
-        mm.param['kepon'].set_array(lay = 1,zone = -2, values = 12.4e-3)
+        # set value to all layers, all zones
+        mm.param['kepon'].set_array(value = 12.4e-3)
 
+        # set value to layer 1, zone -2
+        mm.param['kepon'].set_array(value = 12.4e-3, lay = 1, zone = -2, )
+
+        # provide a 2D array
+        a = 1e-3*np.ones( (nrow,ncol) )
+        mm.param['kepon'].set_array(value = , lay=2 )
+
+        # provide a 3D array
+        a = 1e-3*np.ones( (nlay,nrow,ncol) )
+        mm.param['kepon'].set_array(value = a
         >> 
         """
-        assert lay in range(self.mm.nlay), 'layer {0} is not valid.'.format(lay)
-        assert zone in np.unique(self.izone), 'zone {0} is not valid'.format(zone)
-        if zone < 0 :
-            assert isinstance(values, float), 'A float should be provided for ZPC.'
-        elif zone > 0 :
-            assert isinstance(values, np.ndarray), 'An array should be provided for PP'
 
-        # select zone 
-        idx = self.izone[lay,:,:] == zone
+        # initialize layers
+        if lay is None : 
+            # all layers considered
+            layers  = range(self.mm.nlay)
+        elif isinstance(lay,int):
+            layers = [lay]
+        elif isinstance(lay,list):
+            layers = lay
 
-        # update values within zone 
-        self.array[lay,:,:][idx] = values
+        # check and initialize zones
+        if zone is None :
+            # all zones considered
+            zones = [z for z in np.unique(self.izone) if z != 0]
+        elif isinstance(zone, int) : 
+            zones = [zone]
+        elif isinstance(zone, list) :
+            # keep only valid zone values 
+            zones = [z for z in zone if (z in np.unique(self.izone) and z !=0)]
+
+        # set from array
+        if isinstance(value, np.ndarray) :
+            if value.ndim == 3 :
+                for zone in zones : 
+                    idx = self.izone == zone
+                    self.array[idx] = value[idx]
+            if value.ndim == 2 :
+                for lay in layers : 
+                    for zone in zones :
+                        idx = self.izone[lay,:,:] == zone
+                        self.array[lay,:,:][idx] = value[idx]
+        # set from single value
+        else :
+            for lay in layers : 
+                for zone in zones : 
+                    idx = self.izone[lay,:,:] == zone
+                    self.array[lay,:,:][idx] = value
 
         return
 
@@ -238,7 +276,7 @@ class MartheParam() :
         for lay, zone, value in zip(self.zpc_df.lay, self.zpc_df.zone, self.zpc_df.value) :
             if value is None :
                 print('Parameter value is NA for ZPC zone {0} in lay {1}').format(abs(zone),int(lay)+1)
-            self.set_array(lay,zone,value)
+            self.set_array(value, lay, zone)
 
     def pp_df_from_shp(self, shp_path, lay, zone = 1, value = None , zone_field = None, value_field = None) :
         """

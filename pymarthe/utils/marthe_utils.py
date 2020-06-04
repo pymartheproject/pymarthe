@@ -296,8 +296,6 @@ def extract_prn(prn_file,fluct, out_dir ="./", obs_dir = None):
 
 def read_histo_file (path_file):
 
-
-
     '''
     Description
     -----------
