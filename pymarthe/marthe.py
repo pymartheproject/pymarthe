@@ -218,7 +218,7 @@ class MartheModel():
         write all available grids
         """
         for key in list(self.grids.keys()) : 
-            write_grid(key)
+            self.write_grid(key)
 
         return
 
@@ -596,14 +596,16 @@ class MartheModel():
                 for lay in range(self.nlay):
                     # layers with pilot points (izone with positive values)
                     if np.max(np.unique(izone_dic[par][lay,:,:])) > 0 :
-                        if reload_settings is None : 
+                        if reload_settings is None :
+                            print('Generation of a regular grid of pilot points for parameter {0}, layer {1} '.format(
+                                par,lay+1))
                             # generate pilot point grid
                             self.param[par].pp_from_rgrid(lay, n_cell=pp_ncells_dic[par][lay], n_cell_buffer = True)
                             npp = len(self.param[par].pp_dic[lay])
                             print('{0} pilot points seeded for parameter {1}, layer {2}'.format(npp,par,lay+1))
                         else : 
-                            # set base spacing 
-                            self.param[par].base_spacing[lay] = pp_ncells_dic[par][lay]
+                            # set base spacing (model coordinates units) from ncell
+                            self.param[par].base_spacing[lay] = pp_ncells_dic[par][lay]*self.cell_size
                         # pointer to current pilot point dataframe (reloaded or just generated)
                         pp_df  = self.param[par].pp_dic[lay]
                         # refinement of pilot point grid

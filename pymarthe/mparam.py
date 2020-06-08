@@ -471,7 +471,7 @@ class MartheParam() :
         # current version does not handle zones
         zone = 1 
 
-        # set base spacing from n_cell
+        # set base spacing (model coordinates unit) from n_cell
         self.base_spacing[lay] = n_cell*self.mm.cell_size
 
         izone_2d = self.izone[lay,:,:]
@@ -654,6 +654,7 @@ class MartheParam() :
 
         print('Refining {0} pilot points ' \
                 'for parameter {1}, layer {2}'.format(pp_select.shape[0], self.name,lay+1))
+        print('Base spacing of main regular grid is {} [model distance unit]'.format(self.base_spacing[lay]))
 
         # init output lists with new points data
         new_pp_xvals, new_pp_yvals, new_pp_values = [], [], []
