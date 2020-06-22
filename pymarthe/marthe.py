@@ -438,7 +438,7 @@ class MartheModel():
 
     def setup_tpl(self,izone_dic = None, log_transform = None, pp_ncells = None, 
             refine_crit = None, refine_crit_type = None, refine_value = None,
-            save_settings = None, reload_settings = None):
+            refine_level = 1, save_settings = None, reload_settings = None):
         """
         Description
         ----------
@@ -474,6 +474,8 @@ class MartheModel():
                        where refine_crit > refine_value (e.g. parameter identifiability > 0.9)
                        if refine_crit_type is quantile, regular grid will be refined
                        for the upper quantile defined by refine_value (e.g. 0.25)
+
+        refine_level : refinement level (see pp_refine)
 
         save_settings : None, or name of the file where settings should be saved (e.g. 'case.settings')
 
@@ -629,7 +631,7 @@ class MartheModel():
                                 df_crit['refine'] = df[refine_crit] > refine_value
                             # append refine column into pp_df
                             pp_df_crit = pd.merge(pp_df,df_crit['refine'], left_index=True, right_index=True)
-                            self.param[par].pp_refine(lay, pp_df_crit)
+                            self.param[par].pp_refine(lay, pp_df_crit,level = refine_level)
                             # update pointer to pp_df (yes, this is necessary!)
                             pp_df = self.param[par].pp_dic[lay]
                         # set variogram range (3 times base pilot point spacing)

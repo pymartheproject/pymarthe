@@ -623,7 +623,7 @@ class MartheParam() :
         
         return(pp_df_nobs)
 
-    def pp_refine(self, lay, df):
+    def pp_refine(self, lay, df, level = 1):
         '''
         Description
         -----------
@@ -634,10 +634,11 @@ class MartheParam() :
         Parameters
         ----------
         lay (int) : layer for which pilot points should be placed
-        df : pandas dataframe with (at least) following required 
-             columns : x,y,value,refine
+        df : pandas dataframe with (at least) a 'refine' column and pp names as index
+             
         base_spacing (float) : spacing (length) of the initial pilot
              point grid obtained with pp_from_rgrid()
+        level : (default, 1) refinement level (1 = 1 pp -> 4 pp ; 2 = 1 pp -> 16 pp, ...)
 
         Example
         -----------
@@ -647,9 +648,10 @@ class MartheParam() :
         # zone currently not handled
         zone = 1
 
-        # initialize new pilot point df
-        df_new = df[['x','y','value']].copy()
-        # select points to refine given criteria
+        # initialize new pilot point df from copy of current pp_df
+        pp_df = self.pp_dic[lay].copy()
+
+        # select points to refine given criteria in df
         pp_select = df.loc[df['refine'] == True] 
 
         print('Refining {0} pilot points ' \
@@ -659,46 +661,51 @@ class MartheParam() :
         # init output lists with new points data
         new_pp_xvals, new_pp_yvals, new_pp_values = [], [], []
 
-        # iterate over points to refine
-        for pp_id in pp_select.index :
-            spacing = self.get_pp_spacing(pp_id, lay)
-            # compute coordinate increment
-            coord_inc = spacing/4.
-            # add 4 new points
-            pp_id_x = df.loc[pp_id,'x']
-            pp_id_y = df.loc[pp_id,'y']
-            # counter-clockwise from upper-right
-            new_pp_xvals.extend([pp_id_x + coord_inc,pp_id_x - coord_inc,
-                    pp_id_x - coord_inc,pp_id_x + coord_inc])
-            new_pp_yvals.extend([pp_id_y + coord_inc,pp_id_y + coord_inc,
-                    pp_id_y - coord_inc,pp_id_y - coord_inc])
-            # set new pp value to parent pp value
-            new_pp_values.extend([df.loc[pp_id,'value']]*4)
-            # remove pp_id  
-            df_new.drop(pp_id,inplace=True)
+        # iterate over refinement level
+        for n in range(level) :
 
-        # extend df_new with new points
-        df_new = df_new.append(pd.DataFrame({
-            'x':new_pp_xvals,
-            'y':new_pp_yvals,
-            'value':new_pp_values
-            }))
+            # iterate over points to refine
+            for pp_id in pp_select.index :
+                spacing = self.get_pp_spacing(pp_id, lay)
+                # compute coordinate increment
+                coord_inc = spacing/4.
+                # add 4 new points
+                pp_id_x = pp_df.loc[pp_id,'x']
+                pp_id_y = pp_df.loc[pp_id,'y']
+                # counter-clockwise from upper-right
+                new_pp_xvals.extend([pp_id_x + coord_inc,pp_id_x - coord_inc,
+                        pp_id_x - coord_inc,pp_id_x + coord_inc])
+                new_pp_yvals.extend([pp_id_y + coord_inc,pp_id_y + coord_inc,
+                        pp_id_y - coord_inc,pp_id_y - coord_inc])
+                # set new pp value to parent pp value
+                new_pp_values.extend([pp_df.loc[pp_id,'value']]*4)
+            
+            # remove refined pp_id  
+            pp_df.drop(pp_select.index,inplace=True)
 
-        # number of selected pilot points
-        n_pp = df_new.shape[0]
+            # extend pp_df with new points
+            pp_df = pp_df.append(pd.DataFrame({
+                'x':new_pp_xvals,
+                'y':new_pp_yvals,
+                'zone':zone,
+                'value':new_pp_values,
+                # new pp get True value in refine column
+                'refine': True # necessary when merge > 1
+                }))
 
-        # name pilot points
-        prefix = '{0}_l{1:02d}_z{2:02d}'.format(self.name,lay+1,zone)
-        pp_names = [ '{0}_{1:03d}'.format(prefix,id) for id in range(n_pp)  ]
+            # rename all pilot point in pp_df and set index
+            n_pp = pp_df.shape[0]
+            prefix = '{0}_l{1:02d}_z{2:02d}'.format(self.name,lay+1,zone)
+            pp_names = [ '{0}_{1:03d}'.format(prefix,id) for id in range(n_pp)  ]
+            pp_df['name'] = pp_names
+            pp_df.set_index('name', inplace=True, drop=False)
+            #  update pp_df in pp_dic
+            self.pp_dic[lay] = pp_df[['name', 'x', 'y', 'zone', 'value']]
 
-        # build up pp_df
-        pp_df = pd.DataFrame({'name':pp_names,'x':df_new['x'],'y':df_new['y'],
-            'zone':zone, 'value':df_new['value']})
-        pp_df.set_index('name',inplace=True)
-        pp_df['name'] = pp_df.index
-
-        # set pp_df
-        self.pp_dic[lay] = pp_df
+            # reset pp_df, pp_select, and output lists (necessary when level > 1)
+            pp_select = pp_df.loc[pp_df['refine'] == True]
+            pp_df = self.pp_dic[lay].copy()
+            new_pp_xvals, new_pp_yvals, new_pp_values = [], [], []
 
     def read_zpc_df(self,filename = None) :
         """
