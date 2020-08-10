@@ -26,7 +26,6 @@ mm.load_param()
 # write parameter values to Marthe files 
 mm.write_param()
 
-"""
 # parameter names 
 params = ['emmca','permh','kepon','emmli']
 
@@ -48,9 +47,13 @@ for param in params :
         # parameters ith zpcs  
         mm.param[param].read_zpc_df()
         mm.param[param].set_array_from_zpc_df()
+    # set value of emmca in not confined domain
+    if param=='emmca' :
+        for lay in range(mm.nlay) : 
+            idx = izone[lay,:,:] == 0 & confinedlay,:,:] == 0
+            mm.param[param].array[lay][idx] = mm.param[param].pp_dic[lay].value.mean()
     # write grid to disk
     mm.write_grid(param)
-"""
 
 # -- model run
 mm.run_model()

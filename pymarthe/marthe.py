@@ -55,6 +55,7 @@ class MartheModel():
         # get model name 
         self.mlname = self.rma_file.split('.')[0]
 
+
         # read permh data
         # NOTE : permh data also provides data on active/inactive cells
         self.x_vals, self.y_vals, self.grids['permh'] = self.read_grid('permh')
@@ -70,16 +71,9 @@ class MartheModel():
         # imask is a 3D array (nlay,nrow,ncol)
         self.imask = (self.grids['permh'] != 0).astype(int)
 
-        # NOTE : izone is now parameter-based
-        #set up izone
-        # similarly to self.grids, based on a dic with parameter name as key
-        # values for izone arrays 3D arrays : 
-        # - int, zone of piecewise constancy
-        # + int, zone with pilot points
-        # 0, for inactive cells
-        # default value from imask, -1 zone of piecewise constancy
-        #self.izone = { key : -1*self.imask for key in self.grid_keys } 
-
+        # set spatial reference (used for compatibility with pyemu geostat utils)
+        self.spatial_reference = SpatialReference(self)
+        
         # set up pilot point data frame 
         self.pp_df = pd.DataFrame({'name': pd.Series(None, dtype=str),
             'x': pd.Series(None, dtype=np.float32),
@@ -631,11 +625,11 @@ class MartheModel():
                                 df_crit['refine'] = df[refine_crit] > refine_value
                             # append refine column into pp_df
                             pp_df_crit = pd.merge(pp_df,df_crit['refine'], left_index=True, right_index=True)
-                            self.param[par].pp_refine(lay, pp_df_crit,level = refine_level)
+                            self.param[par].pp_refine(lay, pp_df_crit, n_cell = pp_ncells_dic[par][lay], level = refine_level )
                             # update pointer to pp_df (yes, this is necessary!)
                             pp_df = self.param[par].pp_dic[lay]
-                        # set variogram range (3 times base pilot point spacing)
-                        vario_range = 3*self.cell_size*pp_ncells_dic[par][lay]
+                        # set variogram range (2 times base pilot point spacing)
+                        vario_range = 2*self.cell_size*pp_ncells_dic[par][lay]
                         # variogram setup :
                         #   - parameter a is considered as a proxy for range
                         #   - the contribution has no effect without nugget
@@ -647,7 +641,7 @@ class MartheModel():
                         # set up kriging
                         ok = pyemu.utils.geostats.OrdinaryKrige(geostruct=gs,point_data=pp_df)
                         # spatial reference (for pyemu compatibility only)
-                        ok.spatial_reference = SpatialReference(self) 
+                        ok.spatial_reference = self.spatial_reference 
                         # pandas dataframe of point where interpolation shall be conducted
                         # set up index for current zone and lay
                         x_coords, y_coords = self.param[par].zone_interp_coords(lay,zone=1)

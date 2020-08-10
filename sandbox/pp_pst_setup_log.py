@@ -133,7 +133,7 @@ log_transform_dic = {'kepon': True,'permh': True,'emmca' : True,'emmli': False}
 # ---------  set up izones dictionary  --------
 
 # only in confined zone for emmca and first layer with ZPC 
-izone_emmca = np.zeros( (nlay, nrow, ncol) )
+izone_emmca = -1*mm.imask 
 izone_emmca[ confined ] = 1
 izone_emmca[0,:,: ] = -1
 

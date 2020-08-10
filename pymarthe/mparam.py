@@ -623,12 +623,12 @@ class MartheParam() :
         
         return(pp_df_nobs)
 
-    def pp_refine(self, lay, df, level = 1):
+    def pp_refine(self, lay, df, n_cell, level = 1, interpolate = True):
         '''
         Description
         -----------
         Sets an existing set of pilot points for current parameter given a boolean 'refine' column. 
-        Pilot points selected for refinements are split into 4 new points
+        Pilot points selected for refinements are split into 4 new points when level=1, 16 points when level=2.
         NOTE : current version does not handle zones 
 
         Parameters
@@ -636,17 +636,22 @@ class MartheParam() :
         lay (int) : layer for which pilot points should be placed
         df : pandas dataframe with (at least) a 'refine' column and pp names as index
              
-        base_spacing (float) : spacing (length) of the initial pilot
-             point grid obtained with pp_from_rgrid()
+        n_cell : spacing in number of model cells of the main grid of pilot point 
         level : (default, 1) refinement level (1 = 1 pp -> 4 pp ; 2 = 1 pp -> 16 pp, ...)
+        interpolate (bool, default True) : whether refined pilot points should be interpolated 
+                 from current pp values. When False, parent values are inherited without interpolation. 
 
         Example
         -----------
-        mm.param['kepon'].pp_refine(lay=2, df = df)
+        mm.param['kepon'].pp_refine(lay=2, df = df, n_cell= 10)
 
         '''
         # zone currently not handled
         zone = 1
+
+        # base spacing (length) of initial pilot point grid obtained with pp_from_rgrid()
+        # inferred from n_cell and cell size
+        base_spacing = n_cell * self.mm.cell_size
 
         # initialize new pilot point df from copy of current pp_df
         pp_df = self.pp_dic[lay].copy()
@@ -679,19 +684,45 @@ class MartheParam() :
                         pp_id_y - coord_inc,pp_id_y - coord_inc])
                 # set new pp value to parent pp value
                 new_pp_values.extend([pp_df.loc[pp_id,'value']]*4)
-            
-            # remove refined pp_id  
-            pp_df.drop(pp_select.index,inplace=True)
 
-            # extend pp_df with new points
-            pp_df = pp_df.append(pd.DataFrame({
+            # create new dataframe 
+            new_pp_df = pd.DataFrame({
                 'x':new_pp_xvals,
                 'y':new_pp_yvals,
                 'zone':zone,
                 'value':new_pp_values,
                 # new pp get True value in refine column
                 'refine': True # necessary when merge > 1
-                }))
+                })
+
+            # interpolate values for new points by ordinary kriging 
+            if interpolate == True :
+                # variogram range inferred from n_cell
+                vario_range = 2*self.mm.cell_size*n_cell
+                # set up  PyEMU OrdinaryKriging instance 
+                v = pyemu.utils.geostats.ExpVario(contribution=1, a=vario_range)
+                gs = pyemu.utils.geostats.GeoStruct(variograms=v,transform="log")
+                ok = pyemu.utils.geostats.OrdinaryKrige(geostruct=gs,point_data=pp_df)
+                ok.spatial_reference = self.mm.spatial_reference 
+                # compute kriging factors
+                x_coords, y_coords = new_pp_df.x, new_pp_df.y
+                kfac_df = ok.calc_factors(x_coords, y_coords,pt_zone=1)
+                # write kriging factors to file
+                kfac_file = os.path.join(self.mm.mldir,'kfac_temp_refine_{0}_l{1:02d}_z{2:02d}.dat'.format(self.name,lay+1,zone))
+                ok.to_grid_factors_file(kfac_file) 
+                # fac2real (requires integer index)
+                kriged_values_df = pp_utils.fac2real(pp_file = pp_df.reset_index(drop=True) ,factors_file = kfac_file, kfac_sty='pyemu')
+                print(kriged_values_df)
+                # fetch interpolated values
+                new_pp_df['value'] = kriged_values_df['vals'].values
+                print(new_pp_df)
+                # remove factor file 
+                #os.remove(kfac_file)
+
+            # remove refined pp_id  
+            pp_df.drop(pp_select.index,inplace=True)
+            # extend pp_df with new points
+            pp_df = pp_df.append(new_pp_df)
 
             # rename all pilot point in pp_df and set index
             n_pp = pp_df.shape[0]
