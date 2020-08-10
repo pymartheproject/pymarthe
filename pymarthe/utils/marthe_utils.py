@@ -313,21 +313,36 @@ def read_histo_file (path_file):
 
     ''' 
     # read fixed-width format file 
-    try : 
-        df_histo = pd.read_fwf(path_file, skiprows = 1, widths= [30,7,2,7,2,7,1,12,30], header=None)
-    except : 
-        print('Error reading history file {}'.format(path_file))
-    
-    # drop last row
-    df_histo.drop(df_histo.tail(1).index,inplace=True)
-    # drop dummy columns
-    df_histo.drop([0,2,4,6], axis=1, inplace=True)
-    # rename columns
-    df_histo.columns = ['x','y','layer','id','label']
-    # set types 
-    df_histo = df_histo.astype({'x': float, 'y': float, 'layer': int})
-    # set id as index 
+
+    histo_file = open(path_file,"r",encoding = 'latin-1')
+    x_list, y_list, lay_list, id_list, label_list = [],[],[],[],[]
+
+    for line in histo_file :
+        # skip lines without slash
+        try :
+            if line.strip()[0] != '/':
+                continue
+        except : 
+            continue
+        # get positions within line string
+        xpos = line.find('X=')
+        ypos = line.find('Y=')
+        ppos = line.find('P=')
+        scpos = line.find(';')
+        # extract x, y, lay from line string
+        x_list.append(float(line[xpos+2:ypos]))
+        y_list.append(float(line[ypos+2:ppos]))
+        lay_list.append(int(line[ppos+2:scpos]))
+        # split id string and get label if any
+        id_string = line.split(';')[1].strip().split()
+        id_list.append(id_string[0])
+        if len(id_string)>1:
+            label_list.append(' '.join(id_string[1:]))
+        else :
+            label_list.append('')
+    df_histo = pd.DataFrame({'id':id_list,'x': x_list, 'y': y_list, 'layer': lay_list, 'label':label_list})
     df_histo.set_index('id',inplace=True)
+    histo_file.close()
     return df_histo
 
 
