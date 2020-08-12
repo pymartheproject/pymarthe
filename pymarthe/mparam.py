@@ -697,10 +697,11 @@ class MartheParam() :
 
             # interpolate values for new points by ordinary kriging 
             if interpolate == True :
-                # variogram range inferred from n_cell
+                # variogram range inferred from n_cell (2 times base pilot point spacing)
                 vario_range = 2*self.mm.cell_size*n_cell
                 # set up  PyEMU OrdinaryKriging instance 
                 v = pyemu.utils.geostats.ExpVario(contribution=1, a=vario_range)
+                transform = 'log' if self.log_transform == True else 'none'
                 gs = pyemu.utils.geostats.GeoStruct(variograms=v,transform="log")
                 ok = pyemu.utils.geostats.OrdinaryKrige(geostruct=gs,point_data=pp_df)
                 ok.spatial_reference = self.mm.spatial_reference 
@@ -717,7 +718,7 @@ class MartheParam() :
                 new_pp_df['value'] = kriged_values_df['vals'].values
                 print(new_pp_df)
                 # remove factor file 
-                #os.remove(kfac_file)
+                os.remove(kfac_file)
 
             # remove refined pp_id  
             pp_df.drop(pp_select.index,inplace=True)

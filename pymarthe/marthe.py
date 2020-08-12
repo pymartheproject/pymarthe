@@ -635,7 +635,8 @@ class MartheModel():
                         #   - the contribution has no effect without nugget
                         v = pyemu.utils.geostats.ExpVario(contribution=1, a=vario_range)
                         # build up GeoStruct
-                        gs = pyemu.utils.geostats.GeoStruct(variograms=v,transform="log")
+                        transform = 'log' if self.param[par].log_transform == True else 'none'
+                        gs = pyemu.utils.geostats.GeoStruct(variograms=v,transform=transform)
                         # get covariance matrix 
                         self.param[par].ppcov_dic[lay] = gs.covariance_matrix(pp_df.x,pp_df.y,pp_df.name)
                         # set up kriging
