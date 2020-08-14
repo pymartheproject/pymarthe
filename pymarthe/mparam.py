@@ -721,7 +721,7 @@ class MartheParam() :
                 os.remove(kfac_file)
 
             # remove refined pp_id  
-            pp_df.drop(pp_select.index,inplace=True)
+            #spp_df.drop(pp_select.index,inplace=True)
             # extend pp_df with new points
             pp_df = pp_df.append(new_pp_df)
 
