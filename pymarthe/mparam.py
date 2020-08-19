@@ -623,7 +623,7 @@ class MartheParam() :
         
         return(pp_df_nobs)
 
-    def pp_refine(self, lay, df, n_cell, level = 1, interpolate = True,,remove_parents = True):
+    def pp_refine(self, lay, df, n_cell, level = 1, interpolate = True,remove_parents = True):
         '''
         Description
         -----------
