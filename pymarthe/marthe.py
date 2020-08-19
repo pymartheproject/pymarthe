@@ -459,11 +459,11 @@ class MartheModel():
             ex : {'permh':{1:12, 2:18}}
             The value associated with the -1 key will be considered as the default value
 
-        refine_crit : refinement criteria for pilot points
+        refine_crit (str or dic of str) : refinement criteria for pilot points
 
-        refine_crit_type : type of criteria (absolute, quantile)
+        refine_crit_type (str or dic of str) : type of criteria (absolute, quantile)
 
-        refine_value : threshold value for refinement criteria.
+        refine_value (float or dic of float) : threshold value for refinement criteria.
                        if refine_crit_type is absolute, regular grid will be refined
                        where refine_crit > refine_value (e.g. parameter identifiability > 0.9)
                        if refine_crit_type is quantile, regular grid will be refined
@@ -564,6 +564,16 @@ class MartheModel():
                 print('Error processing pp_ncells argument, check type and content')
                 return
 
+            # check consistency of refinement settings and convert to dictionaries
+            if not isinstance(refine_crit, dict) :
+                refine_crit_dic = {par:refine_crit for par in params}
+
+            if not isinstance(refine_crit_type, dict) :
+                refine_crit_type_dic = {par:refine_crit_type for par in params}
+
+            if not isinstance(refine_value, dict) :
+                refine_value_dic = {par:refine_value for par in params}
+            
             # save settings
             if save_settings is not None : 
 
@@ -605,15 +615,15 @@ class MartheModel():
                         # pointer to current pilot point dataframe (reloaded or just generated)
                         pp_df  = self.param[par].pp_dic[lay]
                         # refinement of pilot point grid
-                        if refine_crit is not None:
+                        if refine_crit_dic[par] is not None:
                             # get dataframe with refinement criteria
                             df_crit_file = os.path.join('crit','{0}_pp_l{1:02d}_crit.dat'.format(par,lay+1))
                             df_crit = pd.read_csv(df_crit_file, delim_whitespace=True, index_col='param')
                             # refinement based on quantile (highest values selected)
-                            if refine_crit_type == 'quantile' :
+                            if refine_crit_type_dic[par] == 'quantile' :
                                 # compute number of pilot points that will be refined 
                                 pp_df = self.param[par].pp_dic[lay]
-                                n_pp_refined = int(refine_value*pp_df.shape[0])
+                                n_pp_refined = int(refine_value_dic[par]*pp_df.shape[0])
                                 # sort dataframe according to refine_crit column in decreasing order
                                 df_crit.sort_values(by=[refine_crit], inplace=True, ascending=False)
                                 # initialize refine column (boolean)
@@ -622,7 +632,7 @@ class MartheModel():
                                 df_crit.loc[:n_pp_refined,'refine'] = True
                             # refinement based on absolute criteria value (threshold)
                             else : 
-                                df_crit['refine'] = df[refine_crit] > refine_value
+                                df_crit['refine'] = df[refine_crit] > refine_value_dic[par]
                             # append refine column into pp_df
                             pp_df_crit = pd.merge(pp_df,df_crit['refine'], left_index=True, right_index=True)
                             self.param[par].pp_refine(lay, pp_df_crit, n_cell = pp_ncells_dic[par][lay], level = refine_level )
