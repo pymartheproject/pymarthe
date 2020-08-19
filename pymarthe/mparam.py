@@ -623,7 +623,7 @@ class MartheParam() :
         
         return(pp_df_nobs)
 
-    def pp_refine(self, lay, df, n_cell, level = 1, interpolate = True):
+    def pp_refine(self, lay, df, n_cell, level = 1, interpolate = True,,remove_parents = True):
         '''
         Description
         -----------
@@ -721,7 +721,8 @@ class MartheParam() :
                 os.remove(kfac_file)
 
             # remove refined pp_id  
-            #spp_df.drop(pp_select.index,inplace=True)
+            if remove_parents == True:
+                pp_df.drop(pp_select.index,inplace=True)
             # extend pp_df with new points
             pp_df = pp_df.append(new_pp_df)
 
