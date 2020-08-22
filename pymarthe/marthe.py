@@ -493,7 +493,6 @@ class MartheModel():
         pp_ncells_dic = {'permh':12}
 
         setup_tpl(izone_dic, log_transform_dic, pp_ncells_dic)
-
         # save settings 
         setup_tpl(izone_dic, log_transform_dic, pp_ncells_dic, save_settings = 'case.settings')
 
@@ -527,7 +526,7 @@ class MartheModel():
             # log_transform dictionary
             if log_transform is None :
                 # default value 
-                log_transform_dic = {lay:'none' for lay in range(self.nlay)}
+                log_transform_dic = {par:'none' for par in params}
             elif isinstance(log_transform, bool) :
                 # propagate value to all parameters
                 log_transform_dic = {par:log_transform for par in params}
@@ -564,15 +563,6 @@ class MartheModel():
                 print('Error processing pp_ncells argument, check type and content')
                 return
 
-            # check consistency of refinement settings and convert to dictionaries
-            if not isinstance(refine_crit, dict) :
-                refine_crit_dic = {par:refine_crit for par in params}
-
-            if not isinstance(refine_crit_type, dict) :
-                refine_crit_type_dic = {par:refine_crit_type for par in params}
-
-            if not isinstance(refine_value, dict) :
-                refine_value_dic = {par:refine_value for par in params}
             
             # save settings
             if save_settings is not None : 
@@ -584,6 +574,19 @@ class MartheModel():
                         pickle.dump(settings_tup,handle)
                 except :
                     print('I/O error, cannot save settings to file {}'.format(save_settings))
+
+	# check consistency of refinement settings and convert to dictionaries
+        if not isinstance(refine_crit, dict) :
+            refine_crit_dic = {par:refine_crit for par in params}
+        else : refine_crit_dic = refine_crit
+
+        if not isinstance(refine_crit_type, dict) :
+            refine_crit_type_dic = {par:refine_crit_type for par in params}
+        else : refine_crit_type_dic = refine_crit_type
+
+        if not isinstance(refine_value, dict) :
+            refine_value_dic = {par:refine_value for par in params}
+        else : refine_value_dic = refine_value
 
         # iterate over parameters with izone data  
         for par in params:
@@ -610,32 +613,34 @@ class MartheModel():
                             npp = len(self.param[par].pp_dic[lay])
                             print('{0} pilot points seeded for parameter {1}, layer {2}'.format(npp,par,lay+1))
                         else : 
-                            # set base spacing (model coordinates units) from ncell
+                            # get base spacing (model coordinates units) from ncell
                             self.param[par].base_spacing[lay] = pp_ncells_dic[par][lay]*self.cell_size
                         # pointer to current pilot point dataframe (reloaded or just generated)
                         pp_df  = self.param[par].pp_dic[lay]
                         # refinement of pilot point grid
                         if refine_crit_dic[par] is not None:
                             # get dataframe with refinement criteria
-                            df_crit_file = os.path.join('crit','{0}_pp_l{1:02d}_crit.dat'.format(par,lay+1))
+                            #df_crit_file = os.path.join('crit','{0}_pp_l{1:02d}_crit.dat'.format(par,lay+1))
+                            df_crit_file = os.path.join('crit','df_crit.dat')
                             df_crit = pd.read_csv(df_crit_file, delim_whitespace=True, index_col='param')
                             # refinement based on quantile (highest values selected)
                             if refine_crit_type_dic[par] == 'quantile' :
                                 # compute number of pilot points that will be refined 
-                                pp_df = self.param[par].pp_dic[lay]
                                 n_pp_refined = int(refine_value_dic[par]*pp_df.shape[0])
                                 # sort dataframe according to refine_crit column in decreasing order
-                                df_crit.sort_values(by=[refine_crit], inplace=True, ascending=False)
+                                df_crit.sort_values(by=[refine_crit_dic[par]], inplace=True, ascending=False)
                                 # initialize refine column (boolean)
                                 df_crit['refine'] = False
                                 # select points that will be refined
                                 df_crit.loc[:n_pp_refined,'refine'] = True
                             # refinement based on absolute criteria value (threshold)
                             else : 
-                                df_crit['refine'] = df[refine_crit] > refine_value_dic[par]
-                            # append refine column into pp_df
+                                df_crit['refine'] = df_crit[refine_crit_dic[par]] > refine_value_dic[par]
+                            # append refine column into pp_df (inner join with merge)
                             pp_df_crit = pd.merge(pp_df,df_crit['refine'], left_index=True, right_index=True)
-                            self.param[par].pp_refine(lay, pp_df_crit, n_cell = pp_ncells_dic[par][lay], level = refine_level )
+                            # perform refinement if number of points to refine > 0
+                            if pp_df_crit['refine'].sum() > 0 : 
+                                self.param[par].pp_refine(lay, pp_df_crit, n_cell = pp_ncells_dic[par][lay], level = refine_level )
                             # update pointer to pp_df (yes, this is necessary!)
                             pp_df = self.param[par].pp_dic[lay]
                         # set variogram range (2 times base pilot point spacing)

@@ -713,10 +713,8 @@ class MartheParam() :
                 ok.to_grid_factors_file(kfac_file) 
                 # fac2real (requires integer index)
                 kriged_values_df = pp_utils.fac2real(pp_file = pp_df.reset_index(drop=True) ,factors_file = kfac_file, kfac_sty='pyemu')
-                print(kriged_values_df)
                 # fetch interpolated values
                 new_pp_df['value'] = kriged_values_df['vals'].values
-                print(new_pp_df)
                 # remove factor file 
                 os.remove(kfac_file)
 
