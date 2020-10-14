@@ -101,6 +101,50 @@ def read_grid_file(path_file):
     grid = np.stack(grid_list)
 
     return (x_vals,y_vals,grid)
+
+def read_histobil_file(path_file,pastsp):
+    '''
+    Description
+    ----------
+    This function reads Marthe grid files
+    Parameters
+    ----------
+    path_file : Directory path with parameter files
+    pastsp : Time steps number
+    Return
+    -----
+    dfzone_list : list of zone datframes
+    Example
+    -----------
+    dfzone_list = read_grid_file(file_path)
+    '''
+    dfzone_list = []
+    # -- set lookup strings
+    # begin of each grid
+    lookup_begin  = 'Zone'  
+    # end of each grid
+    pastsp = pastsp
+    # -- open the file
+    data = open(path_file,"r",encoding = encoding)
+    # --iterate over lines
+    for num, line in enumerate(data, 1): #NOTE quel intérêt de commencer à 1 ? enumerate(data) mieux non ?
+    #search for line number with begin mark
+        if line.startswith('Zone'):
+            begin = num +1
+            end = begin+1+pastsp
+            # extract full grid from file
+            full_grid = []
+            with open(path_file,"r",encoding = encoding) as text_file:
+                for line in islice(text_file, begin-1,  end ):
+                    full_grid.append([(v) for v in line.split()])
+            # select yrows, xcols, delr, delc, param in full_grid
+            columns = full_grid[0]
+            df_zone = pd.DataFrame(full_grid,columns = columns)
+            df_zone.drop(df_zone.index[0:2],axis = 0,inplace = True)
+            df_zone.set_index(df_zone.Date.iloc[:,0],inplace = True)
+            df_zone.drop(df_zone.Date,axis=1,inplace = True)
+            dfzone_list.append(df_zone)
+    return (dfzone_list)
     
 
 def write_grid_file(path_file, x, y, grid):
