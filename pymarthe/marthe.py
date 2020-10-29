@@ -689,7 +689,7 @@ class MartheModel():
             # write template files 
             self.param[par].write_zpc_tpl()
 
-    def setup_ins(self, obs_dir = None, histo_file = None, obs_layers = None) :
+    def setup_ins(self,obs_dir = None, histo_file = None, obs_layers = None) :
         """
         Description
         ----------
@@ -706,10 +706,8 @@ class MartheModel():
         --------
         obs_dir = os.path.join(mm.mldir,'obs','')
         mm.setup_ins(obs_dir, 'model.histo', obs_layers = [5])
-
         """
         print('Collecting observed and simulated historical records...')
-
         # initialize arguments if not provided 
         if obs_dir is None : 
             obs_dir = os.path.join(self.mldir,'obs')
@@ -717,15 +715,12 @@ class MartheModel():
             histo_file = '{}.histo'.format(self.mlname)
         if obs_layers is None : 
             obs_layers = list(range(self.nlay))
-
         # load histo file 
         print('Reading history file {}'.format(histo_file))
         df_histo = marthe_utils.read_histo_file(histo_file)
-
         # get sorted list of all observation files in obs_dir 
         all_obs_files = [os.path.join(obs_dir, f) for f in sorted(os.listdir( obs_dir )) if f.endswith('.dat')]
         print('Found {0} observation history files in {1}'.format(len(all_obs_files),obs_dir))
-
         # observation locations (BSS ids) identified in model output file (model.histo)
         sim_obs_loc = []
         # iterate over obs_layers and get simulated observation locations
@@ -734,13 +729,10 @@ class MartheModel():
             lay_sim_list = df_histo.loc[(df_histo.layer - 1)==lay].index
             sim_obs_loc.extend(lay_sim_list)
             print('{0} simulated locations found for layer {1}'.format(len(lay_sim_list),lay+1))
-
         print('Found {} simulated history locations over selected model layers'.format(len(sim_obs_loc)))
-
         #  observation files selected for history matching (with simulated counterparts)
         obs_files = []
         obs_predict = []
-
         # iterate over observation files
         for obs_file in all_obs_files:
             # infer observation loc (BSS id) from filename
@@ -752,14 +744,11 @@ class MartheModel():
             if obs_loc in sim_obs_loc:
                 obs_files.append(obs_file) 
         obs_files.append(obs_predict)
-
-
         print('{} simulation locations considered with observed counterparts'.format(len(obs_files)))
         print('Generating instruction files for PEST...')
         # add selected observations
         for obs_file in obs_files :
             self.add_obs(obs_file = obs_file)
-
         # write instruction files
         for obs_loc in self.obs.keys() :
             self.obs[obs_loc].write_ins()
