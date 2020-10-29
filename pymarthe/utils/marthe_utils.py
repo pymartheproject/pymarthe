@@ -162,12 +162,16 @@ def extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out
     path_file : Directory path with parameter files
     pastsp : Time steps number
     variable : the variable of interest : one of the columns of histobil dataframe
+    dti_present : date from which to start the present period Y-M-D
+    dti_future : date from which to start the future period : formar Y-M-D
+    period : duration period 
+    out_dir : directory where to save files 
     Return
     -----
-    dfzone_list : list of zone datframes
+    Saved files 
     Example
     -----------
-    dfzone_list = read_grid_file(file_path,pastsp)
+    dfzone_list = extract_variable(file_path,pastsp = 40,'1990-12-08','2000-12-08',period = 2)
     '''
     dfzone_list,zone_ids = read_histobil_file(path_file,pastsp)
     for i in range(len(dfzone_list)):
@@ -177,7 +181,7 @@ def extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out
         present_variable = df_variable[present_period].mean()
         future_variable  = df_variable[future_period].mean()
         df = pd.DataFrame([present_variable,future_variable],index = [dti_present,dti_future])
-        df.to_csv(out_dir+zone_ids[i]+'.dat', header=False,sep ='\t') 
+        df.to_csv( out_dir+'zone_'+(zone_ids[i].split()[1])+'.dat', header=False,sep ='\t') 
 
 
 
@@ -424,7 +428,6 @@ def read_histo_file (path_file):
     df_histo.set_index('id',inplace=True)
     histo_file.close()
     return df_histo
-
 
 def grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,crs):
     """
