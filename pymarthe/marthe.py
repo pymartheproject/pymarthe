@@ -233,7 +233,7 @@ class MartheModel():
         else :
             marthe_utils.extract_prn(prn_file,False, out_dir, obs_dir)
 
-    def extract_variable(self,histobil_file = None, pastsp, variable, out_dir = None ):
+    def extract_variable(self,histobil_file,pastsp,dti_present,dti_future, out_dir):
         """ 
         Simple wrapper to marthe_utils_extract_prn()
         """
