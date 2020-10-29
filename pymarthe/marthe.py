@@ -233,6 +233,17 @@ class MartheModel():
         else :
             marthe_utils.extract_prn(prn_file,False, out_dir, obs_dir)
 
+    def extract_variable(self,histobil_file = None, pastsp, variable, out_dir = None ):
+        """ 
+        Simple wrapper to marthe_utils_extract_prn()
+        """
+        if histobil_file == None : 
+            prn_file = os.path.join(self.mldir,'histobil_debit.prn')
+        if out_dir == None : 
+            out_dir = os.path.join(self.mldir,'sim','')
+        marthe_utils.extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out_dir)
+  
+
  
     def run_model(self,exe_name = 'marthe', rma_file = None, 
                   silent=False, pause=False, report=False,
