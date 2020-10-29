@@ -739,15 +739,20 @@ class MartheModel():
 
         #  observation files selected for history matching (with simulated counterparts)
         obs_files = []
+        obs_predict = []
 
         # iterate over observation files
         for obs_file in all_obs_files:
             # infer observation loc (BSS id) from filename
             obs_filename = os.path.split(obs_file)[-1]
             obs_loc = obs_filename.split('_')[0]
-            # if obs_loc found in simulated outputs, append obs_loc 
+            if obs_loc.startswith('Zone'):
+                obs_predict.append(obs_loc)
+            # if obs_loc found in simulated outputs, append obs_loc
             if obs_loc in sim_obs_loc:
-                obs_files.append(obs_file)
+                obs_files.append(obs_file) 
+        obs_files.append(obs_predict)
+
 
         print('{} simulation locations considered with observed counterparts'.format(len(obs_files)))
         print('Generating instruction files for PEST...')
