@@ -116,7 +116,7 @@ def read_histobil_file(path_file,pastsp):
     dfzone_list : list of zone datframes
     Example
     -----------
-    dfzone_list = read_grid_file(file_path)
+    dfzone_list = read_histobil_file(file_path,pastsp)
     '''
     dfzone_list = []
     # -- set lookup strings
@@ -127,9 +127,12 @@ def read_histobil_file(path_file,pastsp):
     # -- open the file
     data = open(path_file,"r",encoding = encoding)
     # --iterate over lines
-    for num, line in enumerate(data, 1): #NOTE quel intérêt de commencer à 1 ? enumerate(data) mieux non ?
+    zone_ids = []
+    for num, line in enumerate(data, 1): 
     #search for line number with begin mark
         if line.startswith('Zone'):
+            zone_id = line.split('\t')[0]
+            zone_ids.append(zone_id)
             begin = num +1
             end = begin+1+pastsp
             # extract full grid from file
@@ -141,10 +144,43 @@ def read_histobil_file(path_file,pastsp):
             columns = full_grid[0]
             df_zone = pd.DataFrame(full_grid,columns = columns)
             df_zone.drop(df_zone.index[0:2],axis = 0,inplace = True)
-            df_zone.set_index(df_zone.Date.iloc[:,0],inplace = True)
+            df_zone.set_index(pd.DatetimeIndex(df_zone.Date.iloc[:,0]),inplace = True)
             df_zone.drop(df_zone.Date,axis=1,inplace = True)
             dfzone_list.append(df_zone)
-    return (dfzone_list)
+    #zone_dic = {k:v for k,v in zip(zone_ids, dfzone_list)}
+    return (dfzone_list,zone_ids)
+
+def extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out_dir = None):
+    '''
+    Description
+    ----------
+    This function extact the variable of interest from histobil file 
+    and writes individual files for each zone 
+    Each file contains two columns : date and its simulation value
+    Parameters
+    ----------
+    path_file : Directory path with parameter files
+    pastsp : Time steps number
+    variable : the variable of interest : one of the columns of histobil dataframe
+    Return
+    -----
+    dfzone_list : list of zone datframes
+    Example
+    -----------
+    dfzone_list = read_grid_file(file_path,pastsp)
+    '''
+    dfzone_list,zone_ids = read_histobil_file(path_file,pastsp)
+    for i in range(len(dfzone_list)):
+        df_variable = pd.to_numeric(dfzone_list[i][variable])
+        present_period = pd.date_range(dti_present, periods=period, freq='A')
+        future_period = pd.date_range(dti_future, periods=period, freq='A')
+        present_variable = df_variable[present_period].mean()
+        future_variable  = df_variable[future_period].mean()
+        df = pd.DataFrame([present_variable,future_variable],index = [dti_present,dti_future])
+        df.to_csv(out_dir+zone_ids[i]+'.dat', header=False,sep ='\t') 
+
+
+
     
 
 def write_grid_file(path_file, x, y, grid):
