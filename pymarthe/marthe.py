@@ -441,9 +441,9 @@ class MartheModel():
 
         return(phi)
 
-    def setup_tpl(self,izone_dic = None, log_transform = None, pp_ncells = None, 
+    def setup_tpl(self,izone_dic = None, log_transform = None, pp_ncells = None,
             refine_crit = None, refine_crit_type = None, refine_value = None,
-            refine_level = 1, save_settings = None, reload_settings = None):
+            refine_level = 1, refine_layers = None,save_settings = None, reload_settings = None):
         """
         Description
         ----------
@@ -598,7 +598,8 @@ class MartheModel():
         if not isinstance(refine_value, dict) :
             refine_value_dic = {par:refine_value for par in params}
         else : refine_value_dic = refine_value
-
+        if refine_layers is None:
+            refine_layers = range(self.nlay)
         # iterate over parameters with izone data  
         for par in params:
             print('Processing parameter {0}...'.format(par))
@@ -629,7 +630,7 @@ class MartheModel():
                         # pointer to current pilot point dataframe (reloaded or just generated)
                         pp_df  = self.param[par].pp_dic[lay]
                         # refinement of pilot point grid
-                        if refine_crit_dic[par] is not None:
+                        if refine_crit_dic[par] is not None and lay in refine_layers:
                             # get dataframe with refinement criteria
                             #df_crit_file = os.path.join('crit','{0}_pp_l{1:02d}_crit.dat'.format(par,lay+1))
                             df_crit_file = os.path.join('crit','df_crit.dat')

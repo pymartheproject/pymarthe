@@ -175,13 +175,14 @@ def extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out
     '''
     dfzone_list,zone_ids = read_histobil_file(path_file,pastsp)
     for i in range(len(dfzone_list)):
-        df_variable = pd.to_numeric(dfzone_list[i][variable])
-        present_period = pd.date_range(dti_present, periods=period, freq='A')
-        future_period = pd.date_range(dti_future, periods=period, freq='A')
-        present_variable = df_variable[present_period].mean()
-        future_variable  = df_variable[future_period].mean()
-        df = pd.DataFrame([present_variable,future_variable],index = [dti_present,dti_future])
-        df.to_csv( out_dir+'zone_'+(zone_ids[i].split()[1])+'.dat', header=False,sep ='\t') 
+        df_variable = pd.to_numeric(dfzone_list[i][variable]).cumsum() # take the column of interest variable
+        present_period = pd.date_range(dti_present, periods=period, freq='A') # Extarct present period 
+        future_period = pd.date_range(dti_future, periods=period, freq='A') # Extract future period 
+        scum_present_mean = df_variable[present_period].mean() # Mean of cumulative sum for the present period
+        scum_future_mean  = df_variable[future_period].mean() # Mean of cumulative sum for the future period
+        delta_s_relative = (scum_future_mean - scum_present_mean) / abs(scum_present_mean) # Relative delta 
+        df = pd.DataFrame([scum_present_mean,scum_future_mean,delta_s_relative],index = [dti_present,dti_future,dti_future])
+        df.to_csv( out_dir+'stock_'+(zone_ids[i].split()[1])+'.dat', header=False,sep ='\t') 
 
 
 
