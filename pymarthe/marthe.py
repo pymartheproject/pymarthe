@@ -233,11 +233,11 @@ class MartheModel():
         else :
             marthe_utils.extract_prn(prn_file,False, out_dir, obs_dir)
 
-    def extract_variable(self,histobil_file,pastsp,dti_present,dti_future, out_dir):
+    def extract_variable(self,path_file,pastsp,variable,dti_present,dti_future,period, out_dir):
         """ 
         Simple wrapper to marthe_utils_extract_prn()
         """
-        if histobil_file == None : 
+        if path_file == None : 
             prn_file = os.path.join(self.mldir,'histobil_debit.prn')
         if out_dir == None : 
             out_dir = os.path.join(self.mldir,'sim','')
@@ -708,6 +708,9 @@ class MartheModel():
         obs_dir = os.path.join(mm.mldir,'obs','')
         mm.setup_ins(obs_dir, 'model.histo', obs_layers = [5])
         """
+        sim_obs_loc = []
+        obs_files = []
+        obs_predict = []
         print('Collecting observed and simulated historical records...')
         # initialize arguments if not provided 
         if obs_dir is None : 
@@ -723,7 +726,6 @@ class MartheModel():
         all_obs_files = [os.path.join(obs_dir, f) for f in sorted(os.listdir( obs_dir )) if f.endswith('.dat')]
         print('Found {0} observation history files in {1}'.format(len(all_obs_files),obs_dir))
         # observation locations (BSS ids) identified in model output file (model.histo)
-        sim_obs_loc = []
         # iterate over obs_layers and get simulated observation locations
         for lay in obs_layers:
             # simulated records for lay
@@ -732,14 +734,12 @@ class MartheModel():
             print('{0} simulated locations found for layer {1}'.format(len(lay_sim_list),lay+1))
         print('Found {} simulated history locations over selected model layers'.format(len(sim_obs_loc)))
         #  observation files selected for history matching (with simulated counterparts)
-        obs_files = []
-        obs_predict = []
         # iterate over observation files
         for obs_file in all_obs_files:
             # infer observation loc (BSS id) from filename
             obs_filename = os.path.split(obs_file)[-1]
             obs_loc = obs_filename.split('_')[0]
-            if obs_loc.startswith('Zone'):
+            if obs_loc.startswith('stock'):
                 obs_predict.append(obs_file)
             # if obs_loc found in simulated outputs, append obs_loc
             if obs_loc in sim_obs_loc:
