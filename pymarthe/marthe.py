@@ -631,10 +631,16 @@ class MartheModel():
                         pp_df  = self.param[par].pp_dic[lay]
                         # refinement of pilot point grid
                         if refine_crit_dic[par] is not None and lay in refine_layers:
-                            # get dataframe with refinement criteria
-                            #df_crit_file = os.path.join('crit','{0}_pp_l{1:02d}_crit.dat'.format(par,lay+1))
-                            df_crit_file = os.path.join('crit','df_crit.dat')
-                            df_crit = pd.read_csv(df_crit_file, delim_whitespace=True, index_col='param')
+                            # if criteria is nobs, get it with get_pp_nobs()
+                            if refine_crit_dic[par]=='nobs':
+                                loc_df = marthe_utils.read_histo(self.mlname + '.histo')
+                                df_crit = self.param[par].get_pp_nobs(lay, loc_df)
+                            # if criteria inferred from sensitivities, get it from from file
+                            else : 
+                                # get dataframe with refinement criteria
+                                #df_crit_file = os.path.join('crit','{0}_pp_l{1:02d}_crit.dat'.format(par,lay+1))
+                                df_crit_file = os.path.join('crit','df_crit.dat')
+                                df_crit = pd.read_csv(df_crit_file, delim_whitespace=True, index_col='param')
                             # refinement based on quantile (highest values selected)
                             if refine_crit_type_dic[par] == 'quantile' :
                                 # compute number of pilot points that will be refined 
