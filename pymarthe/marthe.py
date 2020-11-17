@@ -633,7 +633,7 @@ class MartheModel():
                         if refine_crit_dic[par] is not None and lay in refine_layers:
                             # if criteria is nobs, get it with get_pp_nobs()
                             if refine_crit_dic[par]=='nobs':
-                                loc_df = marthe_utils.read_histo(self.mlname + '.histo')
+                                loc_df = marthe_utils.read_histo_file(self.mlname + '.histo')
                                 df_crit = self.param[par].get_pp_nobs(lay, loc_df)
                             # if criteria inferred from sensitivities, get it from from file
                             else : 
