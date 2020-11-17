@@ -180,7 +180,7 @@ def extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out
         future_period = pd.date_range(dti_future, periods=period, freq='A') # Extract future period 
         scum_present_mean = df_variable[present_period].mean() # Mean of cumulative sum for the present period
         scum_future_mean  = df_variable[future_period].mean() # Mean of cumulative sum for the future period
-        delta_s_relative = (scum_future_mean - scum_present_mean) / abs(scum_present_mean) # Relative delta 
+        delta_s_relative = (scum_future_mean - scum_present_mean) / abs(scum_present_mean) # Relative delta  
         df = pd.DataFrame([scum_present_mean,scum_future_mean,delta_s_relative],index = [dti_present,dti_future,dti_future])
         df.to_csv( out_dir+'stock_'+(zone_ids[i].split()[1])+'.dat', header=False,sep ='\t') 
 
