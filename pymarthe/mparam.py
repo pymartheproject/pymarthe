@@ -611,9 +611,10 @@ class MartheParam() :
             xmax = pp_df.loc[pp_id,'x'] + spacing/2.
             ymin = pp_df.loc[pp_id,'y'] - spacing/2.
             ymax = pp_df.loc[pp_id,'y'] + spacing/2.
+            loc_df_lay = loc_df[loc_df.layer ==lay]
             # get number of observation locations in the cell
-            idx = (loc_df['x'] > xmin) & (loc_df['x'] < xmax) & \
-                    (loc_df['y'] > ymin) & (loc_df['y'] < ymax)
+            idx = (loc_df_lay['x'] > xmin) & (loc_df_lay['x'] < xmax) & \
+                    (loc_df_lay['y'] > ymin) & (loc_df_lay['y'] < ymax)
             nobs = idx.sum()
             nobs_list.append(nobs)
 
