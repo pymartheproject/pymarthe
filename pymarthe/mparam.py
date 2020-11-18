@@ -724,6 +724,7 @@ class MartheParam() :
                 pp_df.drop(pp_select.index,inplace=True)
             # extend pp_df with new points
             pp_df = pp_df.append(new_pp_df)
+            pp_df = pp_df.drop_duplicates(["x","y"],keep = 'first')
 
             # rename all pilot point in pp_df and set index
             n_pp = pp_df.shape[0]
