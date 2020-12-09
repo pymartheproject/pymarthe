@@ -5,7 +5,6 @@ import numpy as np
 from matplotlib import dates as mdates
 import datetime
 import subprocess
-from matplotlib.dates import bytespdate2num
 import matplotlib.dates as mdates
 import pandas as pd
 
