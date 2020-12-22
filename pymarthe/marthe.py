@@ -670,7 +670,8 @@ class MartheModel():
                         # build up GeoStruct
                         transform = 'log' if self.param[par].log_transform == True else 'none'
                         gs = pyemu.utils.geostats.GeoStruct(variograms=v,transform=transform)
-                        # get covariance matrix 
+                        # attach geostruct and covariance matrix 
+                        self.param[par].gs_dic[lay] = gs
                         self.param[par].ppcov_dic[lay] = gs.covariance_matrix(pp_df.x,pp_df.y,pp_df.name)
                         # set up kriging
                         ok = pyemu.utils.geostats.OrdinaryKrige(geostruct=gs,point_data=pp_df)

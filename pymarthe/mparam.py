@@ -120,6 +120,7 @@ class MartheParam() :
         """
         nlay = self.mm.nlay
         self.pp_dic  = {} # dict of pandas dataframe 
+        self.gs_dic = {} # dict of pyemu covariance matrix 
         self.ppcov_dic = {} # dict of pyemu covariance matrix 
       
         # append lay to pp_dic if it contains zones > 0
