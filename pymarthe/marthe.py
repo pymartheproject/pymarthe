@@ -645,6 +645,7 @@ class MartheModel():
                             if refine_crit_type_dic[par] == 'quantile' :
                                 # compute number of pilot points that will be refined 
                                 n_pp_refined = int(refine_value_dic[par]*pp_df.shape[0])
+                                df_crit = df_crit.loc[df_crit.index.str.contains('l{0:02d}'.format(lay+1)),:]
                                 # sort dataframe according to refine_crit column in decreasing order
                                 df_crit.sort_values(by=[refine_crit_dic[par]], inplace=True, ascending=False)
                                 # initialize refine column (boolean)
