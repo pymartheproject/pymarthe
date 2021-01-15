@@ -48,9 +48,10 @@ std_all_years = df_obs.std()
 var_all_years = std_all_years**2
 nb_layer= 15
 df_wlayer = pd.DataFrame()
+
 for i in range(1,nb_layer+1):
 	wells_selection = df_histo.loc[df_histo.layer == i].index
-	var_wells_selection = var_all_years[wells_selection]
+	var_wells_selection = var_wells_selection= var_all_years.reindex(wells_selection)
 	var_mean_layer      = (var_wells_selection.mean())
 	std_mean_layer = sqrt(var_mean_layer)
 	std_mean_layer      = pd.DataFrame({str(i) : std_mean_layer}, index=[0])
@@ -88,7 +89,7 @@ for id in common_cols :
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
 					std = np.sqrt(std_m**2 + std_mes**2)
-					w = (1./std)/ nobs[id]
+					w = (1./std)/ np.sqrt(nobs[id])
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean
 				else :
@@ -97,7 +98,7 @@ for id in common_cols :
 					l = layer.iloc[0]
 					std_m = df_wlayer [str(l)][0]
 					std   = np.sqrt(std_m**2 + std_mes**2)
-					w     = (1./(std))/ nobs[id]
+					w     = (1./(std))/ np.sqrt(nobs[id])
 					m = mean_forage[j]
 		else :
 			if sim_data[j] == 9999:
@@ -112,7 +113,7 @@ for id in common_cols :
 				elif count_data.iloc[j] > nobs_min  :
 					std_m = std_forage[j] / sqrt(count_data[j])
 					std = np.sqrt(std_m**2 + std_mes**2)
-					w = (1./std)/ nobs[id]
+					w = (1./std)/ np.sqrt(nobs[id])
 					m = mean_forage[j]
 				# case not enough obs for the couputation of the error on the mean	
 				else : 
@@ -121,7 +122,7 @@ for id in common_cols :
 					l = layer.iloc[0]
 					std_m = df_wlayer [str(l)][0]
 					std   = np.sqrt(std_m**2 + std_mes**2)
-					w     = (1./(std))/ nobs[id]
+					w     = (1./(std))/ np.sqrt(nobs[id])
 					m = mean_forage[j]
 		# append new element to the lists
 		weights_list.append(w)
