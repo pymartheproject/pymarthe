@@ -121,7 +121,7 @@ def read_histobil_file(path_file,pastsp):
     dfzone_list = []
     # -- set lookup strings
     # begin of each grid
-    lookup_begin  = 'Zone'  
+    lookup_begin  = "Bilan de débit d'aquifère : Zone"
     # end of each grid
     pastsp = pastsp
     # -- open the file
