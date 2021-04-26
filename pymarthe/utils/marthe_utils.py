@@ -130,7 +130,7 @@ def read_histobil_file(path_file,pastsp):
     zone_ids = []
     for num, line in enumerate(data, 1): 
     #search for line number with begin mark
-        if line.startswith('Zone'):
+        if line.startswith(lookup_begin):
             zone_id = line.split('\t')[0]
             zone_ids.append(zone_id)
             begin = num +1
