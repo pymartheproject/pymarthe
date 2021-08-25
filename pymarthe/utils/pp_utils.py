@@ -33,7 +33,7 @@ def ppoints_from_shp(shp_file, prefix, zone = 1, value = 1e-2, zone_field = None
     # context dependent initial value 
     if 'value' not in pp_df.columns :
         if value_field is not None : 
-            pp_df['value'] = pp_df[zone_field]
+            pp_df['value'] = pp_df[value_field]
         else :
             pp_df['value'] = value
 
