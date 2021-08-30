@@ -90,19 +90,23 @@ class MartheParam() :
         >> mm.param['kepon'].set_izone(izone)
 
         """
-        # reset izone for current parameter from imask
-        self.izone = self.mm.imask.copy()
-        # index of active cells
-        idx_active_cells = self.mm.imask == 1
 
         # case izone is not provided
         if izone is None :
+            # reset izone for current parameter from imask
+            self.izone = self.mm.imask.copy()
+            # index of active cells
+            idx_active_cells = self.mm.imask == 1
             # a single zone is considered
             self.izone[idx_active_cells] = -1
 
         # case an izone array is provided
         elif isinstance(izone,np.ndarray) : 
             assert izone.shape == (self.mm.nlay, self.mm.nrow, self.mm.ncol) 
+            # set izone as provided
+            self.izone = izone.copy()
+            # index of active cells
+            idx_active_cells = izone == 1
             # only update active cells  
             self.izone[idx_active_cells] = izone[idx_active_cells]
 
