@@ -379,7 +379,7 @@ def extract_prn(prn_file,fluct, out_dir ="./", obs_dir = None):
 
 
 
-def read_histo_file (path_file):
+def read_histo_file (path_file, cell = False):
 
     '''
     Description
@@ -390,7 +390,8 @@ def read_histo_file (path_file):
     Parameters
     ----------
     path_file : Directory path with observation file
-    
+    cell: Boolean indicating whether the .histo file is defined with cell coordinates (Col, Row)
+    or absolute coordinates (X, Y) - Default is absolute coordinates (X, Y)
 
     Return
     ------
@@ -410,8 +411,12 @@ def read_histo_file (path_file):
         except : 
             continue
         # get positions within line string
-        xpos = line.find('X=')
-        ypos = line.find('Y=')
+        if cell is True :
+            xpos = line.find('C=')
+            ypos = line.find('L=')
+        else :
+            xpos = line.find('X=')
+            ypos = line.find('Y=')
         ppos = line.find('P=')
         scpos = line.find(';')
         # extract x, y, lay from line string
@@ -419,7 +424,7 @@ def read_histo_file (path_file):
         y_list.append(float(line[ypos+2:ppos]))
         lay_list.append(int(line[ppos+2:scpos]))
         # split id string and get label if any
-        id_string = line.split(';')[1].strip().split()
+        id_string = line.split('Name=')[1].strip().split()
         id_list.append(id_string[0])
         if len(id_string)>1:
             label_list.append(' '.join(id_string[1:]))
