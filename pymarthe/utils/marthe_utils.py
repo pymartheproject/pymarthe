@@ -411,7 +411,7 @@ def read_histo_file (path_file, cell = False):
         except : 
             continue
         # get positions within line string
-        if cell is True :
+        if cell == True :
             xpos = line.find('C=')
             ypos = line.find('L=')
         else :
