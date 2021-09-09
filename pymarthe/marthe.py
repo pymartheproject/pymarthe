@@ -481,6 +481,8 @@ class MartheModel():
                        for the upper quantile defined by refine_value (e.g. 0.25)
 
         refine_level : refinement level (see pp_refine)
+	
+	refine_layers (int, list) : layer or list of layers where pilot points refinement will be implemented
 
         save_settings : None, or name of the file where settings should be saved (e.g. 'case.settings')
 
