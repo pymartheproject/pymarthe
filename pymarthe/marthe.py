@@ -480,7 +480,9 @@ class MartheModel():
                        if refine_crit_type is quantile, regular grid will be refined
                        for the upper quantile defined by refine_value (e.g. 0.25)
 
-        refine_level : refinement level (see pp_refine)
+        refine_level (int, dic): refinement level (see pp_refine) or a level per layer for a given parameter
+		ex: {'permh': {1:1, 2:3, 3:1} }
+		(Note: the layers should also appear in the refine_layers list below for the refinement to be effective)
 	
 	refine_layers (int, list) : layer or list of layers where pilot points refinement will be implemented
 
@@ -600,7 +602,12 @@ class MartheModel():
         if not isinstance(refine_value, dict) :
             refine_value_dic = {par:refine_value for par in params}
         else : refine_value_dic = refine_value
-        if refine_layers is None:
+
+	if not isinstance(refine_level, dict) :
+            refine_level_dic = { par: {lay:refine_level for lay in range(self.nlay)} for par in params }
+        else : refine_level_dic = refine_level
+		
+	if refine_layers is None:
             refine_layers = range(self.nlay)
         # iterate over parameters with izone data  
         for par in params:
@@ -661,7 +668,7 @@ class MartheModel():
                             pp_df_crit = pd.merge(pp_df,df_crit['refine'], left_index=True, right_index=True)
                             # perform refinement if number of points to refine > 0
                             if pp_df_crit['refine'].sum() > 0 : 
-                                self.param[par].pp_refine(lay, pp_df_crit, n_cell = pp_ncells_dic[par][lay], level = refine_level )
+                                self.param[par].pp_refine(lay, pp_df_crit, n_cell = pp_ncells_dic[par][lay], level = refine_level[par][lay] )
                             # update pointer to pp_df (yes, this is necessary!)
                             pp_df = self.param[par].pp_dic[lay]
                         # set variogram range (2 times base pilot point spacing)
