@@ -391,7 +391,6 @@ def read_histo_file (path_file):
     Parameters
     ----------
     path_file : Directory path with observation file
-    or absolute coordinates (X, Y) - Default is absolute coordinates (X, Y)
 
     Return
     ------
