@@ -2,6 +2,7 @@
 import numpy as np
 from itertools import islice
 import pandas as pd
+import re
 from pathlib import Path
 from collections import OrderedDict
 
@@ -379,7 +380,7 @@ def extract_prn(prn_file,fluct, out_dir ="./", obs_dir = None):
 
 
 
-def read_histo_file (path_file, cell = False):
+def read_histo_file (path_file):
 
     '''
     Description
@@ -390,7 +391,6 @@ def read_histo_file (path_file, cell = False):
     Parameters
     ----------
     path_file : Directory path with observation file
-    cell: Boolean indicating whether the .histo file is defined with cell coordinates (Col, Row)
     or absolute coordinates (X, Y) - Default is absolute coordinates (X, Y)
 
     Return
@@ -403,20 +403,23 @@ def read_histo_file (path_file, cell = False):
     histo_file = open(path_file,"r",encoding = 'latin-1')
     x_list, y_list, lay_list, id_list, label_list = [],[],[],[],[]
 
-    for line in histo_file :
-        # skip lines without slash
+   for line in histo_file :
+        # skip lines without slash or without number slash (gigogne)
         try :
-            if line.strip()[0] != '/':
+            if (line[2] != '/' ):
                 continue
         except : 
             continue
-        # get positions within line string
-        if cell == True :
-            xpos = line.find('C=')
-            ypos = line.find('L=')
-        else :
+        
+        # check histo definition
+        if (re.search(r'(?<=(/   =   /))\w+', line).group(0) == 'XCOO') :
+            # get positions within line string
             xpos = line.find('X=')
             ypos = line.find('Y=')
+        else        :
+            xpos = line.find('C=')
+            ypos = line.find('L=')
+
         ppos = line.find('P=')
         scpos = line.find(';')
         # extract x, y, lay from line string
