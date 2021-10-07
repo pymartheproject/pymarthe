@@ -2,6 +2,7 @@
 import numpy as np
 from itertools import islice
 import pandas as pd
+import re
 from pathlib import Path
 from collections import OrderedDict
 
@@ -390,7 +391,6 @@ def read_histo_file (path_file):
     Parameters
     ----------
     path_file : Directory path with observation file
-    
 
     Return
     ------
@@ -402,16 +402,23 @@ def read_histo_file (path_file):
     histo_file = open(path_file,"r",encoding = 'latin-1')
     x_list, y_list, lay_list, id_list, label_list = [],[],[],[],[]
 
-    for line in histo_file :
-        # skip lines without slash
+   for line in histo_file :
+        # skip lines without slash or without number slash (gigogne)
         try :
-            if line.strip()[0] != '/':
+            if (line[2] != '/' ):
                 continue
         except : 
             continue
-        # get positions within line string
-        xpos = line.find('X=')
-        ypos = line.find('Y=')
+        
+        # check histo definition
+        if (re.search(r'(?<=(/   =   /))\w+', line).group(0) == 'XCOO') :
+            # get positions within line string
+            xpos = line.find('X=')
+            ypos = line.find('Y=')
+        else        :
+            xpos = line.find('C=')
+            ypos = line.find('L=')
+
         ppos = line.find('P=')
         scpos = line.find(';')
         # extract x, y, lay from line string
@@ -419,7 +426,7 @@ def read_histo_file (path_file):
         y_list.append(float(line[ypos+2:ppos]))
         lay_list.append(int(line[ppos+2:scpos]))
         # split id string and get label if any
-        id_string = line.split(';')[1].strip().split()
+        id_string = line.split('Name=')[1].strip().split()
         id_list.append(id_string[0])
         if len(id_string)>1:
             label_list.append(' '.join(id_string[1:]))
