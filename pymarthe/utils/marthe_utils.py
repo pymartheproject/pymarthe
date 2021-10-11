@@ -324,6 +324,7 @@ def read_prn(prn_file):
     df_fluct = df_sim - df_sim.mean()
     return  df_sim
 
+
 def extract_prn(prn_file,fluct, out_dir ="./", obs_dir = None):
     '''
     Description
@@ -404,7 +405,7 @@ def read_histo_file (path_file):
     histo_file = open(path_file,"r",encoding = 'latin-1')
     x_list, y_list, lay_list, id_list, label_list = [],[],[],[],[]
 
-   for line in histo_file :
+    for line in histo_file :
         # skip lines without slash or without number slash (gigogne)
         try :
             if (line[2] != '/' ):
