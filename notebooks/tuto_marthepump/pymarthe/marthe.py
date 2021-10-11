@@ -263,9 +263,13 @@ class MartheModel():
 
         return
 
+
+
     def data_to_shp(self, key, lay, filepath ) :
         data = self.grids[key][lay,:,:]
         marthe_utils.grid_data_to_shp(self.x_vals, self.y_vals, data, file_path, field_name_list=[key])
+
+
 
     def extract_prn(self,prn_file = None, fluct = False, out_dir = None , obs_dir = None):
         """ 
