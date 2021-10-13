@@ -285,7 +285,7 @@ def read_obs(path_file):
     df_obs = pd.read_csv(path_file, sep='\t',low_memory=False) 
     loc_ids = list(df_obs.columns[1:])
     df_obs.columns = ['date'] + loc_ids 
-    df_obs.date = pd.to_datetime(df_obs.date,  format="%Y/%m/%d")
+    df_obs.date = pd.to_datetime(df_obs.date,  format="%d/%m/%Y")
     df_obs = df_obs.set_index(df_obs.date)
     df_obs = df_obs.iloc[0:-2,:]
 
