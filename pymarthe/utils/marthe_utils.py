@@ -280,16 +280,25 @@ def write_grid_file(path_file, x, y, grid):
 
     return
 
-def read_obs(path_file):
-    
-    df_obs = pd.read_csv(path_file, sep='\t',low_memory=False) 
-    loc_ids = list(df_obs.columns[1:])
-    df_obs.columns = ['date'] + loc_ids 
-    df_obs.date = pd.to_datetime(df_obs.date,  format="%d/%m/%Y")
-    df_obs = df_obs.set_index(df_obs.date)
-    df_obs = df_obs.iloc[0:-2,:]
+def read_obs(path_file, starting_date, ending_date):
+    '''
+    Description
+    ----------
+    This function reads initial obs data
+    Parameters
+    ----------
+    path_file     : Directory path with obs data 
+    starting_data : Year of starting period (str)
+    ending_data   : Year of ending period (str)
+    Return
+    -----
+    list of observations and the dataframe 
+    -----------
+    '''
+    df_obs = pd.read_csv(path_file, sep='\t',index_col = 'Date',parse_dates = True)
+    df_obs = df_obs[starting_date:ending_date]
 
-    return loc_ids,df_obs
+    return df_obs
 
 
 def read_prn(prn_file):
