@@ -525,7 +525,7 @@ def grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,c
 
 
 
-def read_listm_qfile(qfile):
+def read_listm_qfile(qfile, mode = 'aquifer'):
     """
     -----------
     Description:
@@ -538,6 +538,10 @@ def read_listm_qfile(qfile):
                   Format: 4 columns without headers
                           V (value, float), C (column, int),
                           L (line, int), P (layer, int) 
+    mode (str) : type of cell localisation pumping
+                Can be 'aquifer' (columns, line, layer)
+                or 'river' ('affluent', 'troncon')
+                Default is 'aquifer'
 
     Returns:
     -----------
@@ -547,14 +551,23 @@ def read_listm_qfile(qfile):
     -----------
     arr = read_qfile('qfile.txt')
     """
-    # ---- Set data types
-    dt = [('V','f8'), ('C', 'i4'), ('L', 'i4'), ('P', 'i4')]
-    # ---- Read qfile as array (separator = any whitespace)
-    arr = np.loadtxt(qfile, dtype = dt)
+    if mode == 'aquifer':
+        # ---- Set data types
+        dt = [('v','f8'), ('c', 'i4'), ('l', 'i4'), ('p', 'i4')]
+        # ---- Read qfile as array (separator = any whitespace)
+        base_arr = np.loadtxt(qfile, dtype = dt)
+        # ---- Add boundnames
+        data = [tuple([v,c,l,p ] + ['_'.join(map(str,[c,l,p]))]) for v,c,l,p in base_arr]
+        arr = np.array(data, dtype = dt + [('boundname', '<U25')])
+    if mode == 'river':
+        print('LISTM OPERATION NOT AVAILABLE YET FOR RIVER PUMPING')
+        # # ---- Set data types
+        # dt = [('v','f8'), ('a', 'i4'), ('t', 'i4')]
+        # # ---- Read qfile as array (separator = any whitespace)
+        # base_arr = np.loadtxt(qfile, dtype = dt)
+        # # ---- Add boundnames
     # ---- Return data
     return arr
-
-
 
 
 
@@ -569,24 +582,28 @@ def read_record_qfile(qfile, qcol):
     Parameters: 
     -----------
     qfile (str) : simple file containing pumping data
-                  Format: 4 columns without headers
+                  Format: 4 columns with headers
                           V (value, float), C (column, int),
-                          L (line, int), P (layer, int) 
+                          L (line, int), P (layer, int)
+    qcol (int) : column number to read in qfile (0-based)
 
     Returns:
     -----------
+    header (str) : single column name (column n° qcol)
     arr (numpy array) : withdrawal data in structured array
 
     Example
     -----------
     arr = read_qfile('qfile.txt')
     """
+    # ---- Read header (='boundname')
+    header = np.loadtxt(qfile, usecols=qcol, dtype = np.str, max_rows=1).tolist()
     # ---- Set data types
-    dt = [('V','f8')]
+    dt = [('v','f8')]
     # ---- Read qfile as array (separator = any whitespace)
     arr = np.loadtxt(qfile, usecols=qcol, skiprows=1, dtype = dt)
     # ---- Return data
-    return arr
+    return header, arr
 
 
 
@@ -651,7 +668,7 @@ def read_pastp(pastp_file):
 
 
 
-def extract_pastp_pumping(content):
+def extract_pastp_pumping(content, mode):
     """
     -----------
     Description:
@@ -665,7 +682,10 @@ def extract_pastp_pumping(content):
     -----------
     content (dict) : content of .pastp file by timestep blocks
                      Come from read_pastp() function
-
+    mode (str) : type of cell localisation pumping
+                 Can be 'aquifer' (columns, line, layer)
+                 or 'river' ('affluent', 'troncon')
+                 Default is 'aquifer'
     Returns:
     -----------
     pumping_data (dict) : all pumping data by timestep
@@ -674,8 +694,10 @@ def extract_pastp_pumping(content):
     Example
     -----------
     lines, nstep = read_pastp('mm.pastp')
-    pumping_data, qfilenames = extract_pastp_pumping(lines, nstep)
+    pumping_data, qfilenames = extract_pastp_aqpumping(lines, nstep)
     """
+    # ---- Set pastp tag according to pumping mode
+    mode_tag = '/DEBIT/' if mode == 'aquifer' else '/Q_EXTER_RIVI/'
 
     # ---- Initialize dictionaries
     pumping_data, qfilenames = [{i:None for i in range(len(content))} for _ in range(2)]
@@ -684,7 +706,7 @@ def extract_pastp_pumping(content):
     re_num = r"[-+]?\d*\.?\d+|\d+" 
 
     # ---- Initialize array data type
-    dt = [('V','f8'), ('C', 'i4'), ('L', 'i4'), ('P', 'i4')]
+    dt = [('v','f8'), ('c', 'i4'), ('l', 'i4'), ('p', 'i4'), ('boundname', '<U25')]
 
     for istep, lines in content.items():
 
@@ -692,7 +714,7 @@ def extract_pastp_pumping(content):
         for line in lines:
 
             # -- Check if a pumping condition is applied
-             if '/DEBIT/' in line:
+             if mode_tag in line:
                 
                 # -- Check which type of pumping condition is provided 
 
@@ -702,7 +724,7 @@ def extract_pastp_pumping(content):
                     path = line.partition('N:')[-1]
                     qfilename = os.path.normpath(path.strip())
                     # -- Extract data from LISTM qfile (as a structure array)
-                    arr = read_listm_qfile(qfilename)
+                    arr = read_listm_qfile(qfilename, mode = mode)
                     # -- Set qfilename with data localisation
                     qfilename_arr = np.array([f'{qfilename}&ListmLin={icell}' for icell in range(len(arr))], dtype = np.str)
                     # -- Set pumping data
@@ -730,12 +752,12 @@ def extract_pastp_pumping(content):
                         qfilename =  os.path.normpath(file.split('=')[1].strip())
                         qcol = int(col.split('=')[1])
 
-                        # -- Extract data from pumping record file
-                        record = read_record_qfile(qfilename, qcol-1)
+                        # -- Extract data from pumping record file /!\columns number is 0-based in python/!\
+                        bdname, record = read_record_qfile(qfilename, qcol-1)
 
                         # -- Set pumping data
-                        pump_steady = [np.array([(v,c,l,p)], dtype = dt)]
-                        pump_transient = [np.array([(record['V'][iistep],c,l,p)], dtype = dt) for iistep in range(len(content)-1)]
+                        pump_steady = [np.array([(v,c,l,p, bdname)], dtype = dt)]
+                        pump_transient = [np.array([(record['v'][iistep],c,l,p,bdname)], dtype = dt) for iistep in range(len(content)-1)]
                         pump_arr = np.array(pump_steady + pump_transient, dtype = dt)
 
                         for iistep in content.keys():
@@ -760,6 +782,7 @@ def extract_pastp_pumping(content):
                         # -- Parse pumping informations (localisation, value)
                         parse = line[line.index('C='):].split(';')[0]
                         c,l,p,v = map(ast.literal_eval, re.findall(re_num, parse))
+                        bdname = '_'.join(map(str,[c,l,p]))
                         arr = np.array((v,c,l,p), dtype = dt)
 
                         # -- Set pumping data & qfilenames
@@ -773,8 +796,6 @@ def extract_pastp_pumping(content):
 
     # -- Return filename and data (as array)
     return pumping_data, qfilenames
-
-
 
 
 
@@ -817,4 +838,107 @@ def replace_text_in_file(file, match, subs, flags=0):
         f.seek(0)
         f.truncate()
         f.write(new_text)
+
+
+
+
+
+
+
+def convert_at2clp(aff, trc, mlname, mldir = ''):
+    """
+    Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
+
+    Parameters:
+    ----------
+    aff (int) : number of the reach
+    trc (int) : number of the section in tributary stream
+    mlname (str) : model name
+    mldir (str) : model directory
+                  Dafault is ''
+
+    Returns:
+    --------
+    c,l,p (int) : column, line, plan (layer)
+
+    Examples:
+    --------
+    aff, trc = 243, 154
+    c,l,p = convert_at2clp(aff, trc, 'mymodel')
+    """
+    # ---- Fetch reach and section file from model name
+    aff_file, trc_file = [os.path.join(mldir, f'{mlname}.{x}_r') for x in ['aff','trc']]
+    # ---- Set regular expression of numeric string (int and float)
+    re_num = r"[-+]?\d*\.?\d+|\d+" 
+    # ---- Fetch layer (p)
+    with open(aff_file) as f:
+        for line in  f:
+            if line.startswith('Layer='):
+                p = ast.literal_eval(re.findall(re_num, line)[0])
+    # ---- Read grids
+    aff_grid, trc_grid = [read_grid_file(f)[-1] for f in [aff_file, trc_file]]
+    # ---- Get row and column corresponding to aff/trc arguments
+    row, col = np.where((aff_grid == aff) & (trc_grid == trc))[1:]
+    # ---- Convert to c, l
+    c, l = [arr[0] for arr in [col, row]]
+    # ---- Return basic c,l,p
+    return c,l,p+1
+
+
+
+
+def convert_at2clp_pastp(pastp_file, content, mlname=None, mldir = ''):
+    """
+    Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
+    and rewrite it in pastp file
+
+    Parameters:
+    ----------
+    pastp_file (str) : path to pastp file
+    content (list) : content of pastp file (from read_pastp() function)
+    mlname (str) : model name
+                   If None, mlname = pastp_file without extension
+                   Default is None
+    mldir (str) : model directory
+                  Default is ''
+
+    Returns:
+    --------
+    Replace lines inplace in pastp file
+
+    Examples:
+    --------
+    pastp_file = 'mymodel.pastp'
+    _, content = read_pastp(pastp_file)
+    convert_at2clp_pastp(pastp_file, content)
+    """
+    # ---- Set regular expression of numeric string (int and float)
+    re_num = r"[-+]?\d*\.?\d+|\d+"
+
+    # ---- Get content at every timestep
+    for istep, lines in content.items():
+        # ---- Iterate over each line
+        for line in lines:
+            # ---- Check if the line contain aff/trc
+            if all(s in line for s in ['Q_EXTER_RIVI','A=','T=']):
+                # ---- Replace TRONCON for MAILLE
+                mail_line = line.replace('TRONCON', 'MAILLE')
+                # ---- Get substring to replace
+                s2replace = line[line.index('A='):line.index('V=')]
+                # ---- Fetch aff/trc as number
+                a, t = map(ast.literal_eval, re.findall(re_num, s2replace))
+                # ---- Convert aff/trc to column, line, plan (layer)
+                if mlname is None:
+                    c,l,p = convert_at2clp(aff=a, trc=t, mlname = pastp_file.replace('.pastp', ''))
+                else:
+                    c,l,p = convert_at2clp(aff=a, trc=t, mlname = os.path.join(mldir,mlname))
+                # ---- Build substring to replace
+                sub = 'C={:>7}L={:>7}P={:>7}'.format(c,l,p)
+                # ---- Build entire line to be replace for
+                l2replace = mail_line.replace(s2replace,sub)
+                # ---- Replace text in pastp file
+                replace_text_in_file(pastp_file, line, l2replace)
+
+
+
 

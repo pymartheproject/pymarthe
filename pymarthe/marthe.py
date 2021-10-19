@@ -61,7 +61,7 @@ class MartheModel():
         self.nstep, _ = marthe_utils.read_pastp(os.path.join(self.mldir, self.mlname + '.pastp'))
 
         # initialize MarthePump class as attribute
-        self.mpump = None
+        self.aqpump, self.rivpump = None, None
 
         # read permh data
         # NOTE : permh data also provides data on active/inactive cells
@@ -95,7 +95,7 @@ class MartheModel():
 
 
 
-    def add_pump(self, pastp_file = None):
+    def add_pump(self, pastp_file = None, mode = 'aquifer'):
         """
         -----------
         Description:
@@ -109,7 +109,9 @@ class MartheModel():
         Parameters: 
         -----------
         pastp_file (str) : path to .pastp marthe file
-
+        mode (str) : type of withdraw pumping
+                     Can be 'aquifer' or 'river'
+                     Default is 'aquifer'
         Returns:
         -----------
         MarthePump (class) : set pumping class as attribut (inplace)
@@ -120,10 +122,19 @@ class MartheModel():
         mm = MartheModel(rma)
         mm.add_pump()
         """
-        if pastp_file is None:
-            self.mpump = MarthePump(self)
-        else:
-            self.mpump = MarthePump(self, pastp_file)
+        # ---- Build aquifer MarthePump instance
+        if mode == 'aquifer':
+            if pastp_file is None:
+                self.aqpump = MarthePump(self, mode)
+            else:
+                self.aqpump = MarthePump(self, pastp_file, mode)
+                
+        # ---- Build aquifer MarthePump instance
+        if mode == 'river':
+            if pastp_file is None:
+                self.rivpump = MarthePump(self, mode)
+            else:
+                self.rivpump = MarthePump(self, pastp_file, mode)
 
 
 
