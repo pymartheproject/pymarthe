@@ -5,13 +5,13 @@ layered parameterization
 
 """
 import os 
-
 import pickle
 import subprocess as sp
 from shutil import which
 import queue 
 import threading
 from datetime import datetime
+import re
 
 import numpy as np
 import pandas as pd 
@@ -22,7 +22,7 @@ from .mparam import MartheParam
 from .mobs import MartheObs
 from .mpump import MarthePump
 
-
+encoding = 'latin-1'
 
 class MartheModel():
     """
@@ -300,12 +300,95 @@ class MartheModel():
         if out_dir == None : 
             out_dir = os.path.join(self.mldir,'sim','')
         marthe_utils.extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out_dir)
+
+
+    def remove_autocal(self, mart_file=None):
+        """
+        Function to make marthe auto calibration silent
+
+        Parameters:
+        ----------
+        self : MartheModel instance
+        mart_file (str) : .mart file path
+                          If None mart_file = mldir/mlname.mart
+                          Default is None
+
+        Returns:
+        --------
+        Write in .mart inplace
+
+        Examples:
+        --------
+        mm = MartheModel(rma_file)
+        mm.remove_autocal()
+        """
+        # ---- Get mart_file 
+        file =  os.path.join(self.mldir, f'{self.mlname}.mart') if mart_file is None else mart_file
+        # ---- Fetch .mart file content
+        with open(file, 'r', encoding=encoding) as f:
+            lines = f.readlines()
+
+        # ---- Define pattern to search
+        re_cal = r"^\s*1=Optimisation"
+
+        for line in lines:
+            # ---- Search patterns
+            cal_match = re.search(re_cal, line)
+            # ---- Make calibration/optimisation silent 
+            if cal_match is not None:
+                wrong = cal_match.group()
+                right = re.sub('1','0', wrong)
+                new_line  = re.sub(wrong, right, line)
+                marthe_utils.replace_text_in_file(file, line, new_line)
+
+
+
+    def make_silent(self, mart_file = None):
+        """
+        Function to make marthe run silent
+
+        Parameters:
+        ----------
+        self : MartheModel instance
+        mart_file (str) : .mart file path
+                          If None mart_file = mldir/mlname.mart
+                          Default is None
+
+        Returns:
+        --------
+        Write in .mart inplace
+
+        Examples:
+        --------
+        mm = MartheModel(rma_file)
+        mm.make_silent()
+        """
+        # ---- Get mart_file 
+        file = os.path.join(self.mldir, f'{self.mlname}.mart') if mart_file is None else mart_file
+
+        # ---- Fetch .mart file content
+        with open(file, 'r', encoding=encoding) as f:
+            lines = f.readlines()
+
+        # ---- Define pattern to search
+        re_exe = r"^\s*(\s|\w)=Type d'exécution"
+
+        for line in lines:
+            # ---- Search patterns
+            exe_match = re.search(re_exe, line)
+            # ---- Make run silent 
+            if exe_match is not None:
+                wrong = exe_match.group()
+                right = re.sub(r'(\s|\w)=','M=', wrong)
+                new_line  = re.sub(wrong, right, line)
+                marthe_utils.replace_text_in_file(file, line, new_line)
+
   
 
  
     def run_model(self,exe_name = 'marthe', rma_file = None, 
-                  silent=False, pause=False, report=False,
-                  cargs=None):
+                  silent = True, verbose=False, pause=False,
+                  report=False, cargs=None):
         """
         This function will run the model using subprocess.Popen.  It
         communicates with the model's stdout asynchronously and reports
@@ -318,7 +401,9 @@ class MartheModel():
             rma file of model to run. The rma_file must be the
             filename of the namefile without the path. Namefile can be None
             if it follows the syntax model_name.rma
-        silent : boolean
+        silent : bool
+            Run marthe model as silent 
+        verbose : boolean
             Echo run information to screen (default is True).
         pause : boolean, optional
             Pause upon completion (default is False).
@@ -334,10 +419,14 @@ class MartheModel():
         success : boolean
         buff : list of lines of stdout
         """
+        # initialize variable
         success = False
         buff = []
         normal_msg='normal termination'
 
+        # force model to run as silent if required
+        if silent:
+            self.make_silent()
 
         # Check to make sure that program and namefile exist
         exe = which(exe_name)
@@ -401,7 +490,7 @@ class MartheModel():
                     line = "elapsed:{0}-->{1}".format(tsecs, line)
                     lastsec = tsecs + lastsec
                     buff.append(line)
-                    if not silent:
+                    if not verbose:
                         print(line)
                     for fword in failed_words:
                         if fword in line:
