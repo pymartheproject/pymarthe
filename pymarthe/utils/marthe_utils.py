@@ -323,13 +323,10 @@ def read_prn(prn_file):
     read_prn(path_file)
         
     '''
-    df_sim = pd.read_csv(prn_file, sep='\t', skiprows=3)  # Dataframe
-    loc_ids = [x.rstrip('.1') for x in df_sim.columns][1:] 
-    loc_ids = [x.rstrip(' ') for x in loc_ids]
-    df_sim.columns = ['date'] + loc_ids  # Indicates the name of the columns in the DataFrame
-    df_sim.date = pd.to_datetime(df_sim.date,  format="%d/%m/%Y")
-    df_sim = df_sim.set_index(df_sim.date)
-    df_sim = df_sim.iloc[:,2:-1]
+    df_sim = pd.read_csv(prn_file,  sep='\t',skiprows = 3,encoding='latin-1',index_col = '#_<Date>       ',parse_dates = True ) # Dataframe
+    df_sim.index.names = ['Date']
+    df_sim.columns = df_sim.columns.str.replace(' ','')
+    df_sim = df_sim.iloc[:,1:-1]
     df_fluct = df_sim - df_sim.mean()
     return  df_sim
 
