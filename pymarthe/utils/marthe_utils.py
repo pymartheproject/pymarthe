@@ -603,7 +603,7 @@ def read_record_qfile(qfile, qcol):
     arr = read_qfile('qfile.txt')
     """
     # ---- Read header (='boundname')
-    header = np.loadtxt(qfile, usecols=qcol, dtype = np.str, max_rows=1).tolist()
+    header = np.loadtxt(qfile, usecols=qcol, dtype = str, max_rows=1).tolist()
     # ---- Set data types
     dt = [('v','f8')]
     # ---- Read qfile as array (separator = any whitespace)
@@ -732,7 +732,7 @@ def extract_pastp_pumping(content, mode):
                     # -- Extract data from LISTM qfile (as a structure array)
                     arr = read_listm_qfile(qfilename, mode = mode)
                     # -- Set qfilename with data localisation
-                    qfilename_arr = np.array([f'{qfilename}&ListmLin={icell}' for icell in range(len(arr))], dtype = np.str)
+                    qfilename_arr = np.array([f'{qfilename}&ListmLin={icell}' for icell in range(len(arr))], dtype = str)
                     # -- Set pumping data
                     if isinstance(pumping_data[istep], np.ndarray):
                         pumping_data[istep] = np.append(pumping_data[istep], arr)
@@ -774,7 +774,7 @@ def extract_pastp_pumping(content, mode):
 
                         # -- Set qfilenames
                         qfile_steady = [np.array([None])]
-                        qfile_transient = [np.array([f'{qfilename}&RecordCol={qcol-1}RecordLin={iistep+1}'], dtype = np.str) for iistep in range(len(content)-1)]
+                        qfile_transient = [np.array([f'{qfilename}&RecordCol={qcol-1}RecordLin={iistep+1}'], dtype = str) for iistep in range(len(content)-1)]
                         qfile_arr = np.array(qfile_steady + qfile_transient)
 
                         for iistep in content.keys():
@@ -833,7 +833,7 @@ def replace_text_in_file(file, match, subs, flags=0):
     replace_text_in_file(file, match, subs)
     """
     # ---- Open file in r+ mode
-    with open(file, "r+") as f:
+    with open(file, "r+", encoding=encoding) as f:
         # ---- Extract file content as string
         text = f.read()
         # ---- Search matches
@@ -877,7 +877,7 @@ def convert_at2clp(aff, trc, mlname, mldir = ''):
     # ---- Set regular expression of numeric string (int and float)
     re_num = r"[-+]?\d*\.?\d+|\d+" 
     # ---- Fetch layer (p)
-    with open(aff_file) as f:
+    with open(aff_file,'r',encoding=encoding) as f:
         for line in  f:
             if line.startswith('Layer='):
                 p = ast.literal_eval(re.findall(re_num, line)[0])

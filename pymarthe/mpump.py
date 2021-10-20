@@ -58,6 +58,8 @@ class MarthePump():
         if mode == 'river':
             # ---- Convert aff/trc data in column, line, plan (layer) format in pastp file
             marthe_utils.convert_at2clp_pastp(self.pastp_file, self._content, self.mm.mlname, self.mm.mldir)
+            # ---- Reread pastp file after convertion
+            self.nstep, self._content = marthe_utils.read_pastp(self.pastp_file)
             # ---- Read river pumping data
             self.pumping_data, self.qfilenames = marthe_utils.extract_pastp_pumping(self._content, mode = mode)
 
@@ -160,7 +162,7 @@ class MarthePump():
             locc = self.pumping_data[istep]['c'] == c
             locl = self.pumping_data[istep]['l'] == l
             locp = self.pumping_data[istep]['p'] == p
-            boundname = self.pumping_data[istep][locc & locl & locp]['boundname']
+            boundname = self.pumping_data[istep][locc & locl & locp]['boundname'][0]
             self.pumping_data[istep][locc & locl & locp] = (v,c,l,p,boundname)
 
         # ----If c, l, p are provided
@@ -172,7 +174,7 @@ class MarthePump():
                 locp = self.pumping_data[istep]['p'] == p
                 v = self.pumping_data[istep][locc & locl & locp]['v']
                 if boundname is None:
-                    boundname = self.pumping_data[istep][locc & locl & locp]['boundname']
+                    boundname = self.pumping_data[istep][locc & locl & locp]['boundname'][0]
                 self.pumping_data[istep][locc & locl & locp] = (v,c,l,p,boundname)
 
         # ----If boundname, v are provided (istep optional)
@@ -694,7 +696,7 @@ class MarthePump():
             # ---- Get param file for boundname
             param_file = os.path.join(tpl_dir, f'{prefix}_{bdnme}.tpl')
             # ---- Open template file
-            with open(param_file,'w') as f:
+            with open(param_file,'w',encoding=encoding) as f:
                 # ---- Write template file tag (and delimiter)
                 f.write('ptf ~\n')
                 # ---- Write infos
