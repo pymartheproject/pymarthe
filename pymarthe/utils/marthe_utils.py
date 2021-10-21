@@ -323,7 +323,7 @@ def read_prn(prn_file):
     read_prn(path_file)
         
     '''
-    df_sim = pd.read_csv(prn_file,  sep='\t',skiprows = 3,encoding=encodind,index_col = '#_<Date>       ',parse_dates = True ) # Dataframe
+    df_sim = pd.read_csv(prn_file,  sep='\t',skiprows = 3,encoding=encoding,index_col = '#_<Date>       ',parse_dates = True ) # Dataframe
     df_sim.index.names = ['Date']
     df_sim.columns = df_sim.columns.str.replace(' ','')
     df_sim = df_sim.iloc[:,1:-1]
