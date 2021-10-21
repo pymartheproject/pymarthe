@@ -323,12 +323,69 @@ def read_prn(prn_file):
     read_prn(path_file)
         
     '''
-    df_sim = pd.read_csv(prn_file,  sep='\t',skiprows = 3,encoding='latin-1',index_col = '#_<Date>       ',parse_dates = True ) # Dataframe
+    df_sim = pd.read_csv(prn_file,  sep='\t',skiprows = 3,encoding=encodind,index_col = '#_<Date>       ',parse_dates = True ) # Dataframe
     df_sim.index.names = ['Date']
     df_sim.columns = df_sim.columns.str.replace(' ','')
     df_sim = df_sim.iloc[:,1:-1]
     df_fluct = df_sim - df_sim.mean()
     return  df_sim
+
+
+
+def read_mi_prn(prn_file = 'historiq.prn'):
+    """
+    Function to read simulated prn file
+
+    Parameters:
+    ----------
+    prn_file (str) : prn file full path
+                     Default is 'historiq.prn'
+
+    Returns:
+    --------
+    df (DataFrame) : Multi-index DataFrame
+                     index = 'date' (DateTimeIndex)
+                     columns = MultiIndex(level_1 = 'type',         # Data type ('Charge', 'Débit', ...)
+                                          level_2 = 'dname',        # Default name (format : 'Xc_Yl_Zp')
+                                          level_3 = 'boundname',    # Custom name 
+                                          level_4 = 'gigogne')      # (optional) Refined grid number 
+                                                                      (0 <= gigogne <= N_gigogne)
+
+    Examples:
+    --------
+    prn_df = read_mi_prn(prn_file = 'historiq.prn')
+    """
+    # ---- Check if prn_file exist
+    path, file = os.path.split('historiq.prn')
+    msg = f'{prn_file} file not found.'
+    assert file in os.listdir(os.path.normpath(path)), msg
+    # ---- Build Multiple index columns
+    with open(prn_file, 'r', encoding=encoding) as f:
+        # ----Fetch 5 first lines of prn file 
+        flines = [f.readline().split('\t')[:-1] for _ in range(5)][1:]
+        # ---- Fetch headers
+        headers = flines if 'gigogne'.casefold() in flines else flines[:-1]
+    # ---- Get all headers as tuple
+    tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
+    # ---- Set multi-index names
+    if len(headers) == 3:
+        idx_names = ['type', 'dname', 'boundname']
+    else:
+        idx_names = ['type', 'dname', 'boundname', 'gigogne']
+    # ---- Build multi-index
+    midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
+    # ---- Read prn file without headers (with date format)
+    df = pd.read_csv(prn_file, sep='\t', encoding=encoding, skiprows=len(headers), parse_dates=True)
+    df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
+    # ---- Set index
+    df = df.iloc[:,2:].set_index(df.iloc[:,0])
+    df.index.name = 'date'
+    # ---- Set columns as multi-index as columns
+    df.columns = midx
+    # ---- Return prn DataFrame
+    return df
+
+
 
 
 def extract_prn(prn_file,fluct, out_dir ="./", obs_dir = None):
