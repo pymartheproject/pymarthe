@@ -323,7 +323,7 @@ def read_prn(prn_file):
     read_prn(path_file)
         
     '''
-    df_sim = pd.read_csv(prn_file,  sep='\t',skiprows = 3,encoding=encoding,index_col = '#_<Date>       ',parse_dates = True ) # Dataframe
+    df_sim = pd.read_csv(prn_file,  sep='\t',skiprows = 3,encoding=encoding,index_col = 0,parse_dates = True) # Dataframe
     df_sim.index.names = ['Date']
     df_sim.columns = df_sim.columns.str.replace(' ','')
     df_sim = df_sim.iloc[:,1:-1]
@@ -346,7 +346,6 @@ def read_mi_prn(prn_file = 'historiq.prn'):
     df (DataFrame) : Multi-index DataFrame
                      index = 'date' (DateTimeIndex)
                      columns = MultiIndex(level_1 = 'type',         # Data type ('Charge', 'Débit', ...)
-                                          level_2 = 'dname',        # Default name (format : 'Xc_Yl_Zp')
                                           level_3 = 'boundname',    # Custom name 
                                           level_4 = 'gigogne')      # (optional) Refined grid number 
                                                                       (0 <= gigogne <= N_gigogne)
@@ -362,23 +361,29 @@ def read_mi_prn(prn_file = 'historiq.prn'):
     # ---- Build Multiple index columns
     with open(prn_file, 'r', encoding=encoding) as f:
         # ----Fetch 5 first lines of prn file 
-        flines = [f.readline().split('\t')[:-1] for _ in range(5)][1:]
+        flines_arr = np.array([f.readline().split('\t')[:-1] for i in range(5)], dtype=list)
+        # ---- Select only usefull first lines by mask
+        gig = True if any('gigogne'.casefold() in elem for elem in flines_arr[-1]) else False
+        mask = [False, True, False, True, gig]
         # ---- Fetch headers
-        headers = flines if 'gigogne'.casefold() in flines else flines[:-1]
+        headers = list(flines_arr[mask])
     # ---- Get all headers as tuple
     tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
     # ---- Set multi-index names
-    if len(headers) == 3:
-        idx_names = ['type', 'dname', 'boundname']
+    if gig:
+        idx_names = ['type', 'boundname', 'gigogne']
     else:
-        idx_names = ['type', 'dname', 'boundname', 'gigogne']
+        idx_names = ['type', 'boundname']
     # ---- Build multi-index
     midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
     # ---- Read prn file without headers (with date format)
-    df = pd.read_csv(prn_file, sep='\t', encoding=encoding, skiprows=len(headers), parse_dates=True)
+    skiprows = mask.count(True) + 1
+    df = pd.read_csv(prn_file, sep='\t', encoding=encoding, 
+                     skiprows=mask.count(True) + 1, index_col = 0,
+                     parse_dates = True, dayfirst=True)
+    df.drop(df.columns[0], axis=1,inplace=True)
     df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
-    # ---- Set index
-    df = df.iloc[:,2:].set_index(df.iloc[:,0])
+    # ---- Format DateTimeIndex
     df.index.name = 'date'
     # ---- Set columns as multi-index as columns
     df.columns = midx
