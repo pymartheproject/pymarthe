@@ -231,8 +231,8 @@ def write_grid_file(path_file, x, y, grid):
     #create a list of heights of the lines
     delr = [int(m_size)]*nrow
 
-    xmin = x[0]  - 1 # NOTE why 1 ?
-    ymin = y[-1] - 1 # NOTE why 1 ? 
+    xmin = x[0]  - m_size/2
+    ymin = y[-1] - m_size/2
 
 
     i = 0
