@@ -57,7 +57,7 @@ class MarthePump():
             self.pumping_data, self.qfilenames = marthe_utils.extract_pastp_pumping(self._content, mode = mode)
         if mode == 'river':
             # ---- Convert aff/trc data in column, line, plan (layer) format in pastp file
-            marthe_utils.convert_at2clp_pastp(self.pastp_file, self._content, self.mm.mlname, self.mm.mldir)
+            marthe_utils.convert_at2clp_pastp(self.pastp_file, mm = self.mm)
             # ---- Reread pastp file after convertion
             self.nstep, self._content = marthe_utils.read_pastp(self.pastp_file)
             # ---- Read river pumping data
@@ -202,6 +202,7 @@ class MarthePump():
         
         Parameters: 
         -----------
+        self : MarthePump instance
         istep (int) : required timestep (<= nstep)
 
         Returns:

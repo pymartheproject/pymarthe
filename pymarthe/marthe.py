@@ -4,7 +4,7 @@ Designed for structured grid and
 layered parameterization
 
 """
-import os 
+import os, sys
 import pickle
 import subprocess as sp
 from shutil import which
@@ -242,6 +242,42 @@ class MartheModel():
         x_vals, y_vals, grid = marthe_utils.read_grid_file(grid_path)
 
         return(x_vals,y_vals,grid)
+
+
+
+    def get_flush(self):
+        """
+        Function to get flush layer from permh
+
+        Parameters:
+        ----------
+        self : MartheModel instance
+
+        Returns:
+        --------
+        flush (array) : 2D-array (shape : (nrow,ncol))
+
+        Examples:
+        --------
+        mm = MartheModel('mymodel.rma')
+        flush_arr = mm.get_flush()
+        """
+        # ---- Set list of arrays with layer number on active cell
+        layers = [ilay * imask for ilay, imask in enumerate(self.imask, start=1)]
+        # ---- Transform 0 to NaN
+        nanlayers = []
+        for layer in layers:
+            arr = layer.astype('float')
+            arr[arr == 0] = np.nan
+            nanlayers.append(arr)
+        # ---- Get minimum layer number excluding NaNs
+        flush = np.fmin.reduce(nanlayers)
+        # # ---- Back transform inactive zone to 0
+        flush[np.isnan(flush)] = 0
+        # ---- Return flush layer as array
+        return flush
+
+
 
     def write_grid(self,key):
         """

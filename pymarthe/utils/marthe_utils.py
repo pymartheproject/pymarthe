@@ -913,7 +913,7 @@ def replace_text_in_file(file, match, subs, flags=0):
 
 
 
-def convert_at2clp(aff, trc, mlname, mldir = ''):
+def convert_at2clp(aff, trc, mm):
     """
     Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
 
@@ -935,27 +935,24 @@ def convert_at2clp(aff, trc, mlname, mldir = ''):
     c,l,p = convert_at2clp(aff, trc, 'mymodel')
     """
     # ---- Fetch reach and section file from model name
-    aff_file, trc_file = [os.path.join(mldir, f'{mlname}.{x}_r') for x in ['aff','trc']]
+    aff_file, trc_file = [os.path.join(mm.mldir, f'{mm.mlname}.{x}_r') for x in ['aff','trc']]
     # ---- Set regular expression of numeric string (int and float)
     re_num = r"[-+]?\d*\.?\d+|\d+" 
-    # ---- Fetch layer (p)
-    with open(aff_file,'r',encoding=encoding) as f:
-        for line in  f:
-            if line.startswith('Layer='):
-                p = ast.literal_eval(re.findall(re_num, line)[0])
     # ---- Read grids
-    aff_grid, trc_grid = [read_grid_file(f)[-1] for f in [aff_file, trc_file]]
-    # ---- Get row and column corresponding to aff/trc arguments
-    row, col = np.where((aff_grid == aff) & (trc_grid == trc))[1:]
-    # ---- Convert to c, l
-    c, l = [arr[0] for arr in [col, row]]
+    aff_grid, trc_grid = [read_grid_file(f)[2][0] for f in [aff_file, trc_file]]
+    # ---- Get row and column corresponding to aff/trc arguments (0_based)
+    row, col = np.where((aff_grid == aff) & (trc_grid == trc))
+    # ---- Convert to c, l (1-based)
+    c, l = [arr[0]+1 for arr in [col, row]]
+    # ---- Fetch layer (p)
+    p = mm.get_flush()[row, col][0]
     # ---- Return basic c,l,p
-    return c,l,p+1
+    return c,l,p
 
 
 
 
-def convert_at2clp_pastp(pastp_file, content, mlname=None, mldir = ''):
+def convert_at2clp_pastp(pastp_file, mm):
     """
     Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
     and rewrite it in pastp file
@@ -982,7 +979,8 @@ def convert_at2clp_pastp(pastp_file, content, mlname=None, mldir = ''):
     """
     # ---- Set regular expression of numeric string (int and float)
     re_num = r"[-+]?\d*\.?\d+|\d+"
-
+    # ---- Get content
+    _, content = read_pastp(pastp_file)
     # ---- Get content at every timestep
     for istep, lines in content.items():
         # ---- Iterate over each line
@@ -996,12 +994,9 @@ def convert_at2clp_pastp(pastp_file, content, mlname=None, mldir = ''):
                 # ---- Fetch aff/trc as number
                 a, t = map(ast.literal_eval, re.findall(re_num, s2replace))
                 # ---- Convert aff/trc to column, line, plan (layer)
-                if mlname is None:
-                    c,l,p = convert_at2clp(aff=a, trc=t, mlname = pastp_file.replace('.pastp', ''))
-                else:
-                    c,l,p = convert_at2clp(aff=a, trc=t, mlname = os.path.join(mldir,mlname))
+                c,l,p = convert_at2clp(aff=a, trc=t, mm = mm)
                 # ---- Build substring to replace
-                sub = 'C={:>7}L={:>7}P={:>7}'.format(c,l,p)
+                sub = '{:>8}C={:>7}L={:>7}P={:>7}'.format(' ',c,l,p)
                 # ---- Build entire line to be replace for
                 l2replace = mail_line.replace(s2replace,sub)
                 # ---- Replace text in pastp file
