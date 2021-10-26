@@ -642,12 +642,10 @@ class MarthePump():
         dt = [('v','f8'), ('c', 'i4'), ('l', 'i4'), ('p', 'i4'), ('boundname', '<U25')]
         # ---- Iterate over timesteps (subset by istep)
         for istep , df in param_df.groupby('istep'):
-            # ---- Convert DataFramen (subset) to array
-            raw_arr = df[['v','c','l','p','boundname']].to_numpy()
-            # ---- Fix dtype
-            arr = np.array(list(map(tuple, raw_arr)), dtype=dt)
-            # ---- Set array in mpump
-            self.set_data(istep=istep, arr=arr)
+            # ---- Iterate over boundnames and values for istep
+            for v, bdnme in df[['v','boundname']].to_numpy():
+                # ---- Set data in mpump instance inplace
+                self.set_data(istep=istep, v=v, boundname=bdnme)
 
 
 

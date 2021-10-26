@@ -945,7 +945,7 @@ def convert_at2clp(aff, trc, mm):
     # ---- Convert to c, l (1-based)
     c, l = [arr[0]+1 for arr in [col, row]]
     # ---- Fetch layer (p)
-    p = mm.get_flush()[row, col][0]
+    p = mm.get_outcrop()[row, col][0]
     # ---- Return basic c,l,p
     return c,l,p
 

@@ -245,9 +245,9 @@ class MartheModel():
 
 
 
-    def get_flush(self):
+    def get_outcrop(self):
         """
-        Function to get flush layer from permh
+        Function to get outcropping layer from permh
 
         Parameters:
         ----------
@@ -255,12 +255,12 @@ class MartheModel():
 
         Returns:
         --------
-        flush (array) : 2D-array (shape : (nrow,ncol))
+        outcrop (array) : 2D-array (shape : (nrow,ncol))
 
         Examples:
         --------
         mm = MartheModel('mymodel.rma')
-        flush_arr = mm.get_flush()
+        outcrop_arr = mm.get_outcrop()
         """
         # ---- Set list of arrays with layer number on active cell
         layers = [ilay * imask for ilay, imask in enumerate(self.imask, start=1)]
@@ -271,11 +271,11 @@ class MartheModel():
             arr[arr == 0] = np.nan
             nanlayers.append(arr)
         # ---- Get minimum layer number excluding NaNs
-        flush = np.fmin.reduce(nanlayers)
+        outcrop = np.fmin.reduce(nanlayers)
         # # ---- Back transform inactive zone to 0
-        flush[np.isnan(flush)] = 0
-        # ---- Return flush layer as array
-        return flush
+        outcrop[np.isnan(outcrop)] = 0
+        # ---- Return outcrop layer as array
+        return outcrop
 
 
 
