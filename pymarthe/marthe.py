@@ -279,6 +279,47 @@ class MartheModel():
 
 
 
+    def get_dates(self, pastp_file = None):
+        """
+        -----------
+        Description:
+        -----------
+        Extract dates from .pastp file
+        
+        Parameters: 
+        -----------
+        pastp_file (str) : path to .pastp marthe file
+                           If is None, pastp_file = 'mlname.pastp'
+                           Default is None
+
+        Returns:
+        -----------
+        dates (DateTimeIndex): list of model dates
+
+        Example
+        -----------
+        mm = MartheModel('mymodel.rma')
+        dates = mm.get_dates()
+        """
+        # ---- Fetch pastp filename
+        if pastp_file is None:
+            pastp_file = os.path.join(self.mldir, f'{self.mlname}.pastp')
+
+        # ---- Fetch pastp file content as string 
+        with open(pastp_file, 'r') as f:
+            text = f.read()
+
+        # ---- Get regex of dates (dd/mm/yyyy)
+        dates_str = re.findall(r'(\d{2}/\d{2}/\d{4})', text)
+
+        # ---- Convert string to DateTimeIndex
+        dates = pd.to_datetime(dates_str, dayfirst = True)
+
+        # ---- Return dates
+        return dates
+
+
+
     def write_grid(self,key):
         """
         Simple wrapper for write_grid file

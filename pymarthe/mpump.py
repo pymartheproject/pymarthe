@@ -27,7 +27,7 @@ class MarthePump():
 
         Parameters
         ----------
-        mm : MarthePump instance
+        mm : MartheModel instance
         pastp_file (str) : name (or full path) of the .pastp file
                            Default: name of the MartheModel parent class
         mode (str) : type of withdraw pumping
