@@ -279,7 +279,48 @@ class MartheModel():
 
 
 
-    def get_dates(self, pastp_file = None):
+    def get_time_unit(self, mart_file=None, marthe_like=True):
+        """
+        -----------
+        Description:
+        -----------
+        Extract time unit from .mart file
+        
+        Parameters: 
+        -----------
+        mart_file (str): .mart file name
+                         Default is mldir + mlnane.mart
+        marthe_like (bool, optional): format of the output
+                                      Default is True
+        Returns:
+        -----------
+        tu (str): time unit
+                  Can be 'SEC', 'MIN', 'HEU', 'JOU', 'MOI' or 'ANN' (marthe_like=True)
+                  Can be 'S', 'T', 'H', D', M' or 'Y' (marthe_like=False)
+
+        Example
+        -----------
+        tu = mm.get_time_unit('mymodel.mart')
+        """
+        if mart_file is None:
+            mart_file = os.path.join(self.mldir, f'{self.mlname}.mart')
+        # ---- Set time unit dic
+        tu_dic = {'SEC':'S', 'MIN':'T', 'HEU':'H', 'JOU':'D', 'MOI': 'M', 'ANN':'Y'}
+        # ---- Set time unit regex in .mart file
+        tu_regex = r'\s*(\w*)=Unité de Temps'
+        # ---- Search/Extract time unit
+        with open(mart_file, 'r') as f:
+            tu = re.search(tu_regex,f.read()).group(1)
+        # ---- Return time unit
+        if marthe_like:
+            return tu
+        else:
+            return tu_dic[tu]
+
+
+
+
+    def get_dates(self, pastp_file = None, mart_file=None):
         """
         -----------
         Description:
@@ -291,6 +332,9 @@ class MartheModel():
         pastp_file (str) : path to .pastp marthe file
                            If is None, pastp_file = 'mlname.pastp'
                            Default is None
+        mart_file (str): .mart file name
+                         If is None, mart_file  = 'mlnane.mart'
+                         Default is None
 
         Returns:
         -----------
@@ -304,16 +348,22 @@ class MartheModel():
         # ---- Fetch pastp filename
         if pastp_file is None:
             pastp_file = os.path.join(self.mldir, f'{self.mlname}.pastp')
-
-        # ---- Fetch pastp file content as string 
+        # ---- Fetch mart filename
+        if mart_file is None:
+            mart_file = os.path.join(self.mldir, f'{self.mlname}.mart_file')
+        # ---- Set date regular expression
+        anydate_regex = r'date\s*:\s*(\d{2}/\d{2}/\d{4}|[-+]?\d*\.?\d+|\d+)\s*;'
+        # ---- Fetch pastp file content as string
         with open(pastp_file, 'r') as f:
-            text = f.read()
-
-        # ---- Get regex of dates (dd/mm/yyyy)
-        dates_str = re.findall(r'(\d{2}/\d{2}/\d{4})', text)
-
-        # ---- Convert string to DateTimeIndex
-        dates = pd.to_datetime(dates_str, dayfirst = True)
+            dates_str = re.findall(anydate_regex, f.read())
+        # ---- Distinguish classic dates / timedelta dates
+        if not '/' in ''.join(dates_str):
+            # -- Get time unit
+            tu = self.get_time_unit(mart_file, marthe_like=False)
+            # -- Build dates
+            dates = pd.TimedeltaIndex([s + tu for s in dates_str])
+        else:
+            dates = pd.DatetimeIndex(dates_str, dayfirst = True)
 
         # ---- Return dates
         return dates
