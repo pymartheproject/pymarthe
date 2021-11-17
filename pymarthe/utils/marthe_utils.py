@@ -345,10 +345,10 @@ def read_mi_prn(prn_file = 'historiq.prn'):
     --------
     df (DataFrame) : Multi-index DataFrame
                      index = 'date' (DateTimeIndex)
-                     columns = MultiIndex(level_1 = 'type',         # Data type ('Charge', 'Débit', ...)
-                                          level_3 = 'boundname',    # Custom name 
-                                          level_4 = 'gigogne')      # (optional) Refined grid number 
+                     columns = MultiIndex(level_0 = 'type',         # Data type ('Charge', 'Débit', ...)
+                                          level_1 = 'gigogne')      # (optional) Refined grid number 
                                                                       (0 <= gigogne <= N_gigogne)
+                                          level_2 = 'boundname',    # Custom name 
 
     Examples:
     --------
@@ -363,15 +363,21 @@ def read_mi_prn(prn_file = 'historiq.prn'):
         # ----Fetch 5 first lines of prn file 
         flines_arr = np.array([f.readline().split('\t')[:-1] for i in range(5)], dtype=list)
         # ---- Select only usefull first lines by mask
-        gig = True if any('gigogne'.casefold() in elem for elem in flines_arr[-1]) else False
-        mask = [False, True, False, True, gig]
+        if any('Main_Grid' in elem for elem in flines_arr[-2]):
+            gig = True 
+            # -- Transform to fancy integer 'gigogne' number
+            flines_arr[-2] = ['0' if not 'Gigogne' in g else g.split(':')[1].strip()
+                                  for g in flines_arr[-2]]
+        else:
+            gig = False
+        mask = [False, True, False, gig, True]
         # ---- Fetch headers
         headers = list(flines_arr[mask])
     # ---- Get all headers as tuple
     tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
     # ---- Set multi-index names
     if gig:
-        idx_names = ['type', 'boundname', 'gigogne']
+        idx_names = ['type', 'gigogne', 'boundname']
     else:
         idx_names = ['type', 'boundname']
     # ---- Build multi-index
@@ -387,6 +393,10 @@ def read_mi_prn(prn_file = 'historiq.prn'):
     df.index.name = 'date'
     # ---- Set columns as multi-index as columns
     df.columns = midx
+    # ---- Trandform gigogne id to integer
+    if gig:
+        levels = df.columns.get_level_values('gigogne').astype(int).unique()
+        df.columns.set_levels(levels = levels, level='gigogne', inplace=True)
     # ---- Return prn DataFrame
     return df
 
