@@ -362,15 +362,18 @@ def read_mi_prn(prn_file = 'historiq.prn'):
     with open(prn_file, 'r', encoding=encoding) as f:
         # ----Fetch 5 first lines of prn file 
         flines_arr = np.array([f.readline().split('\t')[:-1] for i in range(5)], dtype=list)
+        # ---- Create a boolean mask to read only usefull header lines
+        mask = [False, True, False, True , False]
         # ---- Select only usefull first lines by mask
         if any('Main_Grid' in elem for elem in flines_arr[-2]):
             gig = True 
             # -- Transform to fancy integer 'gigogne' number
             flines_arr[-2] = ['0' if not 'Gigogne' in g else g.split(':')[1].strip()
                                   for g in flines_arr[-2]]
+            # -- Add -gigone- boolean to mask
+            mask[-1] = gig
         else:
             gig = False
-        mask = [False, True, False, gig, True]
         # ---- Fetch headers
         headers = list(flines_arr[mask])
     # ---- Get all headers as tuple
@@ -399,7 +402,6 @@ def read_mi_prn(prn_file = 'historiq.prn'):
         df.columns.set_levels(levels = levels, level='gigogne', inplace=True)
     # ---- Return prn DataFrame
     return df
-
 
 
 
