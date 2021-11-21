@@ -1022,7 +1022,7 @@ class MartheModel():
         for obs_file in all_obs_files:
             # infer observation loc (BSS id) from filename
             obs_filename = os.path.split(obs_file)[-1]
-            obs_loc = obs_filename.split('_')[0]
+            obs_loc = obs_filename.split('.')[0]
             if obs_loc.startswith('stock'):
                 obs_predict.append(obs_file)
             # if obs_loc found in simulated outputs, append obs_loc
