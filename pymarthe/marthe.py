@@ -16,6 +16,8 @@ import re
 import numpy as np
 import pandas as pd 
 import pyemu
+from shapely.geometry import Point
+import geopandas as gpd
 
 from .utils import marthe_utils
 from .mparam import MartheParam
@@ -242,6 +244,56 @@ class MartheModel():
         x_vals, y_vals, grid = marthe_utils.read_grid_file(grid_path)
 
         return(x_vals,y_vals,grid)
+
+
+
+    def export_grids(self, filename, keys = ['permh']):
+        """
+        -----------
+        Description:
+        -----------
+        Export grid values as shapefile 
+        
+        Parameters: 
+        -----------
+        filename (str) : name of the output shapefile
+        keys (list) : grid(s) to export.
+                     Default is ['permh']
+        Returns:
+        -----------
+        Write shapefile inplace
+
+        Example
+        -----------
+        mm = MartheModel('mona.rma')
+        mm.load_grid('emmli')
+        mm.export_grids(filename = 'grids.shp', keys= ['permh', 'emmli'])
+        """
+        # ---- Fetch columns, lines, x, y arrays
+        cc, rr = np.meshgrid(*[np.arange(0,n) for n in [self.ncol, self.nrow]])
+        xx, yy = np.meshgrid(self.x_vals , self.y_vals)
+        # ---- Transform localisation to 1D arrays
+        X, Y, C, R = list(map(np.ravel, [xx,yy,cc,rr]))
+        # ---- Build localisation dictionary 
+        loc_dic = {k:v for k,v in zip( ['x','y','col','row'], [X, Y, C, R])}
+        # ---- Build grid values dictionary 
+        grid_dic = {}
+        for key in keys:
+            # -- Build assertion error for non matching keys
+            msg = f"'{key}' grid not found in {self.mlname} MartheModel instance.\n" \
+            "Make sure the required grid had been loaded properly: mm.load_grid('{key}')"
+            assert key in self.grids.keys(), msg
+            # ---- Transform values to 1D arrays
+            for i, grid in enumerate(self.grids[key]):
+                grid_dic[f'{key}_{i+1}'] = grid.ravel()
+        # ---- Build polygon square polygon from cell centers
+        buff_dist = self.cell_size/2
+        polygons = [Point(x,y).buffer(buff_dist, cap_style =3) for x,y in  zip(X,Y)]
+        # ---- Build GeoDataFrame
+        data_dic = {**loc_dic, **grid_dic}
+        gdf = gpd.GeoDataFrame(data_dic, geometry = polygons)
+        # ---- Write grid as shapefile
+        gdf.to_file(filename)
 
 
 
