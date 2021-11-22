@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from collections import OrderedDict
 import re, ast
+import warnings
 
 ############################################################
 #        Functions for reading and writing grid files
@@ -525,6 +526,7 @@ def grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,c
     -----------
     Description:
     -----------
+    /!/ DEPRECATED /!/
     Writes shapefile from structured rectangular grid data
     Based on Fiona library
     
@@ -545,6 +547,8 @@ def grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,c
     crs = fiona.crs.from_epsg(2154)
     grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,crs)
     """
+    # ---- Deprecated warning
+    print('DEPRECATED function: {}. Use mm.export_grids() instead.')
     # open collection 
     driver = 'ESRI Shapefile'
     data_field_properties = [(field_name, 'float') for field_name in field_name_list]
