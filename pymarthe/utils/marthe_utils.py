@@ -356,7 +356,7 @@ def read_mi_prn(prn_file = 'historiq.prn'):
     prn_df = read_mi_prn(prn_file = 'historiq.prn')
     """
     # ---- Check if prn_file exist
-    path, file = os.path.split('historiq.prn')
+    path, file = os.path.split(prn_file)
     msg = f'{prn_file} file not found.'
     assert file in os.listdir(os.path.normpath(path)), msg
     # ---- Build Multiple index columns
