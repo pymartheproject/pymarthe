@@ -464,62 +464,98 @@ def extract_prn(prn_file,fluct, out_dir ="./", obs_dir = None):
 
 
 
-def read_histo_file (path_file):
 
-    '''
-    Description
-    -----------
 
-    This function reads model.histo
-   
-    Parameters
+def read_histo_file(histo_file):
+    """
+    Function to read .histo file.
+    Support localisation by coordinates (XCOO) or by column, row (CL)
+    Support additional label.
+    Support older versions of Marthe .histo file.
+
+    Parameters:
     ----------
-    path_file : Directory path with observation file
+    histo_file (str) : .histo file full path
 
-    Return
-    ------
-    df_histo : Dataframe containing the same columns than in the reading file
+    Returns:
+    --------
+    df (DataFrame) : information about data
+                     to save by Marthe
 
-    ''' 
-    # read fixed-width format file 
+    Examples:
+    --------
+    histo_df = read_histo_file('mymodel.histo')
+    """
+    # ---- Set usefull regex
+    re_num = r"[-+]?\d*\.?\d+|\d+"
+    re_gig = r'^\s*\d*/\w+'
+    re_names = r";\s*(.*)"
+    # ---- Fetch histo file content by line
+    with open(histo_file, encoding = encoding) as f:
+        lines = [line.rstrip() for line in f]
+    # ---- Iterate over all lines
+    data = []
+    for line in lines:
+        if '/HISTO/' in line:
+            # ---- Fetch "gigogne" and data type
+            gig_str, typ = map(str.strip, re.search(re_gig, line).group(0).split('/'))
+            gig = int(gig_str) if gig_str else 0
+            # ---- Fetch cell localisation
+            if '/XCOO' in line:
+                loc_str = line[line.index('X='):line.index(';')] 
+                loc_type = 'xyz'
+            if '/MAIL' in line:
+                loc_str = line[line.index('C='):line.index(';')]
+                loc_type = 'clp'
+            loc = list(map(ast.literal_eval, re.findall(re_num, loc_str)))
+            # ---- Fetch id and label (void older version with 'Name='' tag)
+            names = re.split(r"\s{5,}", re.split(';', re.sub('Name=','',line))[-1].strip())
+            # ---- Manage undefined label
+            names = names*2 if len(names) == 1 else names
+            # ---- Store cell data
+            data.append([typ, gig, loc_type] + loc + names)
+    # ---- Build histo DataFrame
+    cols = ['type','gigogne','loc_type','x','y','layer','id', 'label']
+    df = pd.DataFrame(data, columns = cols)
+    df.set_index('id', inplace = True)
+    # ---- Return histo DataFrame
+    return df
 
-    histo_file = open(path_file,"r",encoding = 'latin-1')
-    x_list, y_list, lay_list, id_list, label_list = [],[],[],[],[]
 
-    for line in histo_file :
-        # skip lines without slash or without number slash (gigogne)
-        try :
-            if (line[2] != '/' ):
-                continue
-        except : 
-            continue
-        
-        # check histo definition
-        if (re.search(r'(?<=(/   =   /))\w+', line).group(0) == 'XCOO') :
-            # get positions within line string
-            xpos = line.find('X=')
-            ypos = line.find('Y=')
-        else        :
-            xpos = line.find('C=')
-            ypos = line.find('L=')
 
-        ppos = line.find('P=')
-        scpos = line.find(';')
-        # extract x, y, lay from line string
-        x_list.append(float(line[xpos+2:ypos]))
-        y_list.append(float(line[ypos+2:ppos]))
-        lay_list.append(int(line[ppos+2:scpos]))
-        # split id string and get label if any
-        id_string = line.split('Name=')[1].strip().split()
-        id_list.append(id_string[0])
-        if len(id_string)>1:
-            label_list.append(' '.join(id_string[1:]))
-        else :
-            label_list.append('')
-    df_histo = pd.DataFrame({'id':id_list,'x': x_list, 'y': y_list, 'layer': lay_list, 'label':label_list})
-    df_histo.set_index('id',inplace=True)
-    histo_file.close()
-    return df_histo
+def check_loc(loc_name, histo_file):
+    """
+    Check if a loc_name is valid. A valid loc_name
+    must contained in .histo file.
+    Parameters:
+    ----------
+    loc_name (str) : oobservation loc name to test
+    histo_file (str) : prn file full path
+
+    Returns:
+    --------
+    valid (bool) : loc_name validity
+    unique (bool) : loc_name unicity
+
+    Examples:
+    --------
+    loc_name = 'mylocname'
+    if is_valid_loc(loc_name, mm.mlname + '.histo'):
+        print(f'{loc_name}' IS a valid loc_name')
+    else:
+        print(f'{loc_name}' IS NOT a valid loc_name')
+    """
+    # ---- Read histo_file
+    histo_df = read_histo_file(histo_file)
+    # ---- Get validity
+    valid = loc_name in histo_df.index
+    # ---- Get unicity
+    mask = histo_df.index.str.contains(loc_name).tolist()
+    unique = mask.count(True) <= 1
+    # ---- Return
+    return valid, unique
+
+
 
 def grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,crs):
     """

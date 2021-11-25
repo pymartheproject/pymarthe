@@ -173,20 +173,25 @@ class MartheModel():
 
 
 
-    def add_obs(self, obs_file, loc_name = None) :
+    def add_obs(self, obs_file, loc_name = None, histo_file = None):
         
         self.nobs_loc += 1
         # prefix will be used to set individual obs name
         prefix = 'loc{0:03d}'.format(self.nobs_loc)
-
         # infer loc_name from file name if loc_name not provided
         if loc_name is None : 
             obs_dir, obs_filename = os.path.split(obs_file)
             loc_name = obs_filename.split('.')[0]
-
+        # fetch .histo file
+        if histo_file is None:
+            histo_file = os.path.join(self.mldir, f'{self.mlname}.histo')
+        # check validity and uncity of loc_name
+        valid, unique = marthe_utils.check_loc(loc_name, histo_file)
+        # force error for none valid, unique loc name
+        assert valid, f'ERROR: {loc_name} not in {histo_file}'
+        assert unique, f'ERROR: make sure that all loc_names are unique in {histo_file}'
         # create new MartheObs object
         obs  = MartheObs(self, prefix, obs_file, loc_name)
-        
         # remove NAs
         # NOTE currently -9999 are not considered as NAs
         # but weights are zeros for these observations
@@ -331,7 +336,7 @@ class MartheModel():
 
 
 
-    def get_time_unit(self, mart_file=None, marthe_like=True):
+    def get_time_unit(self, mart_file=None, marthe_like=False):
         """
         -----------
         Description:
@@ -411,7 +416,7 @@ class MartheModel():
         # ---- Distinguish classic dates / timedelta dates
         if not '/' in ''.join(dates_str):
             # -- Get time unit
-            tu = self.get_time_unit(mart_file, marthe_like=False)
+            tu = self.get_time_unit(mart_file)
             # -- Build dates
             dates = pd.TimedeltaIndex([s + tu for s in dates_str])
         else:
@@ -1089,6 +1094,7 @@ class MartheModel():
         # write instruction files
         for obs_loc in self.obs.keys() :
             self.obs[obs_loc].write_ins()
+
 
 class SpatialReference():
     """
