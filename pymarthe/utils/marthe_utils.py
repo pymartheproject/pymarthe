@@ -1037,7 +1037,7 @@ def convert_at2clp_pastp(pastp_file, mm):
             # ---- Check if the line contain aff/trc
             if all(s in line for s in ['Q_EXTER_RIVI','A=','T=']):
                 # ---- Replace TRONCON for MAILLE
-                mail_line = line.replace('TRONCON', 'MAILLE')
+                mail_line = line.replace('TRONCON', 'MAIL')
                 # ---- Get substring to replace
                 s2replace = line[line.index('A='):line.index('V=')]
                 # ---- Fetch aff/trc as number
