@@ -252,7 +252,7 @@ class MartheModel():
 
 
 
-    def export_grids(self, filename, keys = ['permh']):
+    def export_grids(self, filename, keys = ['permh'], base = 1):
         """
         -----------
         Description:
@@ -264,6 +264,10 @@ class MartheModel():
         filename (str) : name of the output shapefile
         keys (list) : grid(s) to export.
                      Default is ['permh']
+        base (int) : base for 2D-arrays.
+                     Python is 0-based.
+                     Marthe is compiled in 1-based (Fortran)
+                     Default is 1.
         Returns:
         -----------
         Write shapefile inplace
@@ -275,7 +279,7 @@ class MartheModel():
         mm.export_grids(filename = 'grids.shp', keys= ['permh', 'emmli'])
         """
         # ---- Fetch columns, lines, x, y arrays
-        cc, rr = np.meshgrid(*[np.arange(0,n) for n in [self.ncol, self.nrow]])
+        cc, rr = np.meshgrid(*[np.arange(0 + base, n + base) for n in [self.ncol, self.nrow]])
         xx, yy = np.meshgrid(self.x_vals , self.y_vals)
         # ---- Transform localisation to 1D arrays
         X, Y, C, R = list(map(np.ravel, [xx,yy,cc,rr]))
