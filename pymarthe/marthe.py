@@ -189,7 +189,7 @@ class MartheModel():
         valid, unique = marthe_utils.check_loc(loc_name, histo_file)
         # force error for none valid, unique loc name
         assert valid, f'ERROR: {loc_name} not in {histo_file}'
-        assert unique, f'ERROR: make sure that all loc_names are unique in {histo_file}'
+        assert unique, f'ERROR: {loc_name} set multiple times in {histo_file}: each loc_name must be unique.'
         # create new MartheObs object
         obs  = MartheObs(self, prefix, obs_file, loc_name)
         # remove NAs
