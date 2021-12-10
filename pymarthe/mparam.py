@@ -103,13 +103,12 @@ class MartheParam() :
         elif isinstance(izone,np.ndarray) : 
             assert izone.shape == (self.mm.nlay, self.mm.nrow, self.mm.ncol) 
             # set izone as provided
-            self.izone = izone
+            self.izone = izone.astype('int64')
 
         # update zpc_df and pp_dic
         # this resets any modification applied to zpc_df and pp_df
         self.init_zpc_df()
         self.init_pp_dic()
-
 
     def init_pp_dic(self) :
         """
