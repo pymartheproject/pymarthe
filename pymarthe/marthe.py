@@ -68,7 +68,7 @@ class MartheModel():
         self.x_vals, self.y_vals, self.grids['permh'] = self.read_grid('permh')
 
         # get cell size (only valid for regular grid of square cells
-        self.cell_size = abs(self.x_vals[1] - self.x_vals[0])
+        self.cell_size = round(abs(self.x_vals[1] - self.x_vals[0]), 10)
 
         # get nlay nrow, ncol
         self.nlay, self.nrow, self.ncol = self.grids['permh'].shape
