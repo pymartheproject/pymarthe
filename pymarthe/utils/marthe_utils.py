@@ -215,10 +215,10 @@ def write_grid_file(path_file, x, y, grid):
         
     '''
     # check regular mesh with square cell
-    assert abs(x[1] - x[0]) == abs(y[1] - y[0])
+    assert round(abs(x[1] - x[0]), 10) == round(abs(y[1] - y[0]), 10)
 
     # infer square cell size 
-    m_size = x[1] - x[0]
+    m_size = round(x[1] - x[0], 10)
 
     grid_pp = open(path_file , "w")
 
