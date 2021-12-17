@@ -496,7 +496,7 @@ class MartheParam() :
         if n_cell_buffer is not False :
             # set to default value if value is not provided
             if n_cell_buffer is True : 
-                n_cell_buffer = np.int(n_cell/2)
+                n_cell_buffer = int(n_cell/2)
             # iterate over every cells from the zone and apply buffer 
             for i,j in np.argwhere(izone_2d==zone):
                 # identify min and max indices of the buffer for current cell
