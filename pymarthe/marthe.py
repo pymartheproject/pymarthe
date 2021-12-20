@@ -1145,7 +1145,7 @@ class MartheModel():
                 obs_predict.append(obs_file)
             # if obs_loc found in simulated outputs, append obs_loc
             if obs_loc in sim_obs_loc:
-                obs_files.append(obs_file) 
+                obs_files.append(obs_loc) 
         obs_files.extend(obs_predict)
         print('{} simulation locations considered with observed counterparts'.format(len(obs_files)))
         print('Generating instruction files for PEST...')
