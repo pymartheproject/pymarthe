@@ -184,10 +184,10 @@ class MartheModel():
         if histo_file is None:
             histo_file = os.path.join(self.mldir, f'{self.mlname}.histo')
         # check validity and uncity of loc_name
-        valid, unique = marthe_utils.check_loc(loc_name, histo_file)
+#        valid, unique = marthe_utils.check_loc(loc_name, histo_file)
         # force error for none valid, unique loc name
-        assert valid, f'ERROR: {loc_name} not in {histo_file}'
-        assert unique, f'ERROR: {loc_name} set multiple times in {histo_file}: each loc_name must be unique.'
+#        assert valid, f'ERROR: {loc_name} not in {histo_file}'
+#        assert unique, f'ERROR: {loc_name} set multiple times in {histo_file}: each loc_name must be unique.'
         # create new MartheObs object
         obs  = MartheObs(self, prefix, obs_file, loc_name)
         # remove NAs
@@ -1143,9 +1143,9 @@ class MartheModel():
             obs_loc = obs_filename.split('_')[0]
             if obs_loc.startswith('stock'):
                 obs_predict.append(obs_file)
-            # if obs_loc found in simulated outputs, append obs_loc
+            # if obs_loc found in simulated outputs, append obs_file
             if obs_loc in sim_obs_loc:
-                obs_files.append(obs_loc) 
+                obs_files.append(obs_file) 
         obs_files.extend(obs_predict)
         print('{} simulation locations considered with observed counterparts'.format(len(obs_files)))
         print('Generating instruction files for PEST...')
