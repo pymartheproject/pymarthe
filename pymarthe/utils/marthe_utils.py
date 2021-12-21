@@ -193,7 +193,6 @@ def extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out
     
 
 def write_grid_file(path_file, x, y, grid):
-    
     '''
     Description
     -----------
@@ -228,9 +227,9 @@ def write_grid_file(path_file, x, y, grid):
     npcol =  np.arange(0,ncol+1,1)
 
     #create a list of widths of the columns
-    delc = [0,0] + [int(m_size)]*ncol
+    delc = [0,0] + [m_size]*ncol
     #create a list of heights of the lines
-    delr = [int(m_size)]*nrow
+    delr = [m_size]*nrow
 
     xmin = x[0]  - m_size/2
     ymin = y[-1] - m_size/2
