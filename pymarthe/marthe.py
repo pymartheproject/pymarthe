@@ -171,7 +171,7 @@ class MartheModel():
 
 
 
-    def add_obs(self, obs_file, loc_name = None, histo_file = None):
+    def add_obs(self, obs_file, loc_name = None, check_loc = False, histo_file = None):
         
         self.nobs_loc += 1
         # prefix will be used to set individual obs name
@@ -184,10 +184,10 @@ class MartheModel():
         if histo_file is None:
             histo_file = os.path.join(self.mldir, f'{self.mlname}.histo')
         # check validity and uncity of loc_name
-#        valid, unique = marthe_utils.check_loc(loc_name, histo_file)
-        # force error for none valid, unique loc name
-#        assert valid, f'ERROR: {loc_name} not in {histo_file}'
-#        assert unique, f'ERROR: {loc_name} set multiple times in {histo_file}: each loc_name must be unique.'
+        if check_loc:
+            valid, unique = marthe_utils.check_loc(loc_name, histo_file)
+            assert valid, f'ERROR: {loc_name} not in {histo_file}'
+            assert unique, f'ERROR: {loc_name} set multiple times in {histo_file}: each loc_name must be unique.'
         # create new MartheObs object
         obs  = MartheObs(self, prefix, obs_file, loc_name)
         # remove NAs
