@@ -267,8 +267,8 @@ class MarthePump():
         # ---- Use .replace method on boundname column
         df['boundname'] = df['boundname'].replace(switch_dic)
         # ---- Set new data
-        self._data = df[self._names].to_records(index=False)
-        self.data = df[self.names].to_records(index=False)
+        self._data = df[self._vars].to_records(index=False)
+        self.data = df[self.vars].to_records(index=False)
 
 
 
