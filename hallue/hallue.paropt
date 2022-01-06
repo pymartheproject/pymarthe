@@ -1,0 +1,77 @@
+Monocouche1
+ #<V7.6># --- Fin du texte libre --- ; Ne pas modifier/retirer cette ligne
+ *** Paramètres généraux d'optimisation [Nombre de Simulations, Méthode] ***
+         4=Optimisation : 0=Non ; 1=Calage par Zones ; 3=Perméabilités par Mod. Inverse ; 4=Coeff. d'Infl.
+         0=Nombre maximal de simulations pour le calage (0 = Uniquement analyse)
+         0=Seuil d'arrêt sur le critère d'erreur de calage (Déf=0)
+         0=Seuil d'arrêt sur la variation des paramètres (en nombre d'incréments) (Déf=0.05)
+         0=Méthode pour le calage par Zones : 1=Simultanée ; 2=Zone par Zone (Déf=Simultanée)
+         0=Correction minimale des paramètres en nombre d'incréments  (Déf= 1)
+         0=Correction maximale des paramètres en nombre d'incréments  (Déf = 9999)
+         0=Pourcentage de variation de débit (pour un calcul de 'Coefficients d'Influence') (Déf = 20)
+         0=Coefficient de relaxation (Déf = 1)
+         0=Perméabilité minimale : pour un calage de perméabilités maille par maille
+         0=Perméabilité maximale : pour un calage de perméabilités maille par maille
+         0=Poids de lissage par rapport aux mailles voisines [%] (Perméabilités maille par maille)
+         0=Variable pour un calcul de Coeff. d'Influence [0=Débits, 1=Q_mass ; 2=Q_Chaleur ; 3=Q_salinité]
+ *** Paramètres généraux d'optimisation [Pas de temps, Affichage]        ***
+         0=Numéro du pas de temps <==> Champ d'observations n°1
+         0=Numéro du pas de temps <==> Champ d'observations n°2
+         0=Affichage à l'écran (0=Normal ; 1=Pas d'affichage ; -1=Détails)
+         0=Affichage dans le fichier Liste (0=Normal ; 1=Allégement ; -1=Détails)
+         0=[/// Analyse de Sensibil : 0=Ec. Type des Param ; 1=Ec. Type de Prévis. (obsolète) ///]
+         0=[/// % de mailles indépendantes pour future analyse de sensibilité (obsolète) ///]
+ *** Paramètres généraux d'optimisation [pondérations]                   ***
+         0=Poids sur les Champs      de Charge hydraulique observées %
+         0=Poids sur les Champs      de Salinité       observées %
+         0=Poids sur les Champs      de Pression       observées %
+         0=Poids sur les Champs      de Teneur en Eau  observées %
+         0=Poids sur les Champs      de Concenttration observées %
+         0=Poids sur les Champs      de Température    observées %
+         0=Poids sur les Historiques de Charges observées % (0<=>100%)
+         0=Poids sur les Historiques de Débits  observées % (0<=>100%)
+         0=Poids sur les Historiques de Salinité observées % (0<=>100%)
+         0=Poids sur les Historiques de Press.  observées % (0<=>100%)
+         0=Poids sur les Historiques de Ten Eau observées % (0<=>100%)
+         0=Poids sur les Historiques de Concent observées % (0<=>100%)
+         0=Poids sur les Historiques de Tempéra observées % (0<=>100%)
+         0=Poids sur les Historiques de Prs_Gaz observées % (0<=>100%)
+         0=Poids sur les Historiques de Deb_Gaz observées % (0<=>100%)
+         0=Poids sur les Historiques de Salinité_sort observées % (0<=>100%)
+         0=Poids sur les Historiques de Concent_sort observées % (0<=>100%)
+         0=Poids sur les Historiques de Tempéra_Sort observées % (0<=>100%)
+         0=Poids sur les Historiques de Cha_Hui observées % (0<=>100%)
+         0=Poids sur les Historiques de Deb_Hui observées % (0<=>100%)
+         0=Poids sur les Historiques de Sat_Liq observées % (0<=>100%)
+         0=Poids sur les Historiques de Sat_NAQ observées % (0<=>100%)
+         0=Poids sur les Historiques  d'Interf. observées % (0<=>100%)
+         0=Poids sur les Historiques de Niveau d'Eau Riv. observés % (0<=>100%)
+         0=Poids sur les Historiques de Débits Riv.   observées % (0<=>100%)
+         0=Poids sur les Historiques de Débits Drains observées % (0<=>100%)
+         0=Poids sur les Historiques de Concen Riv.   observées % (0<=>100%)
+         0=Poids sur les Historiques de Tempér Riv.   observées % (0<=>100%)
+         0=Poids sur les Historiques de Salinité Riv. observées % (0<=>100%)
+         0=Poids sur les Historiques de Stock Neige   observées % (0<=>100%)
+         0=Poids sur les Historiques de Charge Drain  observés % (0<=>100%)
+         0=Poids sur les Historiques de Concen Drain  observées % (0<=>100%)
+         0=Poids sur les Historiques de Tempér Drain  observées % (0<=>100%)
+         0=Poids sur les Historiques de Salinité Dra. observées % (0<=>100%)
+         0=Poids sur les Historiques de Concent Immob observées % (0<=>100%)
+         0=Poids sur les Historiques de Suintem Drains observées % (0<=>100%)
+         0=Poids sur les Histor. de Niveau absolu Lac observés % (0<=>100%)
+         0=Poids sur les Historiques de Profondeur Lac observées % (0<=>100%)
+         0=Poids sur les Historiques de Superficie du Lac observées % (0<=>100%)
+         0=Poids sur les Historiques de Débit exu. Lac observées % (0<=>100%)
+         0=Poids sur les Historiques de Rabattements observées % (0<=>100%)
+         0=Poids sur les Historiques de Flux Massique Concen observées % (0<=>100%)
+         0=Poids sur les Historiques de Flux de Chaleur observées % (0<=>100%)
+         0=Poids sur les Historiques de Flux (Mass) de Salinité observées % (0<=>100%)
+         0=Poids sur les Historiques de Charges au Puits observées % (0<=>100%)
+ *** Écarts-type , Matrice de corrélation, Intervalles de confiance      ***
+         0=Calcul des écarts-type des paramètres et de la matrice de corrélation
+         0=Calcul des intervalles de confiance de simulation
+         0=Type d'intervalles de confiance : 0=Écart-Type ; 1=Intervalle à 80% ; 2=à 95%
+         0=Pourcentage de mailles indépendantes pour le calcul des écarts-type des paramètres [Déf=100%]
+ *** Fin des paragraphes                             $$$
+ *** Paramètres à optimiser ou à analyser                                ***
+ Type         Zone Arith Même_que    Val.Init   Val.Mini   Val.Maxi    Pas_Val Mult

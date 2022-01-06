@@ -1,0 +1,42 @@
+Modélisation du bassin de la SOMME Nappe_Libre (hallue.rma) [V7.5]
+
+ ==============================================================================
+ Lecture des données de :  Arbre (branchem.) des Affluents Rivières et Lacs
+   Fichier = hallue.arb_r
+
+   Affluents de réseau hydrographique
+
+ Lecture de 3 Affluents de réseau hydrographique
+
+ L'Affluent n° 253 n'a pas d'aval.
+ 
+ 
+
+                   Réseau Hydrographique (43 tronçons)
+
+    Vérification de l'arborescence des 3 affluents
+   N°          Numéro        Numéro         Nombre
+ ordre         affluent      affluent     d'affluents
+                             exutoire     du parcours
+(    1)           249           253             2
+(    2)           251           253             2
+(    3)           253           253             1
+ 
+
+    Liste des 2 sources du réseau hydrographique
+ Ordre    Ordre       N°     N°    Nb de tronçons    Débit
+ Source  Tronçon    Afflu. Tronç   avant exutoire    Amont
+(     1) (     1)    249    101        37              0.000
+(     2) (     6)    251    101        40              0.000
+
+    Liste des 1 exutoire(s)
+ Ordre    Ordre       N°     N°
+ Exut.   tronçon    Afflu. Tronçon
+(     1) (    43)    253    179
+
+ Réseau hydrographique (Rivières) (43 tronçons)
+
+         2 = Nombre de passages nécessaires pour calculer les ordres de Strahler
+         0 = Nombre d'écarts résiduels d'ordres au dernier passage
+         3 = Nombre de jonctions du réseau
+         2 = Ordre de Strahler maximal

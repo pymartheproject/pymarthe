@@ -1,0 +1,8 @@
+Calcul Coefficients d'influence pour Capucine
+ #<V7.6># --- Fin du texte libre --- ; Ne pas modifier/retirer cette ligne
+  /Charges      /HISTO/   =   /MAIL:C=     18L=     33P=      1;
+  /Charges      /HISTO/   =   /MAIL:C=     20L=     42P=      1;
+  /Charges      /HISTO/   =   /MAIL:C=     37L=     15P=      1;
+  /Débit        /HISTO/   =   /MAIL:C=     18L=     33P=      1;
+  /Débit        /HISTO/   =   /MAIL:C=     20L=     42P=      1;
+*** Fin du fichier des 'Mailles à Historique'       ***

@@ -1,0 +1,30 @@
+                                             Marthe logiciel BRGM
+Allocations
+Initialisations à zéro
+Calculs en cours (muets). Veuillez patienter ...
+                                          Message ! logiciel BRGM
+
+                Fin normale des calculs
+
+     Temps CPU pour calcul des Charges                 =     121.1
+     Temps CPU pour bilans Climatologiques             =       0.0
+     Temps CPU pour Routage Rivieres                   =       0.1
+     Temps CPU pour calcul total (hors initialisation) =     265.4
+
+    (Temps CPU pour calcul total                       =     266.1)
+
+                   Les fichiers crees sont decrits
+                   dans le fichier de nom : mart_ver.txt
+
+
+
+
+
+
+
+
+                                             MARTHE logiciel BRGM
+                                          Message ! logiciel BRGM
+
+           Attention : Il y a eu des erreurs ou des warnings
+           => Consultez le fichier : mart_ver.txt

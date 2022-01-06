@@ -1,0 +1,5 @@
+model_file,pest_file
+./param/emmca_zpc.dat,./tpl/emmca_zpc.tpl
+./param/emmli_zpc.dat,./tpl/emmli_zpc.tpl
+./param/kepon_zpc.dat,./tpl/kepon_zpc.tpl
+./param/permh_zpc.dat,./tpl/permh_zpc.tpl

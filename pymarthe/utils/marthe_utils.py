@@ -1,918 +1,298 @@
 # -*- coding: utf-8 -*-
-import os
+import os, sys
 import numpy as np
-from itertools import islice
 import pandas as pd
-import re
 from pathlib import Path
-from collections import OrderedDict
 import re, ast
 import warnings
 
-############################################################
-#        Functions for reading and writing grid files
-############################################################
+from pymarthe import *
+from .grid_utils import MartheGrid
 
-# fixed a problem for grid files written from WinMarthe
-# but not the best option. 
+# Set encoding
 encoding = 'latin-1'
 
-def read_grid_file(path_file):
 
-    '''
-    Description
+# Set commun no data values
+NO_DATA_VALUES = [-9999., -8888.]
+
+
+def get_mlfiles(rma_file):
+    """
     -----------
+    Description:
+    -----------
+    Extract all Marthe file paths frop .rma file
 
-    This function reads Marthe grid files 
-   
-    Parameters
-    ----------
-    path_file : Directory path with parameter files
- 
-    Return
-    ------
-    A tuple containing following elements. 
-    x_vals  : np.array grid x coordinates  
-    y_vals  : np.array grid y coordinates 
-    grid : 3d numpy array with shape (nlay,nrow,ncol) 
+    Parameters: 
+    -----------
+    rma_file (str): Marthe .rma file path
+
+    Returns:
+    -----------
+    mfiles_dic (dict) : all .rma file paths
+                        Format: {'permh': 'model.permh', ...}
 
     Example
     -----------
-    x, y, grid = read_grid_file(file_path)
+    rma_file = 'mymarthemodel.rma'
+    mlfiles = get_mlfiles(rma_file)
+    """
+    # ---- Get .rma content as text
+    with open(rma_file, 'r') as f:
+        content = f.read()
+    # ---- Fetch all marthe file paths
+    re_mlfile = r'\n(\w+.\w+)\s*'
+    mlfiles = re.findall(re_mlfile, content)
+    # ---- Build dictionary with all marthe file path
+    mlfiles_dic = {mlfile.split('.')[1]: os.path.normpath(mlfile) for mlfile in mlfiles}
+    return mlfiles_dic
+
+
+
+def get_layers_infos(layfile, base = 1):
+    """
+    -----------
+    Description:
+    -----------
+    Extract layer informations from Marthe .layer file 
+
+    Parameters: 
+    -----------
+    layfile (str): Marthe .rma file path
+    base (int) : base for layer counting.
+                 Python is 0-based.
+                 Marthe is compiled in 1-based (Fortran)
+                 Default is 1.
+
+    Returns:
+    -----------
+    nnest (int) : number of nested mesh ("gigogne")
+    layers_infos (DataFrame) : layer informations like
+                              layer numbers, thickness, ...
+    Format:
+
+        layer  thickness  epon_sup   ke  anisotropy
+    0       1       50.0         0  0.0         0.0
+    1       2      150.0         1  0.0         0.0
+
+
+    Example
+    -----------
+    layfile = 'mymarthemodel.layer'
+    nnest, layers_infos = get_layers_infos(layfile, base = 1)
+    """
+    # ---- Get .layer content as text
+    with open(layfile, 'r') as f:
+        content = f.read()
+    # ---- set regular expressions
+    regex = [r"Cou=\s*(\d+)", r"[Epais|Épais]=\s*([-+]?\d*\.?\d+|\d+)",
+             r"[Epon|Épon] Sup =\s*(\d+)", r"Ke=\s*(\d+)", r"Anisot=\s*(\d+)"]
+    # ---- Build Dataframe of all layer informations
+    df = pd.DataFrame([re.findall(r, content) for r in regex],
+                      index =['layer', 'thickness', 'epon_sup', 'ke', 'anisotropy'],
+                      dtype=float).T
+    # ---- Manage dtypes of informations
+    dtypes = [int, float, int, float, float]
+    layers_infos = df.astype({col:dt for col, dt in zip(df.columns, dtypes)})
+    # ---- Manage layer counting from base
+    layers_infos['layer'] = layers_infos['layer'].add(base-1)
+    # ---- Determine number of "gigogne" 
+    nnest = int(re.findall(r"(\d+)=Nombre", content)[0])
+    # ---- Return infos
+    return nnest, layers_infos
+
+
+
+def remove_autocal(martfile):
+    """
+    Function to make marthe auto calibration silent
+
+    Parameters:
+    ----------
+    martfile (str) : path to .mart file.
+
+    Returns:
+    --------
+    Write in .mart file inplace
+
+    Examples:
+    --------
+    remove_autocal('mymodel.mart')
+    """
+    # ---- Fetch .mart file content
+    with open(martfile, 'r', encoding=encoding) as f:
+        lines = f.readlines()
+
+    # ---- Define pattern to search
+    re_cal = r"^\s*1=Optimisation"
+
+    for line in lines:
+        # ---- Search patterns
+        cal_match = re.search(re_cal, line)
+        # ---- Make calibration/optimisation silent 
+        if cal_match is not None:
+            wrong = cal_match.group()
+            right = re.sub('1','0', wrong)
+            new_line  = re.sub(wrong, right, line)
+            replace_text_in_file(file, line, new_line)
+
+
+
+def make_silent(martfile):
+    """
+    Function to make marthe run silent
+
+    Parameters:
+    ----------
+    self : MartheModel instance
+    martfile (str) : .mart file path
+                      Default is None
+
+    Returns:
+    --------
+    Write in .mart inplace
+
+    Examples:
+    --------
+    make_silent('mymodel.mart')
+    """
+    # ---- Fetch .mart file content
+    with open(martfile, 'r', encoding=encoding) as f:
+        lines = f.readlines()
+
+    # ---- Define pattern to search
+    re_exe = r"^\s*(\s|\w)=Type d'exécution"
+
+    for line in lines:
+        # ---- Search patterns
+        exe_match = re.search(re_exe, line)
+        # ---- Make run silent 
+        if exe_match is not None:
+            wrong = exe_match.group()
+            right = re.sub(r'(\s|\w)=','M=', wrong)
+            new_line  = re.sub(wrong, right, line)
+            replace_text_in_file(file, line, new_line)
+
+
+
+
+def read_grid_file(grid_file):
+
+    """
+    Function to read Marthe grid data in file.
+    Only structured grids are supported.
+
+    Parameters:
+    ----------
+    grid_file (str) : Marthe Grid file full path
+
+    Returns:
+    --------
+    grid_list (list) : contain one or more
+                        MartheGrid instance
     
-    '''
-    x_list = []
-    y_list = []   
+    Examples:
+    --------
+    grids = read_grid_file('mymodel.permh')
+
+    """
+    # ---- Extract data as large string
+    with open(grid_file, 'r', encoding = encoding) as f:
+        content = f.read()
+
+    # ---- Define data regex
+    sgrid, scgrid, egrid, cxdx, cydy =  [r'\[Data]',
+                                         r'\[Constant_Data]',
+                                         r'\[End_Grid]',
+                                         r'\[Columns_x_and_dx]',
+                                         r'\[Rows_y_and_dy]']
+
+    # ---- Define infos regex
+    re_headers = [r"Field=(\w*)",
+                  r"\nLayer=(\d+)",
+                  r"Nest_grid=(\d+)",
+                  r"X_Left_Corner=([-+]?\d*\.?\d+|\d+)",
+                  r"Y_Lower_Corner=([-+]?\d*\.?\d+|\d+)",
+                  r"Ncolumn=(\d+)",
+                  r"Nrows=(\d+)"]
+
+    # ---- Collect headers as a list of strings
+    headers = [re.findall(r, content) for r in re_headers]
+
+    # ---- Collect data as a list of grids 
+    r = r"({}|{})\n(.+?){}".format(sgrid, scgrid, egrid)
+    str_grids = re.findall(r, content, re.DOTALL)
+
+    # ---- Iterate over each grid
     grid_list = []
 
-    # -- set lookup strings
-    # begin of each grid
-    lookup_begin  = '[Data]' 
-    lookup_begin_constant = '[Constant_Data]' 
-    # end of each grid
-    lookup_end = '[End_Grid]'
-
-    # -- open the file  
-    data = open(path_file,"r",encoding = encoding)
-
-    # --iterate over lines
-    for num, line in enumerate(data, 1): #NOTE quel intérêt de commencer à 1 ? enumerate(data) mieux non ? 
-        #search for line number with begin mark
-        if lookup_begin in line:
-            begin = num + 1
-            constant = False 
-        if lookup_begin_constant in line:
-            begin = num 
-            constant  = True # for uniform data
-        #search for line number with end mark
-        if lookup_end in line :
-            if num  > begin: 
-                end = num -1
-                # case with different values 
-                if constant == False :
-                    full_grid  = []
-                    # extract full grid from file
-                    with open(path_file,"r",encoding = encoding) as text_file:
-                        for line in islice(text_file, begin,  end ):
-                             full_grid.append([float(v) for v in line.split()])
-                    # select yrows, xcols, delr, delc, param in full_grid
-                    x_vals = full_grid[0]
-                    del x_vals[0:2] # remove first two zeros
-                    x_vals = np.array(x_vals, dtype = np.float)
-                    full_grid = full_grid[1:-1] #remove the first and the last line (x and delc) 
-                    full_grid = np.array(full_grid)
-                    y_vals = full_grid[:,1] 
-                    grid_data = full_grid[:,2:-1]                  
-                # case with constant (homogeneous) values
-                if constant == True :
-                    table_split = []
-                    full_grid  = []
-                    # select table
-                    with open(path_file,"r",encoding = encoding) as text_file:
-                        for line in islice(text_file, begin,  end ):
-                            table_split.append(line.split())
-                    constant_value = (float(table_split[0][0].split("=")[1]))
-                    # select yrows, xcols, delr, delc, param in full_grid
-                    x_vals = table_split[3]
-                    x_vals = np.array(x_vals, dtype = np.float)
-                    y_vals = table_split[7]
-                    y_vals = np.array(y_vals, dtype = np.float)
-                    grid_data = np.full((len(y_vals),len(x_vals)), constant_value)
-                grid_list.append(grid_data)
-                x_list.append(x_vals)
-                y_list.append(y_vals)
-
-    grid = np.stack(grid_list)
-
-    return (x_vals,y_vals,grid)
-
-def read_histobil_file(path_file,pastsp):
-    '''
-    Description
-    ----------
-    This function reads Marthe grid files
-    Parameters
-    ----------
-    path_file : Directory path with parameter files
-    pastsp : Time steps number
-    Return
-    -----
-    dfzone_list : list of zone datframes
-    Example
-    -----------
-    dfzone_list = read_histobil_file(file_path,pastsp)
-    '''
-    dfzone_list = []
-    # -- set lookup strings
-    # begin of each grid
-    lookup_begin  = "Bilan de débit d'aquifère : Zone"
-    # end of each grid
-    pastsp = pastsp
-    # -- open the file
-    data = open(path_file,"r",encoding = encoding)
-    # --iterate over lines
-    zone_ids = []
-    for num, line in enumerate(data, 1): 
-    #search for line number with begin mark
-        if line.startswith(lookup_begin):
-            zone_id = line.split('\t')[0]
-            zone_ids.append(zone_id)
-            begin = num +1
-            end = begin+1+pastsp
-            # extract full grid from file
-            full_grid = []
-            with open(path_file,"r",encoding = encoding) as text_file:
-                for line in islice(text_file, begin-1,  end ):
-                    full_grid.append([(v) for v in line.split()])
-            # select yrows, xcols, delr, delc, param in full_grid
-            columns = full_grid[0]
-            df_zone = pd.DataFrame(full_grid,columns = columns)
-            df_zone.drop(df_zone.index[0:2],axis = 0,inplace = True)
-            df_zone.set_index(pd.DatetimeIndex(df_zone.Date.iloc[:,0]),inplace = True)
-            df_zone.drop(df_zone.Date,axis=1,inplace = True)
-            dfzone_list.append(df_zone)
-    #zone_dic = {k:v for k,v in zip(zone_ids, dfzone_list)}
-    return (dfzone_list,zone_ids)
-
-def extract_variable(path_file,pastsp,variable,dti_present,dti_future,period,out_dir = None):
-    '''
-    Description
-    ----------
-    This function extact the variable of interest from histobil file 
-    and writes individual files for each zone 
-    Each file contains two columns : date and its simulation value
-    Parameters
-    ----------
-    path_file : Directory path with parameter files
-    pastsp : Time steps number
-    variable : the variable of interest : one of the columns of histobil dataframe
-    dti_present : date from which to start the present period Y-M-D
-    dti_future : date from which to start the future period : formar Y-M-D
-    period : duration period 
-    out_dir : directory where to save files 
-    Return
-    -----
-    Saved files 
-    Example
-    -----------
-    dfzone_list = extract_variable(file_path,pastsp = 40,'1990-12-08','2000-12-08',period = 2)
-    '''
-    dfzone_list,zone_ids = read_histobil_file(path_file,pastsp)
-    for i in range(len(dfzone_list)):
-        df_variable = pd.to_numeric(dfzone_list[i][variable]).cumsum() # take the column of interest variable
-        present_period = pd.date_range(dti_present, periods=period, freq='A') # Extarct present period 
-        future_period = pd.date_range(dti_future, periods=period, freq='A') # Extract future period 
-        scum_present_mean = df_variable[present_period].mean() # Mean of cumulative sum for the present period
-        scum_future_mean  = df_variable[future_period].mean() # Mean of cumulative sum for the future period
-        delta_s_relative = (scum_future_mean - scum_present_mean) / abs(scum_present_mean) # Relative delta  
-        df = pd.DataFrame([scum_present_mean,scum_future_mean,delta_s_relative],index = [dti_present,dti_future,dti_future])
-        df.to_csv( out_dir+'stock_'+(zone_ids[i].split()[-1])+'.dat', header=False,sep ='\t') 
-
-
-
-    
-
-def write_grid_file(path_file, x, y, grid):
-    
-    '''
-    Description
-    -----------
-    Writer for regular grids, square cells.     
-    This function writes text file with the same structure than parameter file in grid form
-    
-    Parameters
-    ----------
-    path_file : directory path to write the file. 
-    The extension file must match the name of the parameter. Example : 'model.kepon'
-    x : np.array grid x coordinates  
-    y : np.array grid y coordinates  
-    grid  : 3d numpy array with shape (nlay,nrow,ncol) 
-   
-
-    Example
-    -----------
-    write_grid_file(path_file,grid,x,y)
-        
-    '''
-    # check regular mesh with square cell
-    assert abs(x[1] - x[0]) == abs(y[1] - y[0])
-
-    # infer square cell size 
-    m_size = x[1] - x[0]
-
-    grid_pp = open(path_file , "w")
-
-    nrow, ncol = grid[0].shape
-
-    nprow =  np.arange(1,nrow+1,1)
-    npcol =  np.arange(0,ncol+1,1)
-
-    #create a list of widths of the columns
-    delc = [0,0] + [int(m_size)]*ncol
-    #create a list of heights of the lines
-    delr = [int(m_size)]*nrow
-
-    xmin = x[0]  - m_size/2
-    ymin = y[-1] - m_size/2
-
-
-    i = 0
-
-    #Extract the name of the parameter from the file path
-    parse_path = Path(path_file).parts
-    file_name = parse_path[-1]
-    param = file_name.split('.')[-1]
-
-    for layer in grid:
-        i = i + 1
-        parameter = zip(*layer)
-        grid_pp.write('Marthe_Grid Version=9.0 \n')
-        grid_pp.write('Title=Travail                                                        '+param+'            '+str(i)+'\n')
-        grid_pp.write('[Infos]\n')
-        grid_pp.write('Field=\n')
-        grid_pp.write('Type=\n')
-        grid_pp.write('Elem_Number=0\n')
-        grid_pp.write('Name=\n')
-        grid_pp.write('Time_Step=-9999\n')
-        grid_pp.write('Time=0\n')
-        grid_pp.write('Layer=0\n')
-        grid_pp.write('Max_Layer=0\n')
-        grid_pp.write('Nest_grid=0\n')
-        grid_pp.write('Max_NestG=0\n')
-        grid_pp.write('[Structure]\n')
-        grid_pp.write('X_Left_Corner='+str(xmin)+'\n')
-        grid_pp.write('Y_Lower_Corner='+str(ymin)+'\n')
-        grid_pp.write('Ncolumn='+str(ncol)+'\n')
-        grid_pp.write('Nrows='+str(nrow)+'\n')
-        grid_pp.write('[Data]\n')
-        grid_pp.write('0 \t')
-        [grid_pp.write(str(i)+'\t') for i in npcol]
-        grid_pp.write('\n')
-        grid_pp.write(('0 \t 0 \t'))
-        [grid_pp.write(str(i)+'\t') for i in x]
-        grid_pp.write('\n')
-        for row, cols, param_line, col_size in zip(nprow, y,layer, delr) :
-            grid_pp.write(str(row)+'\t'+str(cols)+'\t')
-            [grid_pp.write(str(i)+'\t') for i in param_line]
-            grid_pp.write(str(col_size) +'\t \n')
-        [grid_pp.write(str(j)+'\t') for j in delc]
-        grid_pp.write('\n')
-        grid_pp.write('[End_Grid]\n')
-
-    return
-
-def read_obs(path_file, starting_date, ending_date):
-    '''
-    Description
-    ----------
-    This function reads initial obs data
-    Parameters
-    ----------
-    path_file     : Directory path with obs data 
-    starting_data : Year of starting period (str)
-    ending_data   : Year of ending period (str)
-    Return
-    -----
-    list of observations and the dataframe 
-    -----------
-    '''
-    df_obs = pd.read_csv(path_file, sep='\t',index_col = 'Date',parse_dates = True)
-    df_obs = df_obs[starting_date:ending_date]
-
-    return df_obs
-
-
-def read_prn(prn_file):
-    '''
-    Description
-    -----------
-
-    This function reads file of simulated data (historiq.prn)
-    and returns files for every points. Each file contains two columns : date and its simulation value
-   
-    Parameters
-    ----------
-    path_file : Directory path with simulated data 
-
-    Return
-    ------
-    df_sim : Dataframe containing the same columns than in the reading file
-
-    
-    Example
-    -----------
-    read_prn(path_file)
-        
-    '''
-    df_sim = pd.read_csv(prn_file,  sep='\t',skiprows = 3,encoding=encoding,index_col = 0,parse_dates = True) # Dataframe
-    df_sim.index.names = ['Date']
-    df_sim.columns = df_sim.columns.str.replace(' ','')
-    df_sim = df_sim.iloc[:,1:-1]
-    df_fluct = df_sim - df_sim.mean()
-    return  df_sim
-
-
-
-def read_mi_prn(prn_file = 'historiq.prn'):
-    """
-    Function to read simulated prn file
-
-    Parameters:
-    ----------
-    prn_file (str) : prn file full path
-                     Default is 'historiq.prn'
-
-    Returns:
-    --------
-    df (DataFrame) : Multi-index DataFrame
-                     index = 'date' (DateTimeIndex)
-                     columns = MultiIndex(level_0 = 'type',         # Data type ('Charge', 'Débit', ...)
-                                          level_1 = 'gigogne')      # (optional) Refined grid number 
-                                                                      (0 <= gigogne <= N_gigogne)
-                                          level_2 = 'boundname',    # Custom name 
-
-    Examples:
-    --------
-    prn_df = read_mi_prn(prn_file = 'historiq.prn')
-    """
-    # ---- Check if prn_file exist
-    path, file = os.path.split(prn_file)
-    msg = f'{prn_file} file not found.'
-    assert file in os.listdir(os.path.normpath(path)), msg
-    # ---- Build Multiple index columns
-    with open(prn_file, 'r', encoding=encoding) as f:
-        # ----Fetch 5 first lines of prn file 
-        flines_arr = np.array([f.readline().split('\t')[:-1] for i in range(5)], dtype=list)
-        # ---- Create a boolean mask to read only usefull header lines
-        mask = [False, True, False, True , False]
-        # ---- Select only usefull first lines by mask
-        if any('Main_Grid' in elem for elem in flines_arr[-2]):
-            gig = True 
-            # -- Transform to fancy integer 'gigogne' number
-            flines_arr[-2] = ['0' if not 'Gigogne' in g else g.split(':')[1].strip()
-                                  for g in flines_arr[-2]]
-            # -- Add -gigone- boolean to mask
-            mask[-1] = gig
+    for field, layer, inest, xl, yl , ncol, nrow, str_grid_tup in zip(*headers, str_grids):
+        # ---- Get 
+        data_type, str_grid = str_grid_tup
+        # ---- Manage uniform value
+        if data_type in scgrid:
+            # -- Search and convert uniform value to float
+            value = float(re.search(r"Uniform_Value=([-+]?\d*\.?\d+|\d+)",
+                          str_grid).group(1))
+            # -- Search x/y cell centers and x/y cell resolution
+            search = re.search(r"{0}\n{2}{1}\n{2}".format(cxdx, cydy, r'(.*?)\n'*3),
+                               str_grid, re.DOTALL)
+            cols, xcc, dx, rows, ycc, dy = map(np.array,
+                                           map(str.split,
+                                            [search.group(i+1) for i in range(6)]))
+            # -- Build uniform array
+            array = np.full((len(rows),len(cols)), value)
         else:
-            gig = False
-        # ---- Fetch headers
-        headers = list(flines_arr[mask])
-    # ---- Get all headers as tuple
-    tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
-    # ---- Set multi-index names
-    if gig:
-        idx_names = ['type', 'gigogne', 'boundname']
-    else:
-        idx_names = ['type', 'boundname']
-    # ---- Build multi-index
-    midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
-    # ---- Read prn file without headers (with date format)
-    skiprows = mask.count(True) + 1
-    df = pd.read_csv(prn_file, sep='\t', encoding=encoding, 
-                     skiprows=mask.count(True) + 1, index_col = 0,
-                     parse_dates = True, dayfirst=True)
-    df.drop(df.columns[0], axis=1,inplace=True)
-    df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
-    # ---- Format DateTimeIndex
-    df.index.name = 'date'
-    # ---- Set columns as multi-index as columns
-    df.columns = midx
-    # ---- Trandform gigogne id to integer
-    if gig:
-        levels = df.columns.get_level_values('gigogne').astype(int).unique()
-        df.columns.set_levels(levels = levels, level='gigogne', inplace=True)
-    # ---- Return prn DataFrame
-    return df
+            # -- Extract 2D-array from string
+            arr_list = [np.fromstring(line.strip(), sep='\t', dtype = float)
+                       for line
+                       in str_grid.splitlines()]
+            array = np.stack([a[2:-1] for a in arr_list[2:-1]], axis=0)
+            # -- Convert to mask array if nested
+            # if float(inest) > 0:
+            #     array = np.ma.masked_array(array,
+            #             mask= array == -9999.,
+            #             fill_value = -9999.)
+            # -- Search x/y cell centers and x/y cell resolution
+            xcc, dx = arr_list[1][2:], arr_list[-1][2:]
+            ycc, dy = np.dstack([l[[1,-1]] for l in arr_list[2:-1]])[0]
+        # -- Store grid arguments
+        layer = int(layer) - 1 # switch to 0-based
+        args = (layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
+        # -- Append MartheGrid instance to the grid list
+        grid_list.append(MartheGrid(*args))
 
-
-
-def extract_prn(prn_file,fluct, out_dir ="./", obs_dir = None):
-    '''
-    Description
-    -----------
-    Reads model.prn read_prn() and writes individual files for each locations. 
-    Each file contains two columns : date and its simulation value
-   
-    Parameters
-    ----------
-    prn_file : Directory path with simulated data
-    out_dir  : Directory path to write data
-    obs_dir : Directory of observed values used for sim subset
-    
-    Return
-    ------
-        
-    Example
-    -----------
-    extract_prn(path_file,'./output_data/')
-        
-    '''
-    # read prn file
-    if fluct == True:
-        df_sim = read_prn(prn_file)
-        df_fluct = df_sim - df_sim.mean()
-    else : 
-        df_sim = read_prn(prn_file)
-
-    # if obs_dir is not provided, write all simulated dates  
-    if obs_dir == None :
-        for loc in df_sim.columns :
-            # write individual files of simulated records
-            if fluct == True:
-                df_sim.to_csv(out_dir+loc+'_abs.dat', columns = [loc], sep='\t', index=True, header=False)
-                df_fluct.to_csv(out_dir+loc+'_fluct.dat', columns = [loc], sep='\t', index=True, header=False)
-            else :
-                df_sim.to_csv(out_dir+loc+'_abs.dat', columns = [loc], sep='\t', index=True, header=False)
-    # if obs_dir is provided, get observed dates for each loc 
-    else :         
-        # iterate over simulated locations and get observed data 
-        for obs_loc in df_sim.columns : 
-            obs_file = os.path.join(obs_dir, obs_loc + '.dat')
-            df_obs = pd.read_csv(obs_file, delim_whitespace=True,header=None,skiprows=1)
-            df_obs.rename(columns ={0 : 'date', 1 :'value'}, inplace =True)
-            df_obs.date = pd.to_datetime(df.date, format="%Y-%m-%d")
-            df_obs.set_index('date', inplace = True)
-            dates_out_dic[obs_loc] = df_obs.index
-            # write individual files of simulated records
-            if fluct == True:
-                df_sim.loc[df_obs.index].to_csv(out_dir+loc+'_abs.dat', columns = [loc], sep='\t', index=True, header=False)
-                df_fluct.loc[df_obs.index].to_csv(out_dir+loc+'_fluct.dat', columns = [loc], sep='\t', index=True, header=False)
-            else:
-                df_sim.loc[df_obs.index].to_csv(out_dir+loc+'_abs.dat', columns = [loc], sep='\t', index=True, header=False) 
-
-    return
+    # ---- Return all MartheGrid instances and xcc, ycc if required
+    return tuple(grid_list)
 
 
 
 
+def write_grid_file(grid_file, grid_list, maxlayer=None, maxnest=None):
 
-def read_histo_file(histo_file):
     """
-    Function to read .histo file.
-    Support localisation by coordinates (XCOO) or by column, row (CL)
-    Support additional label.
-    Support older versions of Marthe .histo file.
+    Function to read Marthe grid data in file.
+    Only structured grids are supported.
 
     Parameters:
     ----------
-    histo_file (str) : .histo file full path
+    grid_file (str) : Marthe Grid file full path
 
     Returns:
     --------
-    df (DataFrame) : information about data
-                     to save by Marthe
-
+    grid_list (list) : contain one or more
+                        MartheGrid instance
+    
     Examples:
     --------
-    histo_df = read_histo_file('mymodel.histo')
+    grids = read_grid_file('mymodel.permh')
+
     """
-    # ---- Set usefull regex
-    re_num = r"[-+]?\d*\.?\d+|\d+"
-    re_gig = r'^\s*\d*/\w+'
-    re_names = r";\s*(.*)"
-    # ---- Fetch histo file content by line
-    with open(histo_file, encoding = encoding) as f:
-        lines = [line.rstrip() for line in f]
-    # ---- Iterate over all lines
-    data = []
-    for line in lines:
-        if '/HISTO/' in line:
-            # ---- Fetch "gigogne" and data type
-            gig_str, typ = map(str.strip, re.search(re_gig, line).group(0).split('/'))
-            gig = int(gig_str) if gig_str else 0
-            # ---- Fetch cell localisation
-            if '/XCOO' in line:
-                loc_str = line[line.index('X='):line.index(';')] 
-                loc_type = 'xyz'
-            if '/MAIL' in line:
-                loc_str = line[line.index('C='):line.index(';')]
-                loc_type = 'clp'
-            loc = list(map(ast.literal_eval, re.findall(re_num, loc_str)))
-            # ---- Fetch id and label (void older version with 'Name='' tag)
-            names = re.split(r"\s{5,}", re.split(';', re.sub('Name=','',line))[-1].strip())
-            # ---- Manage undefined label
-            names = names*2 if len(names) == 1 else names
-            # ---- Store cell data
-            data.append([typ, gig, loc_type] + loc + names)
-    # ---- Build histo DataFrame
-    cols = ['type','gigogne','loc_type','x','y','layer','id', 'label']
-    df = pd.DataFrame(data, columns = cols)
-    df.set_index('id', inplace = True)
-    # ---- Return histo DataFrame
-    return df
+    with open(grid_file, 'w', encoding = encoding) as f:
+        for mg in grid_list:
+            f.write(mg.to_string(maxlayer, maxnest))
 
-
-
-def check_loc(loc_name, histo_file):
-    """
-    Check if a loc_name is valid. A valid loc_name
-    must contained in .histo file.
-    Parameters:
-    ----------
-    loc_name (str) : oobservation loc name to test
-    histo_file (str) : prn file full path
-
-    Returns:
-    --------
-    valid (bool) : loc_name validity
-    unique (bool) : loc_name unicity
-
-    Examples:
-    --------
-    loc_name = 'mylocname'
-    if is_valid_loc(loc_name, mm.mlname + '.histo'):
-        print(f'{loc_name}' IS a valid loc_name')
-    else:
-        print(f'{loc_name}' IS NOT a valid loc_name')
-    """
-    # ---- Read histo_file
-    histo_df = read_histo_file(histo_file)
-    # ---- Get validity
-    valid = loc_name in histo_df.index
-    # ---- Get unicity
-    mask = histo_df.index.str.contains(loc_name).tolist()
-    unique = mask.count(True) <= 1
-    # ---- Return
-    return valid, unique
-
-
-
-def grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,crs):
-    """
-    -----------
-    Description:
-    -----------
-    /!/ DEPRECATED /!/
-    Writes shapefile from structured rectangular grid data
-    Based on Fiona library
-    
-    Parameters: 
-    -----------
-    data : List of numpy array with data.shape =  len(x_values), len(y_values)
-    x_values : 1D numpy array with x coordinates of grid cell centers
-    y_values : 1D numpy array with y coordinates of grid cell centers
-
-    Returns:
-    -----------
-    True if successful, False otherwise 
-
-    Example
-    -----------
-    data_list = [array1, array2]
-    field_name_list = ['f1','f2']
-    crs = fiona.crs.from_epsg(2154)
-    grid_data_to_shp(data_list, x_values, y_values, file_path, field_name_list,crs)
-    """
-    # ---- Deprecated warning
-    print('DEPRECATED function: {}. Use mm.export_grids() instead.')
-    # open collection 
-    driver = 'ESRI Shapefile'
-    data_field_properties = [(field_name, 'float') for field_name in field_name_list]
-    id_field_properties = [('id','int:10')]
-    field_properties = OrderedDict(id_field_properties+ data_field_properties)
-    schema = {'geometry': 'Polygon', 'properties':field_properties}
-    try : 
-        collection = fiona.open(
-            file_path,
-            'w',
-            driver=driver,
-            crs=crs,
-            schema=schema
-            )
-    except : 
-        print('I/O error, check file path')
-        return(False)
-    
-    # counter (record id)
-    n=0
-    # iterate over rows 
-    for i in range(len(x_values)-1):
-        # iterate over columns
-        for j in range(len(y_values)-1):
-            # centroid coordinates
-            x_c = x_values[i]
-            y_c = y_values[j]
-            # cell size
-            dx = float(x_values[i+1] - x_c)
-            dy = float(y_values[j+1] - y_c)
-            # rectangle coordinates
-            # from top left corner, clockwise
-            rec_coor = [ (x_c - dx/2, y_c + dy/2), 
-                         (x_c + dx/2, y_c + dy/2), 
-                         (x_c + dx/2, y_c - dy/2), 
-                         (x_c - dx/2, y_c - dy/2), 
-                         (x_c - dx/2, y_c + dy/2) 
-                       ]
-            # set up record geometry and properties
-            geometry = {'type': 'Polygon', 'coordinates':[rec_coor]}
-            properties = {'id':n}
-
-            # fill data fields from list 
-            for data,fieldname in zip(data_list,field_name_list):
-                properties[fieldname] = data[i,j]
-
-            # set up record 
-            record = {'id':n, 'geometry':geometry, 'properties':properties}
-            # write record
-            collection.write(record)
-            # counter increment
-            n = n+1
-            
-    res = collection.close()
-    
-    return(res)
-
-
-
-
-def read_listm_qfile(qfile, mode = 'aquifer'):
-    """
-    -----------
-    Description:
-    -----------
-    Read single flow rate text file for a list of cells
-    
-    Parameters: 
-    -----------
-    qfile (str) : simple file containing pumping data
-                  Format: 4 columns without headers
-                          V (value, float), C (column, int),
-                          L (line, int), P (layer, int) 
-    mode (str) : type of cell localisation pumping
-                Can be 'aquifer' (columns, line, layer)
-                or 'river' ('affluent', 'troncon')
-                Default is 'aquifer'
-
-    Returns:
-    -----------
-    arr (numpy array) : withdrawal data in structured array
-
-    Example
-    -----------
-    arr = read_qfile('qfile.txt')
-    """
-    if mode == 'aquifer':
-        # ---- Set data types
-        dt = [('v','f8'), ('c', 'i4'), ('l', 'i4'), ('p', 'i4')]
-        # ---- Read qfile as array (separator = any whitespace)
-        base_arr = np.loadtxt(qfile, dtype = dt)
-        # ---- Add boundnames
-        data = [tuple([v,c,l,p ] + ['_'.join(map(str,[c,l,p]))]) for v,c,l,p in base_arr]
-        arr = np.array(data, dtype = dt + [('boundname', '<U25')])
-    if mode == 'river':
-        print('LISTM OPERATION NOT AVAILABLE YET FOR RIVER PUMPING')
-        # # ---- Set data types
-        # dt = [('v','f8'), ('a', 'i4'), ('t', 'i4')]
-        # # ---- Read qfile as array (separator = any whitespace)
-        # base_arr = np.loadtxt(qfile, dtype = dt)
-        # # ---- Add boundnames
-    # ---- Return data
-    return arr
-
-
-
-
-def read_record_qfile(qfile, qcol):
-    """
-    -----------
-    Description:
-    -----------
-    Read single cell pumping record
-    
-    Parameters: 
-    -----------
-    qfile (str) : simple file containing pumping data
-                  Format: 4 columns with headers
-                          V (value, float), C (column, int),
-                          L (line, int), P (layer, int)
-    qcol (int) : column number to read in qfile (0-based)
-
-    Returns:
-    -----------
-    header (str) : single column name (column n° qcol)
-    arr (numpy array) : withdrawal data in structured array
-
-    Example
-    -----------
-    arr = read_qfile('qfile.txt')
-    """
-    # ---- Read header (='boundname')
-    header = np.loadtxt(qfile, usecols=qcol, dtype = str, max_rows=1).tolist()
-    # ---- Set data types
-    dt = [('v','f8')]
-    # ---- Read qfile as array (separator = any whitespace)
-    arr = np.loadtxt(qfile, usecols=qcol, skiprows=1, dtype = dt)
-    # ---- Return data
-    return header, arr
-
-
-
-
-def read_pastp(pastp_file):
-    """
-    -----------
-    Description:
-    -----------
-    Read .pastp file
-    (For now, just pumping data can be extracted from .pastp file) 
-    
-    Parameters: 
-    -----------
-    pastp_file (str) : path to .pastp marthe file
-
-    Returns:
-    -----------
-    content (dict) : content of .pastp file by timestep blocks
-                     Format : {istep0 :[line0, ..., lineN], .., }
-    nstep (int) : number of timestep
-
-    Example
-    -----------
-    lines, nstep = read_pastp('mm.pastp')
-    """
-    # ---- Initiate lookups
-    fstep_begin = '*** Début de la simulation'
-    istep_begin = '*** Le pas'
-    istep_end = '/*****/***** Fin de ce pas'
-
-    # ---- Initiate content variables
-    istep, content, data = None, {}, []
-
-    # ----- Collect pastp file lines
-    with open(pastp_file,"r", encoding = encoding) as f:
-        # ---- Fetch line content by timestep block
-        for line in f.readlines():
-            # -- Start recording data
-            if fstep_begin in line:
-                istep = 0
-            # -- Start new timestep
-            if istep_begin in line:
-                istep += 1
-            # -- End of the current timestep
-            if istep_end in line:
-                content[istep] = data
-                data = []
-                # -- Collect line
-            else:
-                if not istep is None:
-                    data.append(line)
-
-    # ---- Get number of timestep
-    nstep = len(content)
-
-    # ---- Return pumping data as dictionary
-    return nstep, content
-
-
-
-def extract_pastp_pumping(content, mode):
-    """
-    -----------
-    Description:
-    -----------
-    Extract pumping data from .pastp file content (by timestep blocks)
-    NOTE : 2 types of pumping condition can be read:
-                - LIST_MAIL (regional model)
-                - MAILLE (local model) single value or record
-    
-    Parameters: 
-    -----------
-    content (dict) : content of .pastp file by timestep blocks
-                     Come from read_pastp() function
-    mode (str) : type of cell localisation pumping
-                 Can be 'aquifer' (columns, line, layer)
-                 or 'river' ('affluent', 'troncon')
-                 Default is 'aquifer'
-    Returns:
-    -----------
-    pumping_data (dict) : all pumping data by timestep
-    qfilenames (dict) : all qfiles (full) names by timestep
-
-    Example
-    -----------
-    lines, nstep = read_pastp('mm.pastp')
-    pumping_data, qfilenames = extract_pastp_aqpumping(lines, nstep)
-    """
-    # ---- Set pastp tag according to pumping mode
-    mode_tag = '/DEBIT/' if mode == 'aquifer' else '/Q_EXTER_RIVI/'
-
-    # ---- Initialize dictionaries
-    pumping_data, qfilenames = [{i:None for i in range(len(content))} for _ in range(2)]
-
-    # -- Set regular expression of numeric string (int and float)
-    re_num = r"[-+]?\d*\.?\d+|\d+" 
-
-    # ---- Initialize array data type
-    dt = [('v','f8'), ('c', 'i4'), ('l', 'i4'), ('p', 'i4'), ('boundname', '<U25')]
-
-    for istep, lines in content.items():
-
-        # ---- Iterate over all pastp file lines
-        for line in lines:
-
-            # -- Check if a pumping condition is applied
-             if mode_tag in line:
-                
-                # -- Check which type of pumping condition is provided 
-
-                # 1) Manage LIST_MAIL (list of pumping cells in external file)
-                if '/LIST' in line:
-                    # -- Get path to the qfile normalized
-                    path = line.partition('N:')[-1]
-                    qfilename = os.path.normpath(path.strip())
-                    # -- Extract data from LISTM qfile (as a structure array)
-                    arr = read_listm_qfile(qfilename, mode = mode)
-                    # -- Set qfilename with data localisation
-                    qfilename_arr = np.array([f'{qfilename}&ListmLin={icell}' for icell in range(len(arr))], dtype = str)
-                    # -- Set pumping data
-                    if isinstance(pumping_data[istep], np.ndarray):
-                        pumping_data[istep] = np.append(pumping_data[istep], arr)
-                        qfilenames[istep] = np.append(qfilenames[istep], qfilename_arr)
-                    else:
-                        pumping_data[istep] = arr
-                        qfilenames[istep] = qfilename_arr
-
-                # 2) Manage MAILLE (unique pumping cell)
-                if '/MAILLE' in line:
-
-                    # -- 2.1) Manage single cell pumping record  
-                    if "File=" in line:
-                        # -- If column is provided (otherwise it's the first column)
-                        if "Col=" in line:
-                            loc, file, col = map(str.strip, line[line.index('C='):].split(';'))
-                        else:
-                            loc, file = map(str.strip, line[line.index('C='):].split(';'))
-                            col = 'Col=1'
-
-                        # -- Get col, line, plan, value, qfilename and qcol
-                        c,l,p,v = map(ast.literal_eval, re.findall(re_num, loc))
-                        qfilename =  os.path.normpath(file.split('=')[1].strip())
-                        qcol = int(col.split('=')[1])
-
-                        # -- Extract data from pumping record file /!\columns number is 0-based in python/!\
-                        bdname, record = read_record_qfile(qfilename, qcol-1)
-
-                        # -- Set pumping data
-                        pump_steady = [np.array([(v,c,l,p, bdname)], dtype = dt)]
-                        pump_transient = [np.array([(record['v'][iistep],c,l,p,bdname)], dtype = dt) for iistep in range(len(content)-1)]
-                        pump_arr = np.array(pump_steady + pump_transient, dtype = dt)
-
-                        for iistep in content.keys():
-                            if isinstance(pumping_data[iistep], np.ndarray):
-                                pumping_data[iistep] = np.append(pumping_data[iistep], pump_arr[iistep])
-                            else:
-                                pumping_data[iistep] = pump_arr[iistep]
-
-                        # -- Set qfilenames
-                        qfile_steady = [np.array([None])]
-                        qfile_transient = [np.array([f'{qfilename}&RecordCol={qcol-1}RecordLin={iistep+1}'], dtype = str) for iistep in range(len(content)-1)]
-                        qfile_arr = np.array(qfile_steady + qfile_transient)
-
-                        for iistep in content.keys():
-                            if isinstance(qfilenames[iistep], np.ndarray):
-                                qfilenames[iistep] = np.append(qfilenames[iistep], qfile_arr[iistep])
-                            else:
-                                qfilenames[iistep] = qfile_arr[iistep]
-
-                    # -- 2.2) Manage single cell single pumping
-                    else:
-                        # -- Parse pumping informations (localisation, value)
-                        parse = line[line.index('C='):].split(';')[0]
-                        c,l,p,v = map(ast.literal_eval, re.findall(re_num, parse))
-                        bdname = '_'.join(map(str,[c,l,p]))
-                        arr = np.array((v,c,l,p), dtype = dt)
-
-                        # -- Set pumping data & qfilenames
-                        if isinstance(pumping_data[istep], np.ndarray):
-                            pumping_data[istep] = np.append(pumping_data[istep], arr)
-                            qfilenames[istep] = np.append(qfilenames[istep], np.array([None]))
-                        else:
-                            pumping_data[istep] = arr
-                            qfilenames[istep] = np.array([None])
-
-
-    # -- Return filename and data (as array)
-    return pumping_data, qfilenames
 
 
 
@@ -959,81 +339,473 @@ def replace_text_in_file(file, match, subs, flags=0):
 
 
 
-
-
-
-def convert_at2clp(aff, trc, mm):
+def get_units_dic(mart_file):
     """
-    Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
+    -----------
+    Description:
+    -----------
+    Extract units from "Unités des données"
+    block in .mart file.
+    
+    Parameters: 
+    -----------
+    mart_file (str): .mart file name
+
+    Returns:
+    -----------
+    units_dic (dict) : dictionary of unit converters values
+                      Format: {'permh': 1, 'flow': 1.15e-5 ,...}
+
+    Example
+    -----------
+    units = get_units_dic('mymodel.mart')
+    """
+    # ---- Set unit names
+    unit_names = ['permh', 'flow', 'head', 'emmca', 'emmli', 'climh',
+                  'irrigh', 'climtime', 'modeltime', 'modeldist', 
+                  'vani', 'hani', 'emmcatype', 'salinity', 'concentration',
+                  'porosity', 'stock', 'mass', 'permtype', 'volume', 'massflowtype']
+
+    # ---- Set time unit dictionary 
+    tu_dic = {'SEC':'S', 'MIN':'T', 'HEU':'H', 'JOU':'D', 'MOI': 'M', 'ANN':'Y'}
+
+    # ---- Fetch .mart file content
+    with open(mart_file, 'r') as f:
+        content = f.read()
+
+    # ---- Set useful regex
+    re_block = r'Unités des données\s*\*{3}\n(.*?)\*{3}'
+    re_value = r'\s*(.+?)=.+?\n'
+
+    # ---- Extract string block in .mart file
+    block = re.findall(re_block, content, re.DOTALL)[0]
+
+    # ---- Build unit dictionary
+    units_dic = {}
+    for unit_name, val_str in zip(unit_names, re.findall(re_value, block)):
+        # -- Manage time units
+        if val_str in tu_dic.keys():
+            v = tu_dic[val_str]
+        else:
+            # -- Correct bad scientific notation
+            if re.search(r'\d[-+]\d', val_str) is not None:
+                sign = re.search(r'[-+]', val_str).group()
+                val_str = val_str.replace(sign, 'e' + sign)
+            # -- Convert into numeric
+            v = ast.literal_eval(val_str)
+        units_dic[unit_name] = v
+
+    # ---- Return units
+    return units_dic
+
+
+
+
+def get_dates(pastp_file, mart_file):
+    """
+    -----------
+    Description:
+    -----------
+    Extract dates from .pastp file
+    
+    Parameters: 
+    -----------
+    pastp_file (str) : path to .pastp marthe file
+    mart_file (str): .mart file name
+
+    Returns:
+    -----------
+    dates (DateTimeIndex): list of model dates
+
+    Example
+    -----------
+    mm = MartheModel('mymodel.rma')
+    dates = mm.get_dates()
+    """
+    # ---- Set date regular expression
+    re_anydate = r'date\s*:\s*(\d{2}/\d{2}/\d{4}|[-+]?\d*\.?\d+|\d+)\s*;'
+    # ---- Fetch pastp file content as string
+    with open(pastp_file, 'r') as f:
+        dates_str = re.findall(re_anydate, f.read())
+    # ---- Distinguish classic dates / timedelta dates
+    if not '/' in ''.join(dates_str):
+        # -- Get time unit
+        tu = get_units_dic(mart_file)['modeltime']
+        # -- Build dates
+        dates = pd.TimedeltaIndex([s + tu for s in dates_str])
+    else:
+        dates = pd.DatetimeIndex(dates_str, dayfirst = True)
+
+    # ---- Return dates
+    return dates
+
+
+
+def read_prn(prnfile):
+    '''
+    Description
+    -----------
+
+    This function reads file of simulated data (historiq.prn)
+    and returns files for every points. Each file contains two columns : date and its simulation value
+   
+    Parameters
+    ----------
+    path_file : Directory path with simulated data 
+
+    Return
+    ------
+    df_sim : Dataframe containing the same columns than in the reading file
+
+    
+    Example
+    -----------
+    read_prn(path_file)
+        
+    '''
+    df_sim = pd.read_csv(prnfile,  sep='\t',skiprows = 3,encoding=encoding, 
+                         index_col = 0, parse_dates = True)
+    df_sim.index.names = ['Date']
+    df_sim.columns = df_sim.columns.str.replace(' ','')
+    df_sim = df_sim.iloc[:,1:-1]
+    return  df_sim
+
+
+
+def read_mi_prn(prnfile = 'historiq.prn'):
+    """
+    Function to read simulated prn file
 
     Parameters:
     ----------
-    aff (int) : number of the reach
-    trc (int) : number of the section in tributary stream
-    mlname (str) : model name
-    mldir (str) : model directory
-                  Dafault is ''
+    prnfile (str) : prn file full path
+                     Default is 'historiq.prn'
 
     Returns:
     --------
-    c,l,p (int) : column, line, plan (layer)
+    df (DataFrame) : Multi-index DataFrame
+                     index = 'date' (DateTimeIndex)
+                     columns = MultiIndex(level_0 = 'type',         # Data type ('Charge', 'Débit', ...)
+                                          level_1 = 'gigogne')      # (optional) Refined grid number 
+                                                                      (0 <= gigogne <= N_gigogne)
+                                          level_2 = 'boundname',    # Custom name 
 
     Examples:
     --------
-    aff, trc = 243, 154
-    c,l,p = convert_at2clp(aff, trc, 'mymodel')
+    prn_df = read_mi_prn(prnfile = 'historiq.prn')
     """
-    # ---- Fetch reach and section file from model name
-    aff_file, trc_file = [os.path.join(mm.mldir, f'{mm.mlname}.{x}_r') for x in ['aff','trc']]
-    # ---- Set regular expression of numeric string (int and float)
-    re_num = r"[-+]?\d*\.?\d+|\d+" 
-    # ---- Read grids
-    aff_grid, trc_grid = [read_grid_file(f)[2][0] for f in [aff_file, trc_file]]
-    # ---- Get row and column corresponding to aff/trc arguments (0_based)
-    row, col = np.where((aff_grid == aff) & (trc_grid == trc))
-    # ---- Convert to c, l (1-based)
-    c, l = [arr[0]+1 for arr in [col, row]]
-    # ---- Fetch layer (p)
-    p = mm.get_outcrop()[row, col][0]
-    # ---- Return basic c,l,p
-    return c,l,p
+    # ---- Check if prnfile exist
+    path, file = os.path.split(prnfile)
+    msg = f'{prnfile} file not found.'
+    assert file in os.listdir(os.path.normpath(path)), msg
+    # ---- Build Multiple index columns
+    with open(prnfile, 'r', encoding=encoding) as f:
+        # ----Fetch 5 first lines of prn file 
+        flines_arr = np.array([f.readline().split('\t')[:-1] for i in range(5)], dtype=list)
+        # ---- Create a boolean mask to read only usefull header lines
+        mask = [False, True, False, True , False]
+        # ---- Select only usefull first lines by mask
+        if any('Main_Grid' in elem for elem in flines_arr[-2]):
+            nest = True 
+            # -- Transform to fancy integer 'inest' number
+            flines_arr[-2] = ['0' if not 'Gigogne' in g else g.split(':')[1].strip()
+                                  for g in flines_arr[-2]]
+            # -- Add -gigone- boolean to mask
+            mask[-1] = nest
+        else:
+            nest = False
+        # ---- Fetch headers
+        headers = list(flines_arr[mask])
+    # ---- Get all headers as tuple
+    tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
+    # ---- Set multi-index names
+    if nest:
+        idx_names = ['type', 'inest', 'boundname']
+    else:
+        idx_names = ['type', 'boundname']
+    # ---- Build multi-index
+    midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
+    # ---- Read prn file without headers (with date format)
+    skiprows = mask.count(True) + 1
+    df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
+                     skiprows=mask.count(True) + 1, index_col = 0,
+                     parse_dates = True, dayfirst=True)
+    df.drop(df.columns[0], axis=1,inplace=True)
+    df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
+    # ---- Format DateTimeIndex
+    df.index.name = 'date'
+    # ---- Set columns as multi-index as columns
+    df.columns = midx
+    # ---- Trandform inest id to integer
+    if nest:
+        levels = df.columns.get_level_values('inest').astype(int).unique()
+        df.columns.set_levels(levels = levels, level='inest', inplace=True)
+    # ---- Return prn DataFrame
+    return df
 
 
 
 
-def convert_at2clp_pastp(pastp_file, mm):
+def read_histo_file(histo_file):
+    """
+    Function to read .histo file.
+    Support localisation by coordinates (XCOO) or by column, row (CL)
+    Support additional label.
+    Support older versions of Marthe .histo file.
+
+    Parameters:
+    ----------
+    histo_file (str) : .histo file full path
+
+    Returns:
+    --------
+    df (DataFrame) : information about data
+                     to save by Marthe
+
+    Examples:
+    --------
+    histo_df = read_histo_file('mymodel.histo')
+    """
+    # ---- Set usefull regex
+    re_num = r"[-+]?\d*\.?\d+|\d+"
+    re_nest = r'^\s*\d*/\w+'
+    re_names = r";\s*(.*)"
+    # ---- Fetch histo file content by line
+    with open(histo_file, encoding = encoding) as f:
+        lines = [line.rstrip() for line in f]
+    # ---- Iterate over all lines
+    data = []
+    for line in lines:
+        if '/HISTO/' in line:
+            # ---- Fetch 'inest' and data type
+            inest_str, typ = map(str.strip, re.search(re_nest, line).group(0).split('/'))
+            inest = int(inest_str) if inest_str else 0
+            # ---- Fetch cell localisation
+            if '/XCOO' in line:
+                loc_str = line[line.index('X='):line.index(';')] 
+                loc_type = 'xyz'
+            if '/MAIL' in line:
+                loc_str = line[line.index('C='):line.index(';')]
+                loc_type = 'clp'
+            loc = list(map(ast.literal_eval, re.findall(re_num, loc_str)))
+            # ---- Fetch id and label (void older version with 'Name='' tag)
+            names = re.split(r"\s{5,}", re.split(';', re.sub('Name=','',line))[-1].strip())
+            # ---- Manage undefined label
+            names = names*2 if len(names) == 1 else names
+            # ---- Store cell data
+            data.append([typ, inest, loc_type] + loc + names)
+    # ---- Build histo DataFrame
+    cols = ['type','inest','loc_type','x','y','layer','id', 'label']
+    df = pd.DataFrame(data, columns = cols)
+    df.set_index('id', inplace = True)
+    # ---- Return histo DataFrame
+    return df
+
+
+
+def isiterable(object):
+    """
+    Detect if a object is a iterable.
+    String are not considered as iterable.
+
+    Parameters:
+    ----------
+    object (?): instance to check.
+
+    Returns:
+    --------
+    (bool) : True : object is iterable.
+             False : object is not iterable.
+
+    Examples:
+    --------
+    l = [4,5,6]
+    if _isiterable(l):
+        print(sum(l))
+    
+    """
+    if isinstance(object, str):
+        return False
+    else:
+        try:
+            it = iter(object)
+        except TypeError: 
+            return False
+        return True
+
+
+
+def read_listm_qfile(qfile, istep):
+    """
+    """
+    # ---- Set data types
+    dt = {'value':'f8','j':'i4','i':'i4','layer':'i4'}
+    # ---- Read qfile as DataFrame (separator = any whitespace)
+    df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
+                            names=list(dt.keys()), dtype=dt)
+    df['istep'] = istep
+    df['boundname'] = df['i'].astype(str) + '_' + df['j'].astype(str)
+    # ---- Manage metadata
+    metacols = ['qfilename', 'qtype', 'qrow', 'qcol']
+    df[metacols] = np.array([qfile, 'listm', df.index, 0], dtype=object)
+    # ---- Return data
+    cols = ['istep', 'layer', 'i', 'j', 'value', 'boundname']
+    _cols = cols + metacols 
+    return df[cols], df[_cols]
+
+
+
+
+def read_record_qfile(i,j,k,v,qfile,qcol):
+    """
+    """
+    # ---- Read just qcol column in qfile
+    data = pd.read_csv(qfile, usecols=[qcol], dtype='f8',  delim_whitespace=True)
+    # ---- Extract boundname and value
+    bdnme = data.columns[0]
+    value = [v] + data[bdnme].tolist()
+    istep = qrow = list(range(len(value)))
+    df = pd.DataFrame({'istep':istep,'layer':k,'i': i,'j':j,
+                       'value': value, 'boundname': bdnme,
+                       'qfilename': qfile, 'qtype': 'record',
+                       'qrow': qrow, 'qcol': qcol})
+    # ---- Return data
+    cols = ['istep', 'layer', 'i', 'j', 'value', 'boundname']
+    metacols =  ['qfilename', 'qtype', 'qrow', 'qcol']
+    _cols = cols + metacols
+    return df[cols], df[_cols]
+
+
+
+
+def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
+    """
+    -----------
+    Description:
+    -----------
+    Extract pumping data from .pastp file content (by timestep blocks)
+    NOTE : 2 types of pumping condition can be read:
+                - LIST_MAIL (regional model)
+                - MAILLE (local model) single value or record
+    
+    Parameters: 
+    -----------
+    content (dict) : content of .pastp file by timestep blocks
+                     Come from read_pastp() function
+    mode (str) : type of cell localisation pumping
+                 Can be 'aquifer' (columns, line, layer)
+                 or 'river' ('affluent', 'troncon')
+                 Default is 'aquifer'
+    Returns:
+    -----------
+    pumping_data (dict) : all pumping data by timestep
+    qfilenames (dict) : all qfiles (full) names by timestep
+
+    Example
+    -----------
+    lines, nstep = read_pastp('mm.pastp')
+    pumping_data, qfilenames = extract_pastp_aqpumping(lines, nstep)
+    """
+
+    # ---- Prepare some usefull regex
+    re_block = r";\s*\*{3}\n(.*?)/\*{5}"
+    re_num = r"[-+]?\d*\.?\d+|\d+"
+    re_jikv = r"C=\s*({})L=\s*({})P=\s*({})V=\s*({});".format(*[re_num]*4)
+    re_file = r"\s*File=\s*(.*);"
+    re_col = r"\s*Col=\s*({})".format(re_num)
+
+    # ---- Fetch pastp data by block (each block = data for step i)
+    with open(pastpfile, 'r') as f:
+        content = f.read()
+        # ---- Set special tag according to pumping mode
+        mode_tag = '/DEBIT/' if mode == 'aquifer' else '/Q_EXTER_RIVI/'
+        err_msg = f"ERROR: No '{mode}' pumping found in .pastp file."
+        assert mode_tag in content, err_msg
+        # ---- Extract pastp by block 
+        blocks = re.findall(re_block, content, re.DOTALL)
+
+    # ---- Initialize DataFrame and metaDataFrame
+    dfs, _dfs = [], []
+    # ---- iterate over istep blocks
+    for istep, block in enumerate(blocks):
+        # ---- Iterate over block content (lines)
+        for line in block.splitlines():
+            # -- Check if a pumping condition is applied
+             if mode_tag in line:
+                # -- Check which type of pumping condition is provided 
+                # 1) Manage LIST_MAIL (list of pumping cells in external file)
+                if '/LISTM' in line:
+                    path = line.partition('N:')[-1]
+                    qfilename = os.path.normpath(path.strip())
+                    # -- Extract data from LISTM qfile (as DataFrame)
+                    df, _df = read_listm_qfile(qfilename, istep)
+                # 2) Manage MAILLE (unique pumping cell)
+                if '/MAIL' in line:
+                    j,i,k,v = map(ast.literal_eval, re.findall(re_jikv, line)[0])
+                    _file, _col = [re.search(r, line) for r in [re_file, re_col]]
+                    qcol = 0 if _col is None else int(_col.group(1)) -1 # convert to 0-based
+                    if _file is None:
+                        bdnme = str(i) + '_' + str(j)
+                        df = pd.DataFrame([[istep,k,i,j,v,bdnme]],
+                             columns=['istep','layer','i','j','value','boundname'])
+                        _df = df.copy(deep=True)
+                        _df[['qfilename', 'qtype', 'qrow','qcol']] = [None, 'mail', None, None]
+                    else:
+                        qfilename = os.path.normpath(_file.group(1))
+                        df, _df = read_record_qfile(i,j,k,v, qfilename, qcol)
+
+                # ---- Append (meta)DataFrame list
+                dfs.append(df)
+                _dfs.append(_df)
+
+    # ---- Return concatenate (meta)DataFrame
+    data, metadata = [df.reset_index(drop=True).to_records(index=False)
+                      for df in list(map(pd.concat, [dfs, _dfs]))]
+    return data, metadata
+
+
+
+
+
+def convert_at2clp_pastp(pastpfile, mm):
     """
     Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
     and rewrite it in pastp file
 
     Parameters:
     ----------
-    pastp_file (str) : path to pastp file
-    content (list) : content of pastp file (from read_pastp() function)
-    mlname (str) : model name
-                   If None, mlname = pastp_file without extension
-                   Default is None
-    mldir (str) : model directory
-                  Default is ''
-
+    pastpfile (str) : path to pastp file
+    mm (object) : MartheModel instance
+    
     Returns:
     --------
     Replace lines inplace in pastp file
 
     Examples:
     --------
-    pastp_file = 'mymodel.pastp'
-    _, content = read_pastp(pastp_file)
-    convert_at2clp_pastp(pastp_file, content)
+    convert_at2clp_pastp(pastpfile, mm)
+    
     """
     # ---- Set regular expression of numeric string (int and float)
     re_num = r"[-+]?\d*\.?\d+|\d+"
-    # ---- Get content
-    _, content = read_pastp(pastp_file)
-    # ---- Get content at every timestep
-    for istep, lines in content.items():
-        # ---- Iterate over each line
-        for line in lines:
+    re_block = r";\s*\*{3}\n(.*?)/\*{5}"
+
+    # ---- Get convertisor (i,j) -> (a,t) as df
+    at = []
+    for s in ['aff_r', 'trc_r']:
+        arr = read_grid_file(mm.mlfiles[s])[0].array
+        ij = list(np.where(arr != 9999.))
+        at.append(arr[arr != 9999.])
+    conv_df = pd.DataFrame({k:v for k,v in zip(list('ijat'), [*ij, *at])}, dtype=int)
+
+    # ---- Extract .pastp file content
+    with open(pastpfile, 'r') as f:
+        # ---- Extract pastp by block 
+        blocks = re.findall(re_block, f.read(), re.DOTALL)
+
+    for block in blocks:
+        # ---- Iterate over block content (lines)
+        for line in block.splitlines():
             # ---- Check if the line contain aff/trc
             if all(s in line for s in ['Q_EXTER_RIVI','A=','T=']):
                 # ---- Replace TRONCON for MAILLE
@@ -1041,16 +813,198 @@ def convert_at2clp_pastp(pastp_file, mm):
                 # ---- Get substring to replace
                 s2replace = line[line.index('A='):line.index('V=')]
                 # ---- Fetch aff/trc as number
-                a, t = map(ast.literal_eval, re.findall(re_num, s2replace))
+                a,t = map(ast.literal_eval, re.findall(re_num, s2replace))
                 # ---- Convert aff/trc to column, line, plan (layer)
-                c,l,p = convert_at2clp(aff=a, trc=t, mm = mm)
+                i,j = conv_df.query(f"a=={a} & t=={t}")[list('ij')].to_numpy()[0]
+                layer = mm.get_outcrop()[i,j]
                 # ---- Build substring to replace
-                sub = '{:>8}C={:>7}L={:>7}P={:>7}'.format(' ',c,l,p)
+                sub = '{:>8}C={:>7}L={:>7}P={:>7}'.format(' ',j+1, i+1, int(layer))
                 # ---- Build entire line to be replace for
                 l2replace = mail_line.replace(s2replace,sub)
                 # ---- Replace text in pastp file
-                replace_text_in_file(pastp_file, line, l2replace)
+                replace_text_in_file(pastpfile, line, l2replace)
 
 
 
 
+def remove_no_data_values(df, column = 'value', nodata = NO_DATA_VALUES):
+    """
+    -----------
+    Description
+    -----------
+    Remove no data values in DataFrame on specific column
+
+    -----------
+    Parameters
+    -----------
+    - df (DataFrame) : table with potential no data values inside
+    - column (str) : column name to search the no data values
+    - nodata (list) : list of no data values to remove
+                      Default is [-9999., -8888., 9999.]
+
+    -----------
+    Returns
+    -----------
+    df (DataFrame) : clean table without no data value
+
+    -----------
+    Examples
+    -----------
+    clean_df = remove_no_data_values(df, nodata = [1e+30, -9999.])
+    """
+    # ---- Return same DataFrame
+    if nodata is None:
+        return df
+    else:
+        # ---- Transform specific no data value to NaN
+        for nd in nodata:
+            df.loc[df[column] == nd, column] = pd.NA
+        # ---- Return clean DataFrame
+        return df.dropna()
+
+
+
+def read_obsfile(obsfile, nodata = None):
+    """
+    Simple function to read observation file.
+    Format : header0        header1
+             09/05/1996     0.12
+             10/05/1996     0.88
+    Note: separator is anywhite space (tabulation is prefered)
+
+    Parameters:
+    ----------
+    obsfile (str): observation filename to read value.
+                   Note: if locnme is not provided,
+                   the locnme is set as obsfile without file extension.
+    nodata (list/None) : no data values to remove.
+                         Default is None.
+
+    Returns:
+    --------
+    df (DataFrame) : observation table
+                     Format : date          value
+                              1996-05-09    0.12
+                              1996-05-10    0.88
+
+    Examples:
+    --------
+    obs_df = read_obsfile(obsfile = 'myobs.dat')
+    """
+    # ---- Read obsfile
+    data = pd.read_csv(obsfile, delim_whitespace=True, header=None, skiprows=1, index_col = 0, parse_dates=True)
+    # ---- Set standard column names
+    df = data.rename(columns = {1 :'value'})
+    df.index.name = 'date'
+    # ----- Return clean DataFrame
+    return remove_no_data_values(df, nodata = nodata)
+
+
+
+def write_obsfile(date, value, obsfile):
+    """
+    Write a standard obsfile from observation dates and value.
+
+    Parameters:
+    ----------
+    date (DateTimeIndex) : observation date index 
+    value (iterable) : observation values 
+    obsfile (str): observation filename to read value.
+
+    Returns:
+    --------
+    Write observation values.
+    Format : date          value
+             1996-05-09    0.12
+             1996-05-10    0.88
+
+    Examples:
+    --------
+    locnme = '07065X0002'
+    obs_df = write_obsfile(date, values, obsfile = locnme + '.dat')
+    """
+    # ---- Build standard DataFrame
+    df = pd.DataFrame(dict(value = list(value)), index = date)
+    # ---- Write DataFrame
+    df.to_csv(obsfile,  sep = '\t', header = True, index = True)
+
+
+
+# """
+# *** UNDER DEVELOPPMENT ***
+
+
+# def extract_prn(obsfile, prnfile=None, locnme=None, fluc=False, on='mean', interp_method='index', sim_dir='.'):
+#     '''
+#     Description
+#     -----------
+#     Reads model.prn read_prn() and writes individual file for each (selected) locations. 
+#     Each file contains two columns : date and its simulation value.
+   
+#     Parameters
+#     ----------
+#     - obsfile (str/list) : path to the related observation file.
+#                            NOTE : can be a string (1 record to extract) or a 
+#                                   list of strings (multiple records to extract)
+#     - prnfile (str) : path the the marthe .prn file
+#     - locnme (str, optional) : observation location name(s) (ex. BSS id)
+#                                  Default is None
+#     - fluct (bool) : enable/disable fluctuations extraction.
+#     - on (str/numeric/fun) : function, function name or real number to 
+#                              substract to the simulated values.
+#                              Function names can be 'min', 'max', 'mean', 'median', etc.
+#                              See pandas.core.groupby.GroupBy documentation for more.
+#     - interp_method (str) : Interpolation method to use.
+#                             Can be 'linear', 'time', 'index', 'values', 'pad', 'nearest',
+#                             'zero', 'slinear', 'quadratic', 'cubic', 'spline', 'barycentric',
+#                             'polynomial', 'krogh', 'piecewise_polynomial', 'spline', 'pchip',
+#                             'akima', 'from_derivatives'.
+#                             Default is 'index' (linear interpolation on index).
+#     - sim_dir (str) : directory to store simulated files.
+#                       Default is '.'.
+
+    
+#     Return
+#     ------
+#     Write simulated values inplace.
+        
+#     Example
+#     -----------
+#     extract_prn(prnfile = 'historiq.prn, obsfile = 'obs/myobs.dat',
+#                 interp_method='slinear', sim_dir = 'sim')
+#     '''
+#     # ---- Define simple iterable converter
+#     to_iterable = lambda elem: elem if isinstance(elem, list) else [elem]
+#     # ---- Get obsfiles as list
+#     obsfiles = to_iterable(obsfile)
+#     # ---- Get locnmes as list
+#     if locnme is None:
+#         locnmes = [os.path.split(f)[1].split('.')[0] for f in obsfiles]
+#     else:
+#         locnmes = to_iterable(locnme)
+#     # ----- Fetch prnfile name and sim directory
+#     if prnfile == None : 
+#         prnfile = 'historiq.prn'
+#     # ---- Read prnfile
+#     prn_df = read_prn(prnfile)
+#     # ---- Manage fluctuation if required
+#     if fluc:
+#         # ---- Build fluctuation DataFrame based on 'on' arguments
+#         fluc_df = prn_df.apply(lambda col: col.sub(col.agg(on) if isinstance(on, str) else on))
+#         # ---- Concatenate prn and fluctuation in a larger DataFrame
+#         df = pd.concat([prn_df, fluc_df.add_suffix('_fluc')], axis = 1)
+#     else:
+#         df = prn_df
+#     # ---- Iterate over all locnmes to extract
+#     for locnme, obsfile in zip(locnmes, obsfiles):
+#         # ---- Interpolate simulated values on observed based on date
+#         try:
+#             dates_out = read_obsfile(obsfile).index
+#         except:
+#             dates_out = read_obsfile(obsfile.replace('_fluc', '')).index
+#         ts_interp = ts_utils.interpolate(df[locnme], dates_out, method = interp_method)
+#         # ---- Write simulated value in sim directory
+#         simfile = os.path.join(sim_dir, f'{locnme}.dat')
+#         pest_utils.write_simfile(dates = ts_interp.index, values = ts_interp, simfile = simfile)
+
+# '''

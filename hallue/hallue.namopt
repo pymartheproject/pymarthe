@@ -1,0 +1,20 @@
+ Fichier Projet Optimisation
+ #<V7.8># --- Fin du texte libre --- ; Ne pas modifier/retirer cette ligne
+hallue.paropt                                                         = Paramètres pour Optimisation ou Calibration
+=1                                                                    = Pondérations des Observations
+                                                                      = Numéro de Zone pour calibration de perméabilité
+                                                                      = Numéro de Zone de Perméabilité d'Éponte [obsol.]
+hallue.inflhis                                                        = Numéros des Mailles pour Coefficients d'Influence
+                                                                      = Écart-Types des Paramètres
+                                                                      = Champ de Charge hydraulique observée date 1
+                                                                      = Champ de Charge hydraulique observée date 2
+                                                                      = Champ de Concentration observée date 1
+                                                                      = Champ de Concentration observée date 2
+                                                                      = Champ de Teneur en Eau observée date 1
+                                                                      = Champ de Teneur en Eau observée date 2
+                                                                      = Champ de Pression    observée date 1
+                                                                      = Champ de Pression    observée date 2
+                                                                      = Champ de Salinité    observée date 1
+                                                                      = Champ de Salinité    observée date 2
+                                                                      = Champ de Température observée date 1
+                                                                      = Champ de Température observée date 2

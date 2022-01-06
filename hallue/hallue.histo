@@ -1,0 +1,14 @@
+Modélisation du bassin de la Somme en régime transitoire
+ #<V7.6># --- Fin du texte libre --- ; Ne pas modifier/retirer cette ligne
+  /Charge       /HISTO/   =   /MAIL:C=     19L=     38P=      1;h_aqu_con
+  /Charge       /HISTO/   =   /MAIL:C=     20L=     42P=      1;h_agri
+  /Charge       /HISTO/   =   /MAIL:C=     18L=     33P=      1;h_aep
+  /Rabattem       /HISTO/   =   /MAIL:C=     19L=     38P=      1;r_con
+  /Rabattem       /HISTO/   =   /MAIL:C=     20L=     42P=      1;r_agri
+  /Rabattem       /HISTO/   =   /MAIL:C=     18L=     33P=      1;r_aep
+  /Débit        /HISTO/   =   /MAIL:C=     19L=     38P=      1;q_con
+  /Débit        /HISTO/   =   /MAIL:C=     20L=     42P=      1;q_agri
+  /Débit        /HISTO/   =   /MAIL:C=     18L=     33P=      1;q_aep
+  /Débit_Rivi   /HISTO/   =   /MAIL:C=     24L=     48P=      1;q_riv_con
+  /Débit_Rivi   /HISTO/   =   /MAIL:C=     22L=     40P=      1;q_riv
+ *** Fin du fichier des 'Mailles à Historique'       ***

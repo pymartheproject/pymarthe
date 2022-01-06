@@ -6,10 +6,16 @@ with the PEST suite.
 """
 
 __name__ = 'pymarthe'
-__author__ = 'Ryma Aissat, Yohann Cousquer, Alexandre Pryet'
+__author__ = 'Ryma Aissat, Yohann Cousquer, Alexandre Pryet, Pierre Matran'
 
-__version__ = 0.1
+__version__ = 1.0
 
-# imports
-from .utils import marthe_utils, pest_utils, pp_utils
-from .marthe import MartheModel, SpatialReference
+
+
+# ---- IMPORTS 
+
+from .marthe import MartheModel
+from .mfield import MartheField
+from .moptim import MartheOptim
+from .mobs import MartheObs
+from . import utils

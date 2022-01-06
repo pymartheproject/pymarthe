@@ -1,0 +1,57 @@
+ Logiciel : Marthe Version : 7.5
+     J /M/ Ann
+ le  9/12/2021 à 17h53
+
+ Fichier Projet : hallue.rma
+
+Modélisation du bassin de la SOMME Nappe_Libre
+ 
+ 
+ ** Impossible d'ouvrir :                                                   **
+ ** le fichier :  Paramètres pour Optimisation                              **
+ **     de nom : #<V7.8># --- Fin du texte libre --- ; Ne pas modi          **
+ 
+ 
+   Précision = 15 chiffres
+
+
+ ** Action de modification : <<MAIL         >> : Non reconnue **
+ ** (Lu dans le fichier : hallue.pastp)
+ **  au pas de temps n° 0
+
+ *** Attention :       Convergence !                                        ***
+
+==========================================================================
+ Au cours de toute la simulation hydrodynamique (calcul des charges) :
+ Erreur relative maximale de volume fluide (ou masse gaz) =      5.747 %
+                      correspondant à une erreur de débit =  3.402E+05
+                                               à la date  =   1826.000
+                                  au pas de temps numéro  =       1614
+==========================================================================
+
+                Fin normale des calculs           
+
+     Temps écoulé pour les calculs                     =     17.87 s 
+
+     Temps CPU pour calcul des Charges                 =       7.1
+     Temps CPU pour bilans Climatologiques             =       0.0
+     Temps CPU pour Routage Rivières                   =       0.0
+     Temps CPU pour bilans des débits                  =       0.3
+     Temps CPU pour bilans des débits par zones        =       0.2
+     Temps CPU pour édition des bilans hydroclimat.    =       1.8
+     Temps CPU pour sauv. des grilles calculées        =       0.0
+     Temps CPU solveur hydrodynamique                  =       0.7
+     Temps CPU pour calcul total (hors initialisation) =      24.0
+
+    (Temps CPU pour calcul total                       =      24.1)
+    ======================================================================
+    *  Les fichiers suivants ont été créés :
+    *  mart_ver.txt  = Vérifications ou Erreurs
+    *  marthe.txt    = Listing général (fichier liste)
+    *  bilandeb.txt  = Bilan des Débits
+    *  historiq.prn  = Historiques pour dessins (format compatible Excel)
+    *  histobil_debit.prn  = Historiques bilans débits (compatible Excel)
+    *  chasim.out    = Grille champs calculés
+    *                  (charges, concentrations, températures etc.)
+    * reseau_hydrog.txt = Réseau Hydrographique, Drains, Lacs
+    ======================================================================

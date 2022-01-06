@@ -10,22 +10,27 @@ import shutil
 import shapefile
 
 
-def get_polygons(xc, yc, cellsize):
+def get_polygons(xcc, ycc, dx, dy):
     """
     Return list of polygons parts from points
     considered as the centers of each polygons
+
+    Parameters
+    ----------
+    xcc, ycc (float) : (xy)cellcenter coordinates
+    dx, dy (float) : width, height of model cell
+
     """
     # ---- Fetch mesh grid 
-    xx, yy = np.meshgrid(xc, yc)
+    xx, yy = np.meshgrid(xcc, ycc)
+    dxx, dyy = np.meshgrid(dx, dy)
     # ---- Transform to 1D arrays
-    X, Y, = list(map(np.ravel, [xx,yy]))
-    # ---- Regular offset of cell center from polygon edge
-    d = cellsize/2
+    X, Y, DX, DY = list(map(np.ravel, [xx,yy,dxx,dyy]))
     # ---- Convert to list of points defining a polygon
     polygons = []
-    for x,y in zip(X,Y):
-        xl, xu = x - d, x + d
-        yl, yu = y - d, y + d
+    for x,y,dx,dy in zip(X,Y,DX,DY):
+        xl, xu = x - dx/2, x + dx/2
+        yl, yu = y - dy/2, y + dy/2
         polygon = [[[xl,yl], [xl,yu], [xu,yu], [xu,yl], [xl,yl]]]
         polygons.append(polygon)
     # ---- Return list of polygons
@@ -33,11 +38,14 @@ def get_polygons(xc, yc, cellsize):
 
 
 def enforce_10ch_limit(names):
-    """Enforce 10 character limit for fieldnames.
+    """
+    Enforce 10 character limit for fieldnames.
     Add suffix for duplicate names starting at 0.
+
     Parameters
     ----------
-    names : list of strings
+    names (list) : strings unformated
+
     Returns
     -------
     names : list of unique strings of len <= 10.
