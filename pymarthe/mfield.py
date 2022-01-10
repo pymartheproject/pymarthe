@@ -399,25 +399,116 @@ class MartheField():
 
 
 
-    # *** UNDER DEVELOPMENT ***
+    def to_shapefile(self, filename = None, layer=0, inest=None, masked_values = [-9999., 0.], log = True, epsg=None, prj=None):
+        """
+        Write field data as shapefile by layer.
 
-    # def to_pyshp(self, layer=None, inest=None):
 
-    #     # ---- Fetch pyshp parts (polygons)
-    #     parts = []
-    #     for mg in self.to_grids(layer=layer, inest=inest):
-    #         parts.extend(mg.to_polygons())
+        Parameters:
+        ----------
+        filename (str, optional) : shapefile path to write.
+                                   If None, filename = 'field_layer.shp'.
+                                   Default is None
+        layer (int, optional) : layer numerical id to export.
+                                Note : a unique layer id is allowed
+                                Default is 0.
+        inest (int, optional) : nested grid numerical id to export.
+                                If None, all nested grid are considered.
+                                Default is None.
+        masked_values (list, optional) : field values to ignore.
+                                         Default is [-9999., 0.].
+        log (bool, optional) : logarithmic transformation of all values.
+                               Default is True.
+        epsg (int, optional) : Geodetic Parameter Dataset.
+                               Default is None.
+        prj (str, optional) : cartographic projection and coordinates
+                              Default is None.
 
-    #     # ---- fetch data
-    #     rec = self.get_data(layer=layer, inest=inest)
+        Returns:
+        --------
+        Write filename
 
-    #     # ---- Return parts and records
-    #     return parts, rec
+        Examples:
+        --------
+        filename = os.path.join('gis', 'permh_layer5.shp')
+        mf.to_shapefile(filename, layer=5)
+
+        """
+        # -- Build filename if not provided
+        if filename is None:
+            filename = f'{self.field}_{layer}.shp'
+
+        # ---- Perform a bunch of assertions on `layer` and `inest` arguments
+        err_msg = f"`layer` must be an integer between 0 and {self.maxlayer -1}."
+        assert isinstance(layer, int), err_msg
+        assert 0 <= layer < self.maxlayer, err_msg
+
+        # ---- Fetch pyshp parts (polygons)
+        parts = []
+        for mg in self.to_grids(layer=layer, inest=inest):
+            parts.extend(mg.to_polygons())
+
+        # ---- fetch data
+        data = self.get_data(layer=layer, inest=inest)
+        df = pd.DataFrame(data).assign(parts=parts)
+
+        # ---- Apply mask values
+        if not masked_values is None:
+            df = df[~df['value'].isin(masked_values)]
+            # ---- Fetch subset parts (goemetries)
+            parts = df.pop('parts')
+
+        # ---- Log transform if required
+        values = df.pop('value')
+        col = 'val'
+        if log:
+            col = f'log({col})'
+            values = np.log10(values)
+        # ---- Set value 
+        df[col] = values
+
+        # ---- Convert reccaray to shafile
+        shp_utils.recarray2shp(df.to_records(index=False), np.array(parts),
+                               shpname=filename, epsg=epsg, prj=prj)
+
+        # ---- Sum up export
+        print("\n ---> Shapefile wrote in {} succesfully.".format(filename))
 
 
 
     def plot(self, ax=None, layer=0, inest=None, vmin=None, vmax=None, log = True, masked_values = [-9999., 0.], **kwargs):
         """
+        Plot data by layer
+
+        Parameters:
+        ----------
+        ax (matplotlib.axes, optional) : matplotlib.axes custom ax.
+                             If None basic ax will be create.
+                             Default is None.
+        layer (int, optional) : layer numerical id to export.
+                                Note : a unique layer id is allowed
+                                Default is 0.
+        inest (int, optional) : nested grid numerical id to export.
+                                If None, all nested grid are considered.
+                                Default is None.
+        vmin, vmax (float, optional) : min/max value(s) to plot.
+        masked_values (list, optional) : field values to ignore.
+                                         Default is [-9999., 0.].
+        log (bool, optional) : logarithmic transformation of all values.
+                               Default is True.
+        **kwargs (optional) : matplotlib.PathCollection arguments.
+                              (ex: cmap, lw, ls, edgecolor, ...)
+
+        Returns:
+        --------
+        ax (matplotlib.axes) : standard ax with 2 collections:
+                                    - 1 for rectangles
+                                    - 1 for colorbar
+
+        Examples:
+        --------
+        ax = mf.plot(layer=6, cmap='jet')
+        ax.set_title('Field (layer = 6)', fontsize=14)
 
         """
         # ---- Perform a bunch of assertions on `layer` and `inest` arguments
