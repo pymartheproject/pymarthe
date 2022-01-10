@@ -244,6 +244,135 @@ class MartheModel():
 
 
 
+     def run_model(self,exe_name = 'marthe', rma_file = None, 
+                      silent = True, verbose=False, pause=False,
+                      report=False, cargs=None):
+        """
+        Run Marthe model using subprocess.Popen. It communicates 
+        with the model's stdout asynchronously and reports progress 
+        to the screen with timestamps
+
+        Parameters
+        ----------
+        exe_name (str, optional) : Marthe executable name.
+                                   Note: can be the entire path if the
+                                   exename is not in environment path
+                                   Default is 'marthe'.
+        rma_file (str, optional) : .rma file of model to run.
+        silent (bool, optional) : run marthe model as silent 
+        verbose (bool, optional) : echo run information to screen
+                                   Default is False.
+        pause (bool, optional) : pause upon completion
+                                 Default is False.
+        report (bool, optional) : save stdout lines to a list (buff) 
+                                  which is returned by the method
+                                  Default is True.
+        cargs (str/list, optional) : additional command line arguments to pass to the executable.
+                                     Default is None.
+
+        Returns
+        -------
+        (success, buff)
+        success (bool) : Binary success of the run 
+        buff (list) :  stdout
+        """
+        # ---- Initialize variable
+        success = False
+        buff = []
+        normal_msg='normal termination'
+
+        # ---- Force model to run as silent if required
+        if silent:
+            self.make_silent()
+
+        # ---- Check to make sure that program and namefile exist
+        exe = which(exe_name)
+        if exe is None:
+            # -- Try which() function for window user 
+            import platform
+            if platform.system() in 'Windows':
+                    exe = which(exe_name + '.exe')
+
+        if exe is None:
+            s = 'The program {} does not exist or is not executable.'.format(
+                exe_name)
+            raise Exception(s)
+        
+
+        # ---- Fetch Marthe .rma file if not provided
+        if rma_file is None : 
+            rma_file = os.path.join(self.mldir, self.rma_file)
+
+        # ---- Simple function for the thread to target
+        def q_output(output, q):
+            for line in iter(output.readline, b''):
+                q.put(line)
+
+        # ---- Create a list of arguments to pass to Popen
+        argv = [exe_name]
+        if rma_file is not None:
+            argv.append(rma_file)
+
+        # ---- Add additional arguments to Popen arguments
+        if cargs is not None:
+            cargs = [arg for arg in cargs if isinstance(cargs, str)]
+            for t in cargs:
+                argv.append(t)
+
+        # ---- Run the model with Popen
+        proc = sp.Popen(argv, stdout=sp.PIPE, stderr=sp.STDOUT)
+
+        # ---- Some tricks for the async stdout reading
+        q = queue.Queue()
+        thread = threading.Thread(target=q_output, args=(proc.stdout, q))
+        thread.daemon = True
+        thread.start()
+        failed_words = ["fail", "error"]
+        last = datetime.now()
+        lastsec = 0.
+        while True:
+            try:
+                line = q.get_nowait()
+            except queue.Empty:
+                pass
+            else:
+                if line == '':
+                    break
+                line = line.decode('latin-1').lower().strip()
+                if line != '':
+                    now = datetime.now()
+                    dt = now - last
+                    tsecs = dt.total_seconds() - lastsec
+                    line = "elapsed:{0}-->{1}".format(tsecs, line)
+                    lastsec = tsecs + lastsec
+                    buff.append(line)
+                    if not verbose:
+                        print(line)
+                    for fword in failed_words:
+                        if fword in line:
+                            success = False
+                            break
+            if proc.poll() is not None:
+                break
+        proc.wait()
+        thread.join(timeout=1)
+        buff.extend(proc.stdout.readlines())
+        proc.stdout.close()
+        # -- Examine run buff
+        for line in buff:
+            if normal_msg in line:
+                print("success")
+                success = True
+                break
+
+        if pause:
+            input('Press Enter to continue...')
+        return success, buff
+
+
+
+
+
     def __str__(self):
         """
         Internal string method.
