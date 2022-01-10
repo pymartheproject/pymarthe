@@ -375,7 +375,10 @@ def get_units_dic(mart_file):
                   'porosity', 'stock', 'mass', 'permtype', 'volume', 'massflowtype']
 
     # ---- Set time unit dictionary 
-    tu_dic = {'SEC':'S', 'MIN':'T', 'HEU':'H', 'JOU':'D', 'MOI': 'M', 'ANN':'Y'}
+    tu_dic = {'SEC':'S', 'MIN':'T', 'HEU':'H', 'JOU':'D',
+              'SEM': 'W', 'MOI': 'M', 'ANN':'Y',
+              'seconde':'S', 'minute': 'T', 'heure':'H',
+              'jour':'J', 'semaine':'W', 'mois': 'M', 'année':'Y'}
 
     # ---- Fetch .mart file content
     with open(mart_file, 'r') as f:
