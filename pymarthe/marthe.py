@@ -244,7 +244,7 @@ class MartheModel():
 
 
 
-     def run_model(self,exe_name = 'marthe', rma_file = None, 
+    def run_model(self,exe_name = 'marthe', rma_file = None, 
                       silent = True, verbose=False, pause=False,
                       report=False, cargs=None):
         """
