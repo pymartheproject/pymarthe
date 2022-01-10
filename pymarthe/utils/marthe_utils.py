@@ -347,6 +347,7 @@ def replace_text_in_file(file, match, subs, flags=0):
 
 
 
+
 def get_units_dic(mart_file):
     """
     -----------
@@ -384,19 +385,24 @@ def get_units_dic(mart_file):
     with open(mart_file, 'r') as f:
         content = f.read()
 
-    # ---- Set useful regex
+    # ---- Set block regex
     re_block = r'Unités des données\s*\*{3}\n(.*?)\*{3}'
-    re_value = r'\s*(.+?)=.+?\n'
 
     # ---- Extract string block in .mart file
     block = re.findall(re_block, content, re.DOTALL)[0]
 
     # ---- Build unit dictionary
     units_dic = {}
-    for unit_name, val_str in zip(unit_names, re.findall(re_value, block)):
+    for unit_name, line in zip(unit_names, block.splitlines()):
+        # -- Get value as string
+        val_str = line.split('=')[0].strip()
+        # -- Set None if not provided
+        if len(val_str) == 0:
+            v = None
         # -- Manage time units
-        if val_str in tu_dic.keys():
-            v = tu_dic[val_str]
+        elif val_str in tu_dic.keys():
+                v = tu_dic[val_str]
+        # -- Manage val_str as value
         else:
             # -- Correct bad scientific notation
             if re.search(r'\d[-+]\d', val_str) is not None:
@@ -408,6 +414,7 @@ def get_units_dic(mart_file):
 
     # ---- Return units
     return units_dic
+
 
 
 
