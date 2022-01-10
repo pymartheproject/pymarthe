@@ -53,6 +53,7 @@ class MartheModel():
 
         # ---- Get infos about layers
         self.nnest, self.layers_infos = marthe_utils.get_layers_infos(self.mlfiles['layer'], base = 0)
+        self.nlay = self.layers_infos.layer.max() + 1
 
         # ---- Initialize property grids with permeability data
         permh = MartheField('permh', self.mlfiles['permh'], self)
