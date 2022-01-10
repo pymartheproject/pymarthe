@@ -89,7 +89,7 @@ class MarthePump():
             it = np.unique(self.data[var_name])
         # ---- Manage var != None case
         else: 
-            it = var if marthe_utils.isiterable(var) else [var]
+            it = marthe_utils.make_iterable(var)
         # ---- Return iterable
         return it
 

@@ -92,12 +92,12 @@ class MartheField():
         if layer is None:
             layers = np.unique(self.data['layer'])
         else: 
-            layers = layer if marthe_utils.isiterable(layer) else [layer]
+            layers = marthe_utils.make_iterable(layer)
         # ---- Manage inest input
         if inest is None:
             inests = np.unique(self.data['inest'])
         else: 
-            inests = inest if marthe_utils.isiterable(inest) else [inest]
+            inests = marthe_utils.make_iterable(inest)
         # ---- Transform records to Dataframe for query purpose
         df = pd.DataFrame(self.data)
         # ---- Get mask

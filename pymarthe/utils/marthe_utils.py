@@ -643,6 +643,29 @@ def isiterable(object):
 
 
 
+def make_iterable(var):
+    """
+    Make any variable iterable
+
+    Parameters:
+    ----------
+    var (?): instance transform
+
+    Returns:
+    --------
+    it (iterable) : any iterable object
+
+    Examples:
+    --------
+    i = 9
+    it = make_iterable(var)
+    
+    """
+    it = var if isiterable(var) else [var]
+    return it
+
+
+
 def read_listm_qfile(qfile, istep):
     """
     """
