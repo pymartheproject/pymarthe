@@ -175,8 +175,6 @@ def make_silent(martfile):
             replace_text_in_file(file, line, new_line)
 
 
-
-
 def read_grid_file(grid_file):
 
     """
@@ -202,11 +200,13 @@ def read_grid_file(grid_file):
         content = f.read()
 
     # ---- Define data regex
-    sgrid, scgrid, egrid, cxdx, cydy =  [r'\[Data]',
-                                         r'\[Constant_Data]',
-                                         r'\[End_Grid]',
-                                         r'\[Columns_x_and_dx]',
-                                         r'\[Rows_y_and_dy]']
+    sgrid, scgrid, egrid, cxdx0, cydy0, cxdx1, cydy1 =  [r'\[Data]',
+                                                         r'\[Constant_Data]',
+                                                         r'\[End_Grid]',
+                                                         r'\[Columns_x_and_dx]',
+                                                         r'\[Rows_y_and_dy]',
+                                                         r'\[Num_Columns_/_x_/_dx]',
+                                                         r'\[Num_Rows_/_y_/_dy]']
 
     # ---- Define infos regex
     re_headers = [r"Field=(\w*)",
@@ -235,9 +235,17 @@ def read_grid_file(grid_file):
             # -- Search and convert uniform value to float
             value = float(re.search(r"Uniform_Value=([-+]?\d*\.?\d+|\d+)",
                           str_grid).group(1))
+            # ---- Support different version of uniform headers (cxdx0 or cxdx1)
+            if all(s in str_grid for s in [cxdx0, cydy0]):
+                cxdx, cydy = cxdx0, cydy0
+            else:
+                cxdx, cydy = cxdx1, cydy1
+
             # -- Search x/y cell centers and x/y cell resolution
             search = re.search(r"{0}\n{2}{1}\n{2}".format(cxdx, cydy, r'(.*?)\n'*3),
                                str_grid, re.DOTALL)
+            
+            # -- Fetch all rows, columns, cellcenters and dx, dy
             cols, xcc, dx, rows, ycc, dy = map(np.array,
                                            map(str.split,
                                             [search.group(i+1) for i in range(6)]))

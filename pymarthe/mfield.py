@@ -565,7 +565,7 @@ class MartheField():
         # ---- Add color bar
         norm = plt.Normalize(vmin, vmax)
         sm = plt.cm.ScalarMappable(cmap=ax.collections[0].get_cmap(),
-                                  norm=norm)
+                                   norm=norm)
         label = f'log({self.field})' if log else self.field
         plt.colorbar(sm, ax=ax, label=label)
 
