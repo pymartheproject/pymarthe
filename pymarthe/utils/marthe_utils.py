@@ -97,6 +97,10 @@ def get_layers_infos(layfile, base = 1):
     layers_infos = df.astype({col:dt for col, dt in zip(df.columns, dtypes)})
     # ---- Manage layer counting from base
     layers_infos['layer'] = layers_infos['layer'].add(base-1)
+    # ---- Add layer name if exist
+    re_lnmes =  r";\s*Name=\s*(.+)\n"
+    if not re.search(re_lnmes, content) is None:
+        layers_infos['name'] = re.findall(re_lnmes, content)
     # ---- Determine number of "gigogne" 
     nnest = int(re.findall(r"(\d+)=Nombre", content)[0])
     # ---- Return infos
