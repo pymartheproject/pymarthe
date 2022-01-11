@@ -99,7 +99,6 @@ class MartheField():
 
 
 
-
     def intersects(self, x, y, layer):
         """
         Perform simple 3D point intersection with field data.
@@ -139,12 +138,12 @@ class MartheField():
         for ix, iy, ilay in zip(_x, _y, _layer):
             # -- Sorted output index
             idx = sorted(self.spatial_index.intersection((ix,iy)))
-            # -- Subset by layer if required
-            df = pd.DataFrame(self.data[idx]).query(f'layer=={ilay}')
+            # -- Subset by layer and the max inest
+            q = f'layer=={ilay} & inest == inest.max()'
+            df = pd.DataFrame(self.data[idx]).query(q)
             dfs.append(df)
         # ---- Return intersection as recarray
         return pd.concat(dfs).to_records(index=False)
-
 
 
 
