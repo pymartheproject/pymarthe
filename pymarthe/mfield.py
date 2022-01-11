@@ -100,7 +100,6 @@ class MartheField():
 
 
 
-
     def intersects(self, x, y, layer):
         """
         Perform simple 3D point intersection with field data.
@@ -120,6 +119,9 @@ class MartheField():
         """
         # ---- Make variables as iterables
         _x, _y, _layer = [marthe_utils.make_iterable(var) for var in [x,y,layer]]
+        # ---- Allowed layer to be a simple integer for all xy-coordinates
+        if (len(_layer) == 1) and (len(_x) > 1) :
+            _layer = list(_layer) * len(_x)
         # ---- Assertion on variables length
         err_msg = "ERROR : x, y and layer must have the same length. " \
                   f"Given : x = {len(_x)}, y = {len(_y)}, layer ={len(_layer)}."
@@ -129,7 +131,6 @@ class MartheField():
         if self.spatial_index is None:
             print('Building spatial index to speedup intersections ...')
             self.build_spatial_idx()
-
 
         # ---- Perform intersection on spatial index
         dfs = []
