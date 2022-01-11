@@ -103,6 +103,8 @@ class MartheField():
     def intersects(self, x, y, layer):
         """
         Perform simple 3D point intersection with field data.
+        Careful: only point(s) can be intersected, not other 
+                 geometries like line or polygons.
 
         Parameters:
         ----------
