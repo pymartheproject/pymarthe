@@ -10,7 +10,8 @@ import shutil
 import shapefile
 
 
-def get_polygons(xcc, ycc, dx, dy):
+
+def get_parts(xcc, ycc, dx, dy):
     """
     Return list of polygons parts from points
     considered as the centers of each polygons
@@ -35,6 +36,7 @@ def get_polygons(xcc, ycc, dx, dy):
         polygons.append(polygon)
     # ---- Return list of polygons
     return polygons
+
 
 
 def enforce_10ch_limit(names):

@@ -183,11 +183,12 @@ class MartheGrid():
 
 
 
-    def to_polygons(self):
+
+    def to_pyshp(self):
         """
         Convert grid to list of polygons
         with vertices coordinates.
-        Wrapper to shp_utils.get_polygons().
+        Wrapper to shp_utils.get_parts().
 
         Parameters: 
         -----------
@@ -203,16 +204,29 @@ class MartheGrid():
         polygons = mg.to_polygons()
         """
         # ---- Get grid polygons
-        polygons = shp_utils.get_polygons(self.xcc, self.ycc, self.dx, self.dy)
+        pyshp_parts = shp_utils.get_parts(self.xcc, self.ycc, self.dx, self.dy)
         # ---- Return polygons as list
-        return polygons
+        return pyshp_parts
 
 
 
     def to_patches(self):
         """
+        Convert grid to list of matplotlib.Path
+
+        Parameters: 
+        -----------
+        self (MartheGrid) : MartheGrid instance
+
+        Return:
+        -----------
+        patches (list) = list of Path objects
+
+        Example
+        -----------
+        patches = mg.to_patches()
         """
-        patches = [Path(*p) for p in self.to_polygons()]
+        patches = [Path(*p) for p in self.to_pyshp()]
         return patches
 
 
@@ -222,3 +236,4 @@ class MartheGrid():
         Internal string method.
         """
         return 'MartheGrid'
+

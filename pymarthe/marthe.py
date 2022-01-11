@@ -13,7 +13,6 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd 
 
-
 from .mfield import MartheField
 from .mpump import MarthePump
 from .utils import marthe_utils, shp_utils
@@ -153,55 +152,6 @@ class MartheModel():
         mm.make_silent()
         """
         marthe_utils.make_silent(self.mlfiles['mart']) 
-        
-
-    '''
-
-    *** UNDER DEVELOPMENT ***
-
-    def export_prop(self, filename, prop = 'permh', layer=None, inest=None, base = 0,  epsg=None, prj=None):
-        """
-        -----------
-        Description:
-        -----------
-        Export grid values as shapefile.
-        Only available for structured grid.
-        
-        Parameters: 
-        -----------
-        filename (str) : name of the output shapefile
-        prop (str) : gridded property to export.
-                      Default is 'permh'
-        layer (int) : layer number to export.
-                      If None, all layers considered.
-                      Default is None.
-        base (int) : base for 2D-arrays.
-                     Python is 0-based.
-                     Marthe is compiled in 1-based (Fortran)
-                     Default is 1.
-        Returns:
-        -----------
-        Write shapefile inplace
-        Example
-        -----------
-        mm = MartheModel('mona.rma')
-        mm.load_prop('emmli')
-        
-        """ 
-        # ---- Assert that 'prop' is a gridded property of MartheModel
-        err_msg = f"'{prop}' is not a gridded (exportable)."
-        assert isinstance(self.prop[prop], MartheField), err_msg
-
-        # ---- Fetch property geometries and records
-        parts, rec = self.prop[prop].to_pyshp(layer=layer, inest=inest)
-
-        # ---- Convert reccaray to shafile
-        shp_utils.recarray2shp(rec, parts, shpname=filename, epsg=epsg, prj=prj)
-        print("\n ---> Property '{}' wrote in {} succesfully.".format(prop , filename))
-
-    '''
-
-
 
 
 
@@ -241,6 +191,91 @@ class MartheModel():
             return outcrop.astype(int)
         else:
             print("'.get_outcrop() method not available for nested model yet.'")
+
+
+
+    def get_ij(self, x, y):
+        """
+        Function to extract row(s) and column(s) from provided
+        xy-coordinates in model extension.
+        Simple wrapper to imask.intersects().
+
+        Parameters:
+        ----------
+        x, y (float/iterable) : xy-coordinate(s) of the required point(s)
+        layer (int/iterable) : layer id(s) to intersect data.
+
+        Returns:
+        --------
+        i, j (float/iterable) : correspondin row(s) and column(s)
+
+        Examples:
+        --------
+        mm = MartheModel('mymodel.rma')
+        x, y = [456788.78, 459388.78], [6789567.2, 6789569.89]
+        i, j = mm.get_ij(x,y)
+
+        """
+        # ---- Make i and j iterable
+        _x, _y = [marthe_utils.make_iterable(var) for var in [x,y]]
+
+        # ---- Assert that i and j have the same length
+        err_msg = "ERROR: x and y must have the same length." \
+                  f"Given: x = {len(_x)}, y = {len(_y)}."
+        assert len(_x) == len(_y), err_msg
+
+        # ---- Intersects points from spatial index in imask
+        _layer = [0] * len(_x)
+        rec = self.imask.intersects(_x, _y, _layer)
+
+        # ---- Return arrays or integers
+        if len(_x) == 1:
+            return rec['i'][0], rec['j'][0]
+        else:
+            return rec['i'], rec['j']
+
+
+
+
+    def get_xy(self, i, j):
+        """
+        Function to extract x-y cellcenters from provided
+        row(s) and column(s) in model extension.
+
+        Parameters:
+        ----------
+        i, j(float/iterable) : row(s), column(s)
+
+        Returns:
+        --------
+        x, y (float/iterable) : correspondinf xy-cellcenters
+
+        Examples:
+        --------
+        mm = MartheModel('mymodel.rma')
+        i, j= [23, 56, 89], [78, 123, 134]
+        xc, yc = mm.get_ij(i,j)
+        """
+        # ---- Make i and j iterable
+        _i, _j = [marthe_utils.make_iterable(var) for var in [i,j]]
+
+        # ---- Assert that i and j have the same length
+        err_msg = "ERROR: i and j must have the same length." \
+                  f"Given: i = {len(_i)}, j = {len(_j)}."
+        assert len(_i) == len(_j), err_msg
+
+        # ---- Subset data by first layer
+        df = pd.DataFrame(self.imask.get_data(layer=0))
+        df_ss = df.query(f"i.isin({i}) & j.isin({j})", engine = 'python')
+
+        # ---- Fetch corresponding xcc, ycc
+        x, y = [df_ss[c].to_numpy() for c in list('xy')]
+
+        # ---- Return arrays or integers
+        if len(_i) == 1:
+            return x[0], y[0]
+        else:
+            return x,y
 
 
 

@@ -175,6 +175,8 @@ def make_silent(martfile):
             replace_text_in_file(file, line, new_line)
 
 
+
+
 def read_grid_file(grid_file):
 
     """
@@ -347,7 +349,6 @@ def replace_text_in_file(file, match, subs, flags=0):
 
 
 
-
 def get_units_dic(mart_file):
     """
     -----------
@@ -414,7 +415,6 @@ def get_units_dic(mart_file):
 
     # ---- Return units
     return units_dic
-
 
 
 
@@ -676,24 +676,43 @@ def make_iterable(var):
 
 
 
-def read_listm_qfile(qfile, istep):
-    """
-    """
-    # ---- Set data types
-    dt = {'value':'f8','j':'i4','i':'i4','layer':'i4'}
-    # ---- Read qfile as DataFrame (separator = any whitespace)
-    df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
-                            names=list(dt.keys()), dtype=dt)
-    df['istep'] = istep
-    df['boundname'] = df['i'].astype(str) + '_' + df['j'].astype(str)
-    # ---- Manage metadata
-    metacols = ['qfilename', 'qtype', 'qrow', 'qcol']
-    df[metacols] = np.array([qfile, 'listm', df.index, 0], dtype=object)
-    # ---- Return data
-    cols = ['istep', 'layer', 'i', 'j', 'value', 'boundname']
-    _cols = cols + metacols 
-    return df[cols], df[_cols]
 
+def read_listm_qfile(qfile, istep, fmt):
+    """
+    """
+    if (len(fmt) == 0) | (fmt == 'Somm_Mail|C_L_P|Keep_9999'): 
+        # ---- Set data types
+        dt = {'value':'f8','j':'i4','i':'i4','layer':'i4'}
+        # ---- Read qfile as DataFrame (separator = any whitespace)
+        df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
+                            names=list(dt.keys()), dtype=dt)
+        # ---- Add istep
+        df['istep'] = istep
+        df['boundname'] = df['i'].astype(str) + '_' + df['j'].astype(str)
+        # ---- Manage metadata
+        metacols = ['qfilename', 'qtype', 'qrow', 'qcol']
+        df[metacols] = np.array([qfile, 'listm', df.index, 0], dtype=object)
+        # ---- Return data
+        cols = ['istep', 'layer', 'i', 'j', 'value', 'boundname']
+        _cols = cols + metacols 
+        return df[cols], df[_cols]
+
+    if fmt == 'X_Y_C|Somm_Mail|Keep_9999':
+        # ---- Set data types
+        dt = {'x':'f8','y':'f8','layer':'i4', 'value':'f8'}
+        # ---- Read qfile as DataFrame (separator = any whitespace)
+        df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
+                            names=list(dt.keys()), dtype=dt)
+        # ---- Add istep
+        df['istep'] = istep
+        df['boundname'] = 'boundname'
+        # ---- Manage metadata
+        metacols = ['qfilename', 'qtype', 'qrow', 'qcol']
+        df[metacols] = np.array([qfile, 'listm', df.index, 3], dtype=object)
+        # ---- Return data
+        cols = ['istep', 'layer', 'x', 'y', 'value', 'boundname']
+        _cols = cols + metacols 
+        return df[cols], df[_cols]
 
 
 
@@ -754,6 +773,7 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
     re_jikv = r"C=\s*({})L=\s*({})P=\s*({})V=\s*({});".format(*[re_num]*4)
     re_file = r"\s*File=\s*(.*);"
     re_col = r"\s*Col=\s*({})".format(re_num)
+    re_listm_fmt = r'(?<=<)[^<:]+(?=:?>)'
 
     # ---- Fetch pastp data by block (each block = data for step i)
     with open(pastpfile, 'r') as f:
@@ -775,11 +795,12 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
              if mode_tag in line:
                 # -- Check which type of pumping condition is provided 
                 # 1) Manage LIST_MAIL (list of pumping cells in external file)
-                if '/LISTM' in line:
-                    path = line.partition('N:')[-1]
+                if any(s in line for s in ['/LISTM', '/LIST_M']):
+                    fmt = '|'.join(re.findall(re_listm_fmt, line))
+                    path = line.split('N: ')[-1].split('<')[0]
                     qfilename = os.path.normpath(path.strip())
                     # -- Extract data from LISTM qfile (as DataFrame)
-                    df, _df = read_listm_qfile(qfilename, istep)
+                    df, _df = read_listm_qfile(qfilename, istep, fmt)
                 # 2) Manage MAILLE (unique pumping cell)
                 if '/MAIL' in line:
                     j,i,k,v = map(ast.literal_eval, re.findall(re_jikv, line)[0])

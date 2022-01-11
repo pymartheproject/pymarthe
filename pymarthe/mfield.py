@@ -10,6 +10,8 @@ import pandas as pd
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
+from rtree import index
+
 
 from .utils import marthe_utils, shp_utils
 from .utils.grid_utils import MartheGrid
@@ -21,7 +23,7 @@ class MartheField():
     """
     Wrapper Marthe --> python
     """
-    def __init__(self, field, data, mm=None):
+    def __init__(self, field, data, mm=None, spatial_index = False):
         """
         Marthe gridded property instance.
 
@@ -51,6 +53,96 @@ class MartheField():
         self.set_data(data)
         self.maxlayer = len(self.to_grids(inest=0))
         self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
+
+        # ---- Add spatiall index if required
+        if spatial_index:
+            self.build_spatial_idx()
+        else:
+            self.spatial_index = None
+
+
+
+    def build_spatial_idx(self):
+        """
+        Function to build a spatial index on field data.
+
+        Parameters:
+        ----------
+        self (MartheField) : MartheField instance
+
+        Returns:
+        --------
+        spatial_index (rtree.index.Index)
+
+        Examples:
+        --------
+        mf.build_spatial_idx()
+
+        """
+        # ---- Initialize spatial index
+        si = index.Index()
+        # ---- Fetch model cell as polygons
+        polygons = []
+        for mg in self.to_grids():
+            polygons.extend([p[0] for p in mg.to_pyshp()])
+        # ---- Build bounds
+        bounds = []
+        for polygon in polygons:
+            xmin, ymin = map(min,np.dstack(polygon)[0])
+            xmax, ymax = map(max,np.dstack(polygon)[0])
+            bounds.append((xmin, ymin, xmax, ymax))
+        # ---- Implement spatial index
+        for i, bd in enumerate(bounds):
+            si.insert(i, bd)
+        # ---- Store spatial index
+        self.spatial_index = si
+
+
+
+
+
+    def intersects(self, x, y, layer):
+        """
+        Perform simple 3D point intersection with field data.
+
+        Parameters:
+        ----------
+        x, y (float/iterable) : xy-coordinate(s) of the required point(s)
+        layer (int/iterable) : layer id(s) to intersect data.
+
+        Returns:
+        --------
+        rec (np.recarray) : data intersected on point(s)
+
+        Examples:
+        --------
+        mf.build_spatial_idx()
+        """
+        # ---- Make variables as iterables
+        _x, _y, _layer = [marthe_utils.make_iterable(var) for var in [x,y,layer]]
+        # ---- Assertion on variables length
+        err_msg = "ERROR : x, y and layer must have the same length. " \
+                  f"Given : x = {len(_x)}, y = {len(_y)}, layer ={len(_layer)}."
+        assert len(_x) == len(_y) == len(_layer), err_msg
+
+        # ---- Build spatial index if not exists
+        if self.spatial_index is None:
+            print('Building spatial index to speedup intersections ...')
+            self.build_spatial_idx()
+
+
+        # ---- Perform intersection on spatial index
+        dfs = []
+        for ix, iy, ilay in zip(_x, _y, _layer):
+            # -- Sorted output index
+            idx = sorted(self.spatial_index.intersection((ix,iy)))
+            # -- Subset by layer if required
+            df = pd.DataFrame(self.data[idx]).query(f'layer=={ilay}')
+            dfs.append(df)
+        # ---- Return intersection as recarray
+        return pd.concat(dfs).to_records(index=False)
+
+
 
 
 
@@ -446,7 +538,7 @@ class MartheField():
         # ---- Fetch pyshp parts (polygons)
         parts = []
         for mg in self.to_grids(layer=layer, inest=inest):
-            parts.extend(mg.to_polygons())
+            parts.extend(mg.to_pyshp())
 
         # ---- fetch data
         data = self.get_data(layer=layer, inest=inest)
@@ -571,7 +663,8 @@ class MartheField():
 
         # ---- Return axe
         return ax
-        
+
+
 
 
 

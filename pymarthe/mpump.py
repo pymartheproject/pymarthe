@@ -43,25 +43,61 @@ class MarthePump():
 
         # ---- Stock pumping type as attribute
         self.mode = mode
+        self.prop_name = 'aqpump' if self.mode == 'aquifer' else 'rivpump'
 
         # ---- Fetch pastp name if not provided
         self.pastp_file = self.mm.mlfiles['pastp'] if pastp_file is None else pastp_file
 
-        # ---- Read pumping data (and metadata) from .pastp file according to pumping type
-        if self.mode == 'aquifer':
-            self.prop_name = 'aqpump'
-            self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
+        # ---- Available/supported variables and qtypes
+        self.vars = ['istep', 'layer', 'i', 'j', 'value', 'boundname']
+        self._vars = self.vars + ['qfilename', 'qtype', 'qrow', 'qcol']
+        self.qtypes = ['mail', 'record', 'listm']
 
+        # ---- Read pumping data (and metadata) from .pastp file according to pumping type
+        self._extract_data(mode)
+
+
+
+
+    def _extract_data(self, mode):
+        """
+        Extract pumping data from .past file according to the pumping mode.
+        Wrapper to marthe_utils.extract_pastp_pumping()
+
+        Parameters:
+        ----------
+        mode (str) : pumping mode.
+                     Can be 'aquifer' or 'river'.
+
+        Returns:
+        --------
+        Set pumping data and meta data inplace (as attribute)
+
+        Examples:
+        --------
+        mp._extract_data()
+
+        """
+        # ---- Manage 'aqpump'
+        if self.mode == 'aquifer':
+            self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
+            # ---- Convert xy columns to ij
+            if all(loc in self.data.dtype.names for loc in list('xy')):
+                # -- Print message to inform about convertion
+                print('Converting xy pumping data into row(s), column(s) ...')
+                # -- Fetch data as DataFrame
+                _df = pd.DataFrame(self._data)
+                # -- Convert xy to ij (could take a while)
+                _df['i'], _df['j'] = self.mm.get_ij(_df.pop('x'),_df.pop('y'))
+                _df['boundname'] =_df['i'].astype(str) + '_' + _df['j'].astype(str)
+                self.data, self._data = [ _df[c].to_records(index=False) for c in [self.vars, self._vars] ]
+                
+        # ---- Manage 'rivpump'
         if self.mode == 'river':
-            self.prop_name = 'rivpump'
             # ---- Convert aff/trc data in column, line, plan (layer) format in .pastp file
             marthe_utils.convert_at2clp_pastp(self.pastp_file, mm = self.mm)
             self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
 
-        # ---- Available/supported variables and qtypes
-        self.vars = list(self.data.dtype.names)
-        self._vars = list(self._data.dtype.names)
-        self.qtypes = ['mail', 'record', 'listm']
 
 
 

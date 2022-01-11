@@ -358,9 +358,9 @@ class MartheOptim():
             source_file = self.obs[ln].obsfile
             source_datatype = self.obs[ln].datatype
             # ---- Read original obsfile
-            obs_df = self.read_obsfile(source_file, nodata = nodata)
+            obs_df = marthe_utils.read_obsfile(source_file, nodata = nodata)
             # ---- Infer fluctuation manipulation to perform
-            s = obs_df['value'].replace(self.nodata_values, pd.NA)  # replace nodata values by NaN
+            s = obs_df['value'].replace(self.nodata, pd.NA)  # replace nodata values by NaN
             sub_val = s.agg(on) if isinstance(on, str) else on      # value to subtract    
             # ---- Get fluctuation by substraction
             fluc_vals = [x - sub_val if not x in self.nodata else x for x in obs_df['value']]
