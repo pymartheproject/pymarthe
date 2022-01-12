@@ -8,8 +8,6 @@ import subprocess as sp
 from shutil import which
 import queue 
 import threading
-import re
-from copy import deepcopy
 import numpy as np
 import pandas as pd 
 
@@ -54,20 +52,92 @@ class MartheModel():
         self.nnest, self.layers_infos = marthe_utils.get_layers_infos(self.mlfiles['layer'], base = 0)
         self.nlay = self.layers_infos.layer.max() + 1
 
-        # ---- Initialize property grids with permeability data
-        permh = MartheField('permh', self.mlfiles['permh'], self)
-        self.prop = {'permh': permh}
+        # ---- Set number of simulated timestep
+        self.nstep = len(self.mldates)
+
+        # ---- Initialize property dictionary with permeability data
+        self.prop = {}
+        self.load_prop('permh')
 
         # ---- Store model grid infos from permh field
-        self.imask = deepcopy(permh)
-        self.imask.field = 'imask'
-        self.imask.data['value'] = (self.imask.data['value'] != 0).astype(int)
+        self.imask = self.build_imask()
+
+        # ---- Build model spatial index
+        self.spatial_index = None
 
         # ---- Set spatial reference (used for compatibility with pyemu geostat utils)
         self.spatial_reference = SpatialReference(self)
 
-        # ---- Set number of simulated timestep
-        self.nstep = len(self.mldates)
+
+
+
+
+    def build_imask(self):
+        """
+        Function to build a imask field based on permh
+        with binary data : 0 -> inactive cell
+                           1 -> active cell
+
+        Parameters:
+        ----------
+        self (MartheModel) : MartheModel instance
+
+        Returns:
+        --------
+        imask (MartheField) : imask field
+
+        Examples:
+        --------
+        imask = mf.build_imask()
+
+        """
+        # ---- Load permh field
+        imask = MartheField('imask', self.mlfiles['permh'], self)
+        # ---- Change data to binary
+        imask.data['value'] = (imask.data['value'] != 0).astype(int)
+        # ---- Return MartheField instance
+        return imask
+
+
+
+    def build_spatial_idx(self):
+        """
+        Function to build a spatial index on field data.
+
+        Parameters:
+        ----------
+        self (MartheField) : MartheField instance
+
+        Returns:
+        --------
+        spatial_index (rtree.index.Index)
+
+        Examples:
+        --------
+        si = mf.build_spatial_idx()
+
+        """
+        # ---- Import spatial index from Rtree module
+        from rtree import index
+        # ---- Initialize spatial index
+        si = index.Index()
+        # ---- Fetch model cell as polygons
+        polygons = []
+        for mg in self.imask.to_grids():
+            polygons.extend([p[0] for p in mg.to_pyshp()])
+        # ---- Build bounds
+        bounds = []
+        for polygon in polygons:
+            xmin, ymin = map(min,np.dstack(polygon)[0])
+            xmax, ymax = map(max,np.dstack(polygon)[0])
+            bounds.append((xmin, ymin, xmax, ymax))
+        # ---- Implement spatial index
+        for i, bd in enumerate(bounds):
+            si.insert(i, bd)
+        # ---- Store spatial index
+        return si
+
+
 
 
 
@@ -199,7 +269,7 @@ class MartheModel():
         """
         if self.nnest == 0:
             # ---- Set list of arrays with layer number on active cell
-            layers = [ilay * imask for ilay, imask in enumerate(self.imask.as_array(), start=1)]
+            layers = [ilay * imask for ilay, imask in enumerate(self.imask.as_3darray(), start=1)]
             # ---- Transform 0 to NaN
             nanlayers = []
             for layer in layers:
@@ -232,7 +302,7 @@ class MartheModel():
         --------
         i, j (float/iterable) : correspondin row(s) and column(s)
         stack (bool) : stack output array
-                       Format : np.array([x1, y1],
+                       Format : np.array([x1, x1],
                                          [x2, y2],
                                             ...    )
                        Default is False.
@@ -252,9 +322,14 @@ class MartheModel():
                   f"Given: x = {len(_x)}, y = {len(_y)}."
         assert len(_x) == len(_y), err_msg
 
+        # ---- Build spatial index if required
+        if self.spatial_index is None:
+            print('Building spatial index ...')
+            self.spatial_index = self.build_spatial_idx()
+
         # ---- Intersects points from spatial index in imask
         _layer = [0] * len(_x)
-        rec = self.imask.intersects(_x, _y, _layer)
+        rec = self.imask.sample(_x, _y, _layer)
         i, j = rec['i'], rec['j']
 
         # ---- Manage output

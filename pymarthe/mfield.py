@@ -11,6 +11,7 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
 
+
 from .utils import marthe_utils, shp_utils
 from .utils.grid_utils import MartheGrid
 
@@ -52,60 +53,13 @@ class MartheField():
         self.maxlayer = len(self.to_grids(inest=0))
         self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
 
-        # ---- Add spatiall index if required
-        if spatial_index:
-            self.build_spatial_idx()
-        else:
-            self.spatial_index = None
 
 
 
-    def build_spatial_idx(self):
+    def sample(self, x, y, layer):
         """
-        Function to build a spatial index on field data.
-
-        Parameters:
-        ----------
-        self (MartheField) : MartheField instance
-
-        Returns:
-        --------
-        spatial_index (rtree.index.Index)
-
-        Examples:
-        --------
-        mf.build_spatial_idx()
-
-        """
-        # ---- Import spatial index from Rtree module
-        from rtree import index
-        # ---- Initialize spatial index
-        si = index.Index()
-        # ---- Fetch model cell as polygons
-        polygons = []
-        for mg in self.to_grids():
-            polygons.extend([p[0] for p in mg.to_pyshp()])
-        # ---- Build bounds
-        bounds = []
-        for polygon in polygons:
-            xmin, ymin = map(min,np.dstack(polygon)[0])
-            xmax, ymax = map(max,np.dstack(polygon)[0])
-            bounds.append((xmin, ymin, xmax, ymax))
-        # ---- Implement spatial index
-        for i, bd in enumerate(bounds):
-            si.insert(i, bd)
-        # ---- Store spatial index
-        self.spatial_index = si
-
-
-
-
-
-    def intersects(self, x, y, layer):
-        """
-        Perform simple 3D point intersection with field data.
-        Careful: only point(s) can be intersected, not other 
-                 geometries like line or polygons.
+        Sample field data by x, y, layer coordinates.
+        It will perform simple a spatial intersection with field data.
 
         Parameters:
         ----------
@@ -118,7 +72,7 @@ class MartheField():
 
         Examples:
         --------
-        mf.build_spatial_idx()
+        rec = mf.sample(x=456.32, y=567.1, layer=0)
         """
         # ---- Make variables as iterables
         _x, _y, _layer = [marthe_utils.make_iterable(var) for var in [x,y,layer]]
@@ -130,23 +84,21 @@ class MartheField():
                   f"Given : x = {len(_x)}, y = {len(_y)}, layer ={len(_layer)}."
         assert len(_x) == len(_y) == len(_layer), err_msg
 
-        # ---- Build spatial index if not exists
-        if self.spatial_index is None:
-            print('Building spatial index to speedup intersections ...')
-            self.build_spatial_idx()
+        # -- Build spatial index if required
+        if self.mm.spatial_index is None:
+            self.mm.build_spatial_idx()
 
         # ---- Perform intersection on spatial index
         dfs = []
         for ix, iy, ilay in zip(_x, _y, _layer):
-            # -- Sorted output index
-            idx = sorted(self.spatial_index.intersection((ix,iy)))
+            # -- Sorted output index   
+            idx = sorted(self.mm.spatial_index.intersection((ix,iy)))
             # -- Subset by layer and the max inest
             q = f'layer=={ilay} & inest == inest.max()'
             df = pd.DataFrame(self.data[idx]).query(q)
             dfs.append(df)
         # ---- Return intersection as recarray
         return pd.concat(dfs).to_records(index=False)
-
 
 
 
@@ -288,7 +240,7 @@ class MartheField():
 
 
 
-    def as_array(self):
+    def as_3darray(self):
         """
         Wrapper to .get_data(inest=0, as_array=True)
         with error handling for nested model.
@@ -304,7 +256,7 @@ class MartheField():
 
         Examples:
         --------
-        arr3d = mf.as_array()
+        arr3d = mf.as_3darray()
 
         """
         # ---- Assert that gridded field is structured
