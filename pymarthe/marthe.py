@@ -217,7 +217,7 @@ class MartheModel():
 
 
 
-    def get_ij(self, x, y):
+    def get_ij(self, x, y, stack=False):
         """
         Function to extract row(s) and column(s) from provided
         xy-coordinates in model extension.
@@ -231,12 +231,17 @@ class MartheModel():
         Returns:
         --------
         i, j (float/iterable) : correspondin row(s) and column(s)
+        stack (bool) : stack output array
+                       Format : np.array([x1, y1],
+                                         [x2, y2],
+                                            ...    )
+                       Default is False.
 
         Examples:
         --------
         mm = MartheModel('mymodel.rma')
         x, y = [456788.78, 459388.78], [6789567.2, 6789569.89]
-        i, j = mm.get_ij(x,y)
+        rowcol = mm.get_ij(x,y, stack=True)
 
         """
         # ---- Make i and j iterable
@@ -250,17 +255,21 @@ class MartheModel():
         # ---- Intersects points from spatial index in imask
         _layer = [0] * len(_x)
         rec = self.imask.intersects(_x, _y, _layer)
+        i, j = rec['i'], rec['j']
 
-        # ---- Return arrays or integers
+        # ---- Manage output
         if len(_x) == 1:
-            return rec['i'][0], rec['j'][0]
+            out = np.dstack([i,j])[0] if stack else (i[0], j[0])
         else:
-            return rec['i'], rec['j']
+            out = np.dstack([i,j])[0] if stack else (i, j)
+
+        # ---- Return coordinates
+        return out
 
 
 
 
-    def get_xy(self, i, j):
+    def get_xy(self, i, j, stack=False):
         """
         Function to extract x-y cellcenters from provided
         row(s) and column(s) in model extension.
@@ -268,6 +277,11 @@ class MartheModel():
         Parameters:
         ----------
         i, j(float/iterable) : row(s), column(s)
+        stack (bool) : stack output array
+                       Format : np.array([i1, j1],
+                                         [i2, j2],
+                                            ...    )
+                       Default is False.
 
         Returns:
         --------
@@ -277,7 +291,7 @@ class MartheModel():
         --------
         mm = MartheModel('mymodel.rma')
         i, j= [23, 56, 89], [78, 123, 134]
-        xc, yc = mm.get_ij(i,j)
+        coords = mm.get_ij(i,j, stack=True)
         """
         # ---- Make i and j iterable
         _i, _j = [marthe_utils.make_iterable(var) for var in [i,j]]
@@ -289,16 +303,20 @@ class MartheModel():
 
         # ---- Subset data by first layer
         df = pd.DataFrame(self.imask.get_data(layer=0))
-        df_ss = df.query(f"i.isin({i}) & j.isin({j})", engine = 'python')
+        #df_ss = df.query(f"i.isin({_i}) & j.isin({_j})", engine = 'python')
+        df_ss = df.query(f"i in @_i  & j in @_j")
 
         # ---- Fetch corresponding xcc, ycc
         x, y = [df_ss[c].to_numpy() for c in list('xy')]
 
-        # ---- Return arrays or integers
+        # ---- Manage output
         if len(_i) == 1:
-            return x[0], y[0]
+            out = np.dstack([x, y])[0] if stack else (x[0], y[0])
         else:
-            return x,y
+            out = np.dstack([x, y])[0] if stack else (x, y)
+        
+        # ---- Return coordinates
+        return out
 
 
 
