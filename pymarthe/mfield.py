@@ -10,8 +10,6 @@ import pandas as pd
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
-from rtree import index
-
 
 from .utils import marthe_utils, shp_utils
 from .utils.grid_utils import MartheGrid
@@ -79,6 +77,8 @@ class MartheField():
         mf.build_spatial_idx()
 
         """
+        # ---- Import spatial index from Rtree module
+        from rtree import index
         # ---- Initialize spatial index
         si = index.Index()
         # ---- Fetch model cell as polygons
