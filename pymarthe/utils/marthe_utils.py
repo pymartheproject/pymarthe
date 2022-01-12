@@ -72,9 +72,9 @@ def get_layers_infos(layfile, base = 1):
                               layer numbers, thickness, ...
     Format:
 
-        layer  thickness  epon_sup   ke  anisotropy
-    0       1       50.0         0  0.0         0.0
-    1       2      150.0         1  0.0         0.0
+        layer  thickness  epon_sup   ke  anisotropy     name
+    0       1       50.0         0  0.0         0.0  layer_0
+    1       2      150.0         1  0.0         0.0  layer_1
 
 
     Example
@@ -99,12 +99,69 @@ def get_layers_infos(layfile, base = 1):
     layers_infos['layer'] = layers_infos['layer'].add(base-1)
     # ---- Add layer name if exist
     re_lnmes =  r";\s*Name=\s*(.+)\n"
-    if not re.search(re_lnmes, content) is None:
+    if re.search(re_lnmes, content) is None:
+        layers_infos['name'] = 'layer_' + layers_infos['layer'].astype(str)
+    else:
         layers_infos['name'] = re.findall(re_lnmes, content)
+
     # ---- Determine number of "gigogne" 
     nnest = int(re.findall(r"(\d+)=Nombre", content)[0])
     # ---- Return infos
     return nnest, layers_infos
+
+
+def read_zonsoil_prop(martfile):
+    """
+    -----------
+    Description:
+    -----------
+    Read soil properties in .mart file. 
+
+    Parameters: 
+    -----------
+    martfile (str): Marthe .mart file path
+
+    Returns:
+    -----------
+    df (DataFrame) : soil data with apply zone ids.
+
+    Format:
+
+             property       zone    value
+    0   cap_sol_progr         54      10.2
+    1          ru_max        126      41.4  
+
+    Example
+    -----------
+    martfile = 'mymarthemodel.mart'
+    soil_df = read_zonsoil_prop(martfile)
+
+    """
+    # ---- Read .mart file content
+    with open(martfile, 'r') as f:
+        content = f.read()
+
+    # ---- Assert that some soil property exist
+    err_msg = f'No soil properties found in {martfile}.'
+    assert '/ZONE_SOL' in content, err_msg
+
+    # ---- Set usefull regex
+    re_init = r"\*{3}\s*Initialisation avant calcul\s*\*{3}\n(.+)\*{5}"
+    re_num = r"[-+]?\d*\.?\d+|\d+"
+    re_prop = r"\/(.+)\/ZONE_SOL\s*Z=\s*({0})V=\s*({0});".format(re_num)
+
+    # ---- Get initialisation block as string
+    block = re.findall(re_init,content, re.DOTALL)[0]
+
+    # ---- Extract zonal soil properties
+    dt_dic = {c:dt for c,dt in zip(['property', 'zone', 'value'], [str, int, float])}
+    df = pd.DataFrame(re.findall(re_prop, block),columns=dt_dic.keys()).astype(dt_dic)
+    df['property'] = df['property'].str.lower()
+
+    # ---- Return zonal soil properties data
+    return df
+
+
 
 
 

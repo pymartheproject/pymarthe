@@ -99,6 +99,8 @@ class MartheField():
 
 
 
+
+
     def intersects(self, x, y, layer):
         """
         Perform simple 3D point intersection with field data.
@@ -144,6 +146,7 @@ class MartheField():
             dfs.append(df)
         # ---- Return intersection as recarray
         return pd.concat(dfs).to_records(index=False)
+
 
 
 
@@ -273,8 +276,6 @@ class MartheField():
 
         # ---- Manage recarray input
         if _rec:
-            err_msg = f"ERROR: `data` must have a size equal to {self.data.size}. " \
-                      f"Given: {data.size}."
             self.data = data
 
         # ---- Manage 3D-array input
@@ -570,7 +571,6 @@ class MartheField():
 
 
 
-
     def plot(self, ax=None, layer=0, inest=None, vmin=None, vmax=None, log = False, masked_values = [-9999., 0.], **kwargs):
         """
         Plot data by layer
@@ -633,7 +633,7 @@ class MartheField():
         # ---- Prepare basic axe if not provided
         if ax is None:
                 plt.rc('font', family='serif', size=10)
-                fig, ax = plt.subplots(figsize=(8,8))
+                fig, ax = plt.subplots(figsize=(10,8))
 
         # ---- Build a collection from rectangles patches and values
         collection = PathCollection(rec['patches'])

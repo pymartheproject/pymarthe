@@ -87,6 +87,12 @@ class MartheModel():
                      - Pumping (MarthePump)
                         - 'aqpump'
                         - 'rivpump'
+                     - Zonal Soil properties (MartheField)
+                        - 'cap_sol_progr'
+                        - 'aqui_ruis_perc'
+                        - 't_demi_percol'
+                        - 'ru_max'
+                        - ...
 
         Returns:
         --------
@@ -100,11 +106,28 @@ class MartheModel():
         # ---- Manage fields
         if prop in self.mlfiles.keys():
             self.prop[prop] = MartheField(prop, self.mlfiles[prop], self)
+
         # ---- Manage pumping
         elif prop == 'aqpump':
             self.prop[prop] = MarthePump(self, mode = 'aquifer')
+
         elif prop == 'rivpump':
             self.prop[prop] = MarthePump(self, mode = 'river')
+
+        # ---- Manage soil property
+        elif prop == 'soil':
+            # -- Read soil data from martfile
+            soil_df = marthe_utils.read_zonsoil_prop(self.mlfiles['mart'])
+            # -- Get zonep field recarray
+            zonep = MartheField('zonep', self.mlfiles['zonep'], self)
+            # -- Replace zone id by property values
+            for soil_prop, gb in soil_df.groupby('property'):
+                # -- Replace zone id by soil value & transform to recarray
+                repl_dic = dict(gb[['zone', 'value']].to_numpy())
+                rec = pd.DataFrame(zonep.data).replace({'value': repl_dic}).to_records(index=False)
+                # -- Add MartheField in main prop dictionary 
+                self.prop[soil_prop] = MartheField(soil_prop, rec, self)
+
         # ---- Not supported property
         else:
             print(f"Property `{prop}` not supported.")
