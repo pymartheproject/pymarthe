@@ -493,7 +493,7 @@ class MartheField():
 
 
 
-    def to_shapefile(self, filename = None, layer=0, inest=None, masked_values = [-9999., 0.], log = True, epsg=None, prj=None):
+    def to_shapefile(self, filename = None, layer=0, inest=None, masked_values = [-9999., 0.], log = False, epsg=None, prj=None):
         """
         Write field data as shapefile by layer.
 
@@ -512,7 +512,7 @@ class MartheField():
         masked_values (list, optional) : field values to ignore.
                                          Default is [-9999., 0.].
         log (bool, optional) : logarithmic transformation of all values.
-                               Default is True.
+                               Default is False.
         epsg (int, optional) : Geodetic Parameter Dataset.
                                Default is None.
         prj (str, optional) : cartographic projection and coordinates
@@ -570,7 +570,8 @@ class MartheField():
 
 
 
-    def plot(self, ax=None, layer=0, inest=None, vmin=None, vmax=None, log = True, masked_values = [-9999., 0.], **kwargs):
+
+    def plot(self, ax=None, layer=0, inest=None, vmin=None, vmax=None, log = False, masked_values = [-9999., 0.], **kwargs):
         """
         Plot data by layer
 
@@ -589,7 +590,7 @@ class MartheField():
         masked_values (list, optional) : field values to ignore.
                                          Default is [-9999., 0.].
         log (bool, optional) : logarithmic transformation of all values.
-                               Default is True.
+                               Default is False.
         **kwargs (optional) : matplotlib.PathCollection arguments.
                               (ex: cmap, lw, ls, edgecolor, ...)
 
