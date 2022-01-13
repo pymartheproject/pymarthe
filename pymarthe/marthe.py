@@ -119,6 +119,7 @@ class MartheModel():
         """
         # ---- Import spatial index from Rtree module
         from rtree import index
+        # ---- Print the actual
         # ---- Initialize spatial index
         si = index.Index()
         # ---- Fetch model cell as polygons
@@ -128,15 +129,16 @@ class MartheModel():
         # ---- Build bounds
         bounds = []
         for polygon in polygons:
-            xmin, ymin = map(min,np.dstack(polygon)[0])
-            xmax, ymax = map(max,np.dstack(polygon)[0])
+            xmin, ymin = map(min,np.column_stack(polygon))
+            xmax, ymax = map(max,np.column_stack(polygon))
             bounds.append((xmin, ymin, xmax, ymax))
         # ---- Implement spatial index
+        print('Building spatial index ...')
         for i, bd in enumerate(bounds):
+            marthe_utils.progress_bar((i+1)/len(bounds))
             si.insert(i, bd)
         # ---- Store spatial index
-        return si
-
+        self.spatial_index = si
 
 
 

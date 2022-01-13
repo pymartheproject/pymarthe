@@ -50,6 +50,39 @@ def get_mlfiles(rma_file):
 
 
 
+def progress_bar(percent, barlen=50):
+    """
+    Function to print progress bar by percent according
+    to a given bar length.
+
+    Parameters:
+    ----------
+    percent (float) : progress percent
+                      Must be between 0 and 1.
+    barlen (int,optional) : bar length showed on console screen.
+                            Default is 50
+
+    Returns:
+    --------
+    Write in sys.stdout
+
+    Examples:
+    --------
+    l = ['azerty'] * 100000
+    for i, v in enumerate(l):
+        percent = i/len(l)
+        var = l[1:] + ''.join(v) + l[:-1]
+        progress_bar(percent, berlen=70)
+
+    """
+    
+    # ---- Write graphical percent according to barlen
+    sys.stdout.write('\r')
+    sys.stdout.write(f"[{'='*int(barlen * percent):{barlen}s}] {int(100*percent)}%")
+    sys.stdout.flush()
+
+
+
 def get_layers_infos(layfile, base = 1):
     """
     -----------
