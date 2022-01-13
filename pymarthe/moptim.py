@@ -8,6 +8,8 @@ import os, sys
 import numpy as np
 import pandas as pd 
 import pyemu
+import warnings
+
 from pymarthe.marthe import MartheModel
 from pymarthe.mobs import MartheObs
 # from pymarthe.mparam import MartheParam
@@ -177,7 +179,7 @@ class MartheOptim():
         locnme = 'mylocname'
         exi, uni = moptim.check_loc(locnme)
         """
-        # ---- Get existence  if required
+        # ---- Get existence if required
         exi = locnme in self.available_locnmes
         # ---- Get unicity
         mask = self.available_locnmes.str.contains(locnme).tolist()
@@ -197,19 +199,29 @@ class MartheOptim():
 
 
 
-    def add_obs(self, datatype, obsfile, locnme = None, check_loc = True, nodata = None, **kwargs):
+    def add_obs(self, data, locnme = None, datatype = 'head', check_loc = True, nodata = None, **kwargs):
         """
         Add and set observations 
 
         Parameters:
         ----------
-        datatype (str): data type of observation values.
-        obsfile (str): observation filename to read value.
+        
+        data (object): observation data.
+                       Can be a path to a observation file to read
+                       (wrapper to marthe_utils.read_obsfile()) or a 
+                       pandas DataFrame with a column `value` and a 
+                       pd.DatatimeIndex as index.
                        Note: if loc_name is not provided,
                        the loc_name is set as obsfile without file extension.
+
         locnme (str, optional) : observation location name (ex. BSS id)
+
+        datatype (str): data type of observation values.
+                        Default is 'head'.
+
         check_loc (bool, optional) : check loc_name existence and unicity
                                      Default is True.
+
         nodata (list/None, optional) : no data values to remove reading observation data.
                                        If None, all values are considered.
                                        Default is None.
@@ -228,33 +240,67 @@ class MartheOptim():
 
         Examples:
         --------
-        moptim.add_obs(data_type = 'head', obsfile = 'myobs.dat')
+        moptim.add_obs(data = 'obs/07065X0002.dat')
 
         """
-        # ---- Manage locnme
-        obs_dir, obs_filename = os.path.split(obsfile)
-        if locnme is None:
-            locnme = obs_filename.split('.')[0]
+        # ---- Manage external observation file as data input
+        if isinstance(data, str):
+            # -- Set observation filename
+            obsfile = data
+            obs_dir, obs_filename = os.path.split(obsfile)
+            # -- Get locnme if not provided
+            if locnme is None:
+                locnme = obs_filename.split('.')[0]
+            # -- Read observation file as DataFrame
+            df = marthe_utils.read_obsfile(obsfile, nodata = nodata)
+
+        # ---- Manage internal DataFrame as data input
+        elif isinstance(data, pd.DataFrame):
+            # -- Set observation filename
+            obsfile = None
+            # -- Get DataFrame
+            df = data
+            # -- Perform some checks (date and value)
+            err_msg = 'ERROR: `data` must contain a `value` column and a DatetimeIndex index.'
+            assert ('value' in data.columns) & isinstance(df.index, pd.DatetimeIndex), err_msg
+            # -- Get locnme if not provided
+            locnme = f'loc{str(self.get_nlocs()).zfill(3)}' if locnme is None else locnme
+        
+        # ---- Avoid adding same locnme multiple times
+        if locnme in self.obs.keys():
+            # -- Raise warning message
+            warn_msg = f'Warning : locnme `{locnme}` already added. ' \
+                       'It will be overwrited.'
+            warnings.warn(warn_msg, Warning)
+            # -- Remove existing set of observation
+            self.remove_obs(locnme)
+
+        # ---- Build MartheObs instance from data input
+        mobs = MartheObs(iloc = self.get_nlocs(),
+                         locnme = locnme,
+                         date = df.index,
+                         value = df['value'],
+                         obsfile = obsfile,
+                         datatype = datatype,
+                         **kwargs)
 
         # ---- Check validity and uncity of locnme
         if check_loc:
             self.check_loc(locnme)
 
         # ---- Build MartheObs instance
-        mobs = MartheObs(datatype, obsfile, self.get_nlocs(), locnme, nodata, **kwargs)
         self.obs[locnme] = mobs
 
         # ---- Update main observation DataFrame
         obs_dfs = [self.obs_df, mobs.obs_df]
-        self.obs_df = pd.concat(obs_dfs).drop_duplicates()
+        self.obs_df = pd.concat(obs_dfs)
 
         # # ---- Verbose
         # print(f"Observation '{locnme}' had been added successfully.")
 
 
 
-
-    def remove_obs(self, locnme=None):
+    def remove_obs(self, locnme=None, verbose=False):
         """
         Delete observation(s) provided observations
 
@@ -277,11 +323,13 @@ class MartheOptim():
             # ---- Load (again) empty DataFrame
             self.obs_df = self._base_obs_df
             self.obs = {}
-            print('All provided observations had been removed successfully.')
+            if verbose:
+                print('All provided observations had been removed successfully.')
         else:
             del self.obs[locnme]
             self.obs_df = self.obs_df.query(f"locnme != '{locnme}'")
-            print(f"Observation '{locnme}' had been removed successfully.")
+            if verbose:
+                print(f"Observation '{locnme}' had been removed successfully.")
 
 
 
@@ -316,7 +364,7 @@ class MartheOptim():
 
 
 
-    def add_fluc(self, locnme=None, on = 'mean', nodata= None):
+    def add_fluc(self, locnme=None, tag= '', on = 'mean'):
         """
         Add fluctuations to a existing observation set.
 
@@ -325,14 +373,15 @@ class MartheOptim():
         locnme (str/list, optional) : observation location name(s) (ex. BSS id)
                                         If locnme is None, all locnmes are considered
                                         Default is None
+
+        tag (str, optional) : additional string to precise the type of fluctuation.
+                              locnme build as locnme + tag + 'fluc'.
+                              Default is ''.
+
         on (str/numeric/fun, optional) : function, function name or real number to substract
                                          to the existing observation values.
                                          Function names can be 'min', 'max', 'mean', 'std', etc. 
                                          See pandas.core.groupby.GroupBy documentation for more.
-        nodata (list/None, optional) : no data values to remove.
-                                       Default is None.
-                                       NOTE : Can create issues with incomplete
-                                       series sim/obs mismatch.
 
         Returns:
         --------
@@ -341,7 +390,7 @@ class MartheOptim():
 
         Examples:
         --------
-        moptim.add_fluc(locnme = ['obs1', 'obs2'], on = 'median')
+        moptim.add_fluc(locnme = ['obs1', 'obs2'], tag = 'md', on = 'median')
         """
         # ---- Manage locnme(s)
         if locnme is None:
@@ -350,27 +399,22 @@ class MartheOptim():
             locnmes = locnme if marthe_utils.isiterable(locnme) else [locnme]
 
         # ---- Avoid multiple fluctuation calculation
-        locnmes = [ln for ln in locnmes if not ln.endswith('_fluc')]
+        locnmes = [ln for ln in locnmes if not ln.endswith('fluc')]
 
         # ----- Iterate over locnmes
         for ln in locnmes:
-            # ---- Fetch original observation info
-            source_file = self.obs[ln].obsfile
-            source_datatype = self.obs[ln].datatype
-            # ---- Read original obsfile
-            obs_df = marthe_utils.read_obsfile(source_file, nodata = nodata)
+            # ---- Alerte if a same fluctuation had already been added
+            new_locnme = ln + tag + 'fluc'
+            # ---- Get DataFrame of the source observation
+            df = self.obs[ln].obs_df.set_index('date').rename({'obsval':'value'}, axis=1)
             # ---- Infer fluctuation manipulation to perform
-            s = obs_df['value'].replace(self.nodata, pd.NA)  # replace nodata values by NaN
-            sub_val = s.agg(on) if isinstance(on, str) else on      # value to subtract    
+            s = df['value'].replace(self.nodata, pd.NA)  # replace nodata values by NaN
+            sub_val = s.agg(on) if isinstance(on, str) else on
             # ---- Get fluctuation by substraction
-            fluc_vals = [x - sub_val if not x in self.nodata else x for x in obs_df['value']]
-            # ---- Set fluctuation obsfile, datatype
-            fluc_obsfile = source_file.replace(ln, f'{ln}_fluc')
-            fluc_datatype = f'{source_datatype}_fluc'
-            # ---- Write fluctuation data
-            marthe_utils.write_obsfile(date = obs_df.index, value = fluc_vals, obsfile = fluc_obsfile)
+            df['value'] = [x - sub_val if not x in self.nodata else x for x in df['value']]
             # ---- Add fluctuation observation
-            self.add_obs(datatype = fluc_datatype, obsfile = fluc_obsfile, check_loc = False)
+            new_dt = self.obs[ln].datatype + tag + 'fluc'
+            self.add_obs(data = df, locnme = new_locnme, datatype = new_dt, check_loc = False)
 
 
 

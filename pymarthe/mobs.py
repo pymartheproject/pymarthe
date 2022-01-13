@@ -17,30 +17,40 @@ class MartheObs():
     """
     Class to manage Marthe or external observations for PEST coupling purpose
     """
-    def __init__(self, datatype, obsfile, iloc, locnme = None, nodata = None, **kwargs):
+    def __init__(self, iloc, locnme, date, value, obsfile = None,
+                 datatype= 'head', nodata = None, **kwargs):
         """
         Instance generator of MartheObs class
 
         Parameters:
         ----------
-        datatype (str): data type of observation values.
-                         Please consider using the reduced names.
-                         Example : heads data -> 'h'
-                                   flows data -> 'q'
-        obsfile (str): observation filename to read value.
-                       Note: if locnme is not provided,
-                       the locnme is set as obsfile without file extension.
+
         iloc (int): i-number of observation location
-        locnme (str, optional) : observation location name (ex. BSS id)
-        nodata (list/None) : no data values to remove reading observation data.
-                             If None, all values are considered.
-                             Default is None.
-                             NOTE  Careful, an create issues with incomplete
-                             series sim/obs mismatch.
+
+        locnme (str) : observation location name (ex. BSS id)
+
+        date (pd.DatatimeIndex) : dates index of observation values.
+
+        value (iterable) : observation values.
+
+        obsfile (str, optional): observation filename where values and dates are stored.
+                                 Default is None.
+
+        datatype (str, optional): data type of observation values.
+                                  Default is 'head'.
+
+        nodata (list/None, optional) : no data values to remove reading observation data.
+                                       If None, all values are considered.
+                                       Default is None.
+                                       NOTE  Careful, an create issues with incomplete
+                                       series sim/obs mismatch.
+
         obgnme (str, kwargs): group of observation related.
                               Default is locnme.
+
         obnme (list, kwargs): custom observation names
                                Default build as 'loc{locnme_id}n{obs_id}'
+                               
         weight (list, kwargs): weight per each observations
 
 
@@ -53,30 +63,28 @@ class MartheObs():
         # ---- Store arguments as attribute
         self.nodata = nodata
         self.datatype = datatype
-        self.obsfile = obsfile
         self.iloc = iloc
-        self.obs_df = pd.DataFrame()
-        obs_dir, obs_filename = os.path.split(obsfile)
-        self.locnme = obs_filename.split('.')[0] if locnme is None else locnme
-        self.obgnme = kwargs.get('obgnme', self.locnme)
+        self.locnme = locnme
+        self.date = date
+        self.value = value
+        self.obsfile = obsfile
         self.weight = kwargs.get('weight', 1)
-
-        # ---- Read obsfile and fetch values
-        df = self.read_obsfile(self.obsfile, nodata = self.nodata)
+        self.obgnme = kwargs.get('obgnme', locnme)
+        self.obs_df = pd.DataFrame()
 
         # ---- Get number of observation values
-        ndigit = len(str(len(df)-1))
+        ndigit = len(str(len(self.value)-1))
 
         # ---- Build default observation names
         # Note: maximum number of locnmes is set to 1000 (more than enough)
         if not 'obsnme' in kwargs:
             self.obsnmes = ['loc{}n{}'.format(str(self.iloc).zfill(3),
                             str(i).zfill(ndigit))
-                            for i in range(len(df))]
+                            for i in range(len(self.value))]
 
         # ---- Fill observations DataFrame with input data
-        self.obs_df = self.obs_df.assign(obsval = df['value'],
-                                         date = df.index,
+        self.obs_df = self.obs_df.assign(obsval = self.value,
+                                         date = self.date,
                                          obsnme = self.obsnmes)
         self.obs_df[['datatype', 'locnme', 'obsfile']] = [self.datatype,
                                                           self.locnme,
@@ -87,75 +95,6 @@ class MartheObs():
 
         # ---- Set observation names as index
         self.obs_df.set_index('obsnme', drop=False, inplace=True)
-
-
-
-
-    def write_obsfile(self, filename=None):
-        """
-        Write a standard obsfile for a existing locnme from mobs_df.
-        Use marthe_utils.write_obsfile()
-
-        Parameters:
-        ----------
-        self (object): MartheObs instance
-
-        Returns:
-        --------
-        Write observation values.
-        Format : date          value
-                 1996-05-09    0.12
-                 1996-05-10    0.88
-
-        Examples:
-        --------
-        mobs = MartheObs( datatype = 'head'
-                          obsfile = 'obs/p31.dat')
-        mobs.write_obsfile(filename='newobsfolder/p31.dat')
-
-        """
-        # ---- Manage filename
-        if filename is None:
-            filename = self.obsfile
-
-        # ---- Write observation value in basic file
-        marthe_utils.write_obsfile(self.df['date'],
-                                   self.df['obsval'],
-                                   filename)
-            
-
-
-
-    def read_obsfile(self, obsfile, nodata = None):
-        """
-        Simple wrapper to read observation file.
-        Use marthe_utils.read_obsfile()
-        Format : header0        header1
-                 09/05/1996     0.12
-                 10/05/1996     0.88
-        Note: separator is anywhite space (tabulation is prefered)
-
-        Parameters:
-        ----------
-        obsfile (str): observation filename to read value.
-                       Note: if locnme is not provided,
-                       the locnme is set as obsfile without file extension.
-        nodata (list/None) : no data values to remove.
-                             Default is None.
-
-        Returns:
-        --------
-        df (DataFrame) : observation table
-                         Format : date          value
-                                  1996-05-09    0.12
-                                  1996-05-10    0.88
-
-        Examples:
-        --------
-        obs_df = mobs.read_obsfile(datatype = 'head', obsfile = 'myobs.dat')
-
-        """
-        return marthe_utils.read_obsfile(obsfile, nodata = nodata)
 
 
 
