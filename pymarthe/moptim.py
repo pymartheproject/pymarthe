@@ -188,7 +188,7 @@ class MartheOptim():
         if error == 'raise':
             hf = self.mm.mlfiles['histo']
             assert exi, f"ERROR: '{locnme}' not in {hf}."
-            assert uni, f"ERROR: '{locnme}' set multiple times in" \
+            assert uni, f"ERROR: '{locnme}' set multiple times in " \
                            f"{hf}: each locnme must be unique."
         # ---- Return boolean for silent check
         elif error == 'silent':

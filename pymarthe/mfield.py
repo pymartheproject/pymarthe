@@ -6,6 +6,7 @@ Designed for handling distributed Marthe properties
 
 import os, sys
 import numpy as np
+np.concatenatefrom numpy.lib.recfunctions import stack_arrays
 import pandas as pd
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -293,9 +294,9 @@ class MartheField():
 
         """
         # ---- Get recarray data from consecutive MartheGrid instance (mg) extract from field property file
-        recs = tuple([mg.to_records() for mg in marthe_utils.read_grid_file(filename)])
+        dfs = [pd.DataFrame(mg.to_records()) for mg in marthe_utils.read_grid_file(filename)]
         # ---- Stack all recarrays as once
-        return np.concatenate(recs)
+        return pd.concat(dfs).to_records(index=False)
 
 
     def _3d2rec(self, arr3d):
