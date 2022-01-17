@@ -53,10 +53,16 @@ class MartheObs():
                                
         weight (list, kwargs): weight per each observations
 
+        transform (str/func, kwargs) : keyword/function to use for transforming 
+                                       observation values.
+                                       Can be:
+                                        - function (np.log10, np.sqrt, ...)
+                                        - string function name ('log10', 'sqrt')
 
         Examples
         --------
-        mobs = MartheObs(datatype = 'head', obsfile = 'p31.dat')
+        dt = pd.date_range('1996-05-09', '2003-06-10', freq='D')
+        mobs = MartheObs(0, 'p31', dt, value, weigth = 0.5, transform = 'log10')
 
         """
 
@@ -70,6 +76,7 @@ class MartheObs():
         self.obsfile = obsfile
         self.weight = kwargs.get('weight', 1)
         self.obgnme = kwargs.get('obgnme', locnme)
+        self.transform = kwargs.get('transform', 'none')
         self.obs_df = pd.DataFrame()
 
         # ---- Get number of observation values
@@ -92,6 +99,7 @@ class MartheObs():
         # ---- Add kwargs if required
         self.obs_df['weight'] = self.weight
         self.obs_df['obgnme'] = self.obgnme
+        self.obs_df['transform'] = self.transform
 
         # ---- Set observation names as index
         self.obs_df.set_index('obsnme', drop=False, inplace=True)

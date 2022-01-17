@@ -6,7 +6,6 @@ Designed for handling distributed Marthe properties
 
 import os, sys
 import numpy as np
-np.concatenatefrom numpy.lib.recfunctions import stack_arrays
 import pandas as pd
 from copy import deepcopy
 import matplotlib.pyplot as plt

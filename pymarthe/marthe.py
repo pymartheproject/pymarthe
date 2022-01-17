@@ -62,11 +62,32 @@ class MartheModel():
         # ---- Store model grid infos from permh field
         self.imask = self.build_imask()
 
+        # ---- Load geometry
+        self.geometry = {g : None for g in ['sepon', 'topog', 'hsubs']}
+
         # ---- Build model spatial index
         self.spatial_index = None
 
         # ---- Set spatial reference (used for compatibility with pyemu geostat utils)
         self.spatial_reference = SpatialReference(self)
+
+
+
+
+    def load_geometry(self, g=None):
+        """
+        """
+        # ---- Fetch geometry field to load
+        _g = list(self.geometry.keys()) if g is None else marthe_utils.make_iterable(g)
+
+        # ---- Assertion to avoid non geometry field input
+        err_msg = 'ERROR : `g` must be a geometry grid file such as `sepon`, `topog`, ... ' \
+                  'Given : {}.'.format(', '.join(list(_g)))
+        assert all(g in self.geometry.keys() for g in _g), err_msg
+
+        # ---- Load geometry as MartheField instance
+        for g in _g:
+            self.geometry[g] = MartheField(g, self.mlfiles[g] , self)
 
 
 

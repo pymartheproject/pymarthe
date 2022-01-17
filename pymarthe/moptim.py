@@ -21,7 +21,8 @@ NO_DATA_VALUES = [-9999.,-8888.]
 
 # ----- Set columns informations for observations
 base_obs = ['datatype', 'locnme', 'obsval',
-            'date', 'obsfile', 'obgnme','obsnme','weight']
+            'date', 'obsfile', 'obgnme',
+            'obsnme','weight', 'transform']
 
 # ----- Set columns informations for parameters
 base_param = []
@@ -216,8 +217,8 @@ class MartheOptim():
 
         locnme (str, optional) : observation location name (ex. BSS id)
 
-        datatype (str): data type of observation values.
-                        Default is 'head'.
+        datatype (str, optional): data type of observation values.
+                                  Default is 'head'.
 
         check_loc (bool, optional) : check loc_name existence and unicity
                                      Default is True.
@@ -230,9 +231,17 @@ class MartheOptim():
         
         obgnme (str, kwargs): name of the group of related observation.
                               Default is locnme.
+
         obnme (list, kwargs): custom observation names
                                Default build as 'loc{loc_name_id}n{obs_id}'
+
         weight (list, kwargs): weight per each observations
+
+        transform (str/func, kwargs) : keyword/function to use for transforming 
+                                       observation values.
+                                       Can be:
+                                        - function (np.log10, np.sqrt, ...)
+                                        - string function name ('log10', 'sqrt')
 
         Returns:
         --------
@@ -333,6 +342,83 @@ class MartheOptim():
 
 
 
+
+    def set_transform(self, transform, datatype=None, locnme=None):
+        """
+        Set transformation keyword to observations values.
+
+        Parameters:
+        ----------
+        transform (str/func) : keyword/function to use for transforming 
+                                       observation values.
+                                       Can be:
+                                        - function (np.log10, np.sqrt, ...)
+                                        - string function name ('log10', 'sqrt')
+
+        datatype (str, optional): data type of observation values.
+                        Default is 'head'.
+
+        locnme (str, optional) : observation location name (ex. BSS id)
+
+        Returns:
+        --------
+        Set `transform` argument for required observations.
+
+        Examples:
+        --------
+        moptim.set_transform('log10', datatype=['head', 'flow'])
+
+        """
+        # ---- Get datatype, locnme required as iterable
+        _dt = self.obs_df['datatype'].unique() if datatype is None else marthe_utils.make_iterable(datatype)
+        _ln = self.obs.keys() if locnme is None else marthe_utils.make_iterable(locnme)
+
+        # ---- Set transformation to all required data
+        locnmes = self.obs_df.query('datatype in @_dt & locnme in @_ln')['locnme'].unique()
+        for ln in locnmes:
+            self.obs[ln].transform = transform
+            self.obs[ln].obs_df['transform'] = transform
+            self.obs_df.loc[self.obs_df.locnme == ln, 'transform'] = transform
+
+
+
+
+    def apply_transform(self, nodata=None):
+        """
+        Apply transformation to observations values.
+
+        Parameters:
+        ----------
+        nodata (float/list, optional) : observation value to not transform.
+                                        If none, basic no values [-9999., -8888]
+                                        are considered.
+                                        Default is None. 
+
+        Returns:
+        --------
+        transformed (DataFrame) : observation DataFrame with transformed 'obsval'.
+
+        Examples:
+        --------
+        transform_df = moptim.apply_transform()
+        """
+        dfs = []
+        for ln, df in self.obs_df.groupby('locnme'):
+            # -- Manage transformator
+            t = self.obs[ln].transform
+            if t == 'none':
+                t = lambda x : x
+            # -- Build none nodata mask
+            nd = self.nodata if nodata is None else marthe_utils.make_iterable(nodata)
+            mask = ~df['obsval'].isin(nd)
+            df.loc[mask,'obsval'] = df.loc[mask, 'obsval'].transform(t)
+            dfs.append(df)
+
+        # ---- Return transformed observations DataFrame
+        return pd.concat(dfs)
+
+
+
     def write_ins(self, locnme=None, ins_dir = '.'):
         """
         Write formatted instruction file (pest).
@@ -352,7 +438,7 @@ class MartheOptim():
 
         Examples:
         --------
-        mm.mobs.write_insfile(locnme = 'myobs', ins_dir = 'ins')
+        moptim.write_insfile(locnme = 'myobs', ins_dir = 'ins')
         """
         # ---- Manage single locnme writing
         locnmes = list(self.obs.keys()) if locnme is None else [locnme]
