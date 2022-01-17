@@ -487,31 +487,6 @@ critical_head = 85 # meters
 moptim.add_fluc(locnme = '07095X0117', tag = 'crit' , on = critical_head)
 moptim.obs['07095X0117critfluc'].obs_df.tail(10)
 
-'''
-While adding a new observation, it's possible to pass a additional argument (kwargs)
-to transform data. It is possible (and recommended) to set a transformation after 
-importing all observations with the .set_transform() method. Moreover, the .apply_transform()
-method allows the user to get the DataFrame of transformed values.
-'''
-moptim.remove_obs()
-moptim.add_obs(data = 'obs/07095X0117.dat', datatype='head')
-
-# ---- Set transformation in .add_obs() constructor
-moptim.add_obs(data = 'obs/07065X0002.dat', datatype='head', transform = 'log10')
-moptim.obs['07065X0002'].obs_df
-
-
-# ---- Set transformation using the .set_transform() method on locnme
-moptim.add_fluc()
-moptim.set_transform('log10', locnme = '07095X0117')
-moptim.obs['07095X0117'].obs_df
-
-# ---- Set transformation using the .set_transform() method on datatype
-moptim.set_transform(abs, datatype = 'headfluc')
-
-# ---- Get transformed DataFrame
-moptim.apply_transform()
-
 
 '''
 Some methods were added to moptim to fetch the number of locnmes, observations and 
@@ -553,6 +528,32 @@ moptim.obs_df
 
 
 '''
+While adding a new observation, it's possible to pass a additional argument (kwargs)
+to transform data. It is possible (and recommended) to set a transformation after 
+importing all observations with the .set_transform() method. Moreover, the .apply_transform()
+method allows the user to get the DataFrame of transformed values.
+'''
+moptim.remove_obs()
+moptim.add_obs(data = 'obs/07095X0117.dat', datatype='head')
+
+# ---- Set transformation in .add_obs() constructor
+moptim.add_obs(data = 'obs/07065X0002.dat', datatype='head', transform = 'log10')
+moptim.obs['07065X0002'].obs_df
+
+
+# ---- Set transformation using the .set_transform() method on locnme
+moptim.add_fluc()
+moptim.set_transform('log10', locnme = '07095X0117')
+moptim.obs['07095X0117'].obs_df
+
+# ---- Set transformation using the .set_transform() method on datatype
+moptim.set_transform(abs, datatype = 'headfluc')
+
+# ---- Get transformed DataFrame
+moptim.apply_transform()
+
+
+'''
 MartheOptim also has a builtin method to write instruction files from added observation.
 Use the .write_ins() method.
 '''
@@ -563,23 +564,3 @@ moptim.write_ins(locnme = '07065X0002', ins_dir = 'ins')
 # -- Write all instruction files
 moptim.write_ins(ins_dir = 'ins')
 
-
-
-
-
-maxabs_scale
-minmax_scale
-robust_scale
-normalize
-power_transform
-quantile_transform
-
-
-
-
-MaxAbsScaler
-StandardScaler
-RobustScaler
-Normalizer
-QuantileTransformer
-PowerTransformer
