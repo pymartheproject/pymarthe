@@ -57,7 +57,7 @@ class MartheParam() :
     def __init__(self, mm, name, default_value, izone = None, array = None, log_transform = False) :
         self.mm = mm # pointer to the instance of MartheModel
         self.name = name # parameter name
-        self.array = mm.prop[self.name].as_array() # pointer to grid in MartheModel instance
+        self.array = mm.prop[self.name].as_3darray() # pointer to grid in MartheModel instance
         self.default_value = default_value 
         self.log_transform = log_transform
         self.set_izone(izone)
@@ -92,7 +92,7 @@ class MartheParam() :
         # case izone is not provided
         if izone is None :
             # reset izone for current parameter from imask
-            self.izone = self.mm.imask.as_array().copy()
+            self.izone = self.mm.imask.as_3darray().copy()
             # index of active cells
             idx_active_cells = self.mm.imask == 1
             # a single zone is considered
@@ -100,7 +100,7 @@ class MartheParam() :
 
         # case an izone array is provided
         elif isinstance(izone,np.ndarray) : 
-            assert izone.shape == self.mm.imask.as_array().shape 
+            assert izone.shape == self.mm.imask.as_3darray().shape 
             # set izone as provided
             self.izone = izone
 
@@ -135,9 +135,7 @@ class MartheParam() :
         """
         nlay = self.mm.nlay
 
-        parnames = []
-        parlays = []
-        parzones = []
+        parnames, parlays, parzones = [[] for _ in range(3)]
 
         for lay in range(nlay) :
             zones = np.unique(self.izone[lay,:,:])
@@ -149,6 +147,8 @@ class MartheParam() :
 
         self.zpc_df = pd.DataFrame({'name':parnames, 'lay':parlays, 'zone':parzones, 'value': self.default_value})
         self.zpc_df.set_index('name',inplace=True)
+
+
 
     def set_zpc_values(self,values) : 
         """
@@ -180,7 +180,7 @@ class MartheParam() :
             return
         # if a dictionary is provided
         elif isinstance(values, dict) :
-            for lay in list(values.keys()):
+            for lay in values.keys():
                 # layer-based parameter assignement
                 if isinstance(values[lay],(int,float)):
                     # index true for zones within lay
@@ -234,12 +234,9 @@ class MartheParam() :
         # initialize layers
         if lay is None : 
             # all layers considered
-            layers  = range(self.mm.nlay)
-        elif isinstance(lay,int):
-            layers = [lay]
-        elif isinstance(lay,list):
-            layers = lay
-
+            layers  = list(range(self.mm.nlay))
+        else:
+            layers = marthe_utils.make_iterable(lay)
         # check and initialize zones
         if zone is None :
             # all zones considered
@@ -277,30 +274,30 @@ class MartheParam() :
                 print('Parameter value is NA for ZPC zone {0} in lay {1}').format(abs(zone),int(lay)+1)
             self.set_array(value, lay, zone)
 
-    def pp_df_from_shp(self, shp_path, lay, zone = 1, value = None , zone_field = None, value_field = None) :
-        """
-       Reads input shape file, builds up pilot dataframe, and insert into pp_dic 
+    # def pp_df_from_shp(self, shp_path, lay, zone = 1, value = None , zone_field = None, value_field = None) :
+    #     """
+    #    Reads input shape file, builds up pilot dataframe, and insert into pp_dic 
 
-        Parameters
-        ----------
-        path : full path to shp with pilot points
-        lay : layer id (0-based)
-        zone : zone id (>0)
+    #     Parameters
+    #     ----------
+    #     path : full path to shp with pilot points
+    #     lay : layer id (0-based)
+    #     zone : zone id (>0)
 
-        Examples
-        --------
-        mm.param['permh'].pp_df_from_shp('./data/points_pilotes_eponte2.shp', lay, zone)
+    #     Examples
+    #     --------
+    #     mm.param['permh'].pp_df_from_shp('./data/points_pilotes_eponte2.shp', lay, zone)
 
-        """
-        if value is None : 
-            value = self.default_value
+    #     """
+    #     if value is None : 
+    #         value = self.default_value
 
-        # init pp name prefix
-        prefix = 'pp_{0}_l{1:02d}'.format(self.name,lay)
-        # get data from shp and update pp_df for given layer
-        # NOTE will be further extended for multi-zones
-        # and allow update of current pp_d
-        self.pp_dic[lay] = pp_utils.ppoints_from_shp(shp_path, prefix, zone, value, zone_field, value_field)
+    #     # init pp name prefix
+    #     prefix = 'pp_{0}_l{1:02d}'.format(self.name,lay)
+    #     # get data from shp and update pp_df for given layer
+    #     # NOTE will be further extended for multi-zones
+    #     # and allow update of current pp_d
+    #     self.pp_dic[lay] = pp_utils.ppoints_from_shp(shp_path, prefix, zone, value, zone_field, value_field)
         
     def zone_interp_coords(self, lay, zone) :
         """
@@ -322,11 +319,14 @@ class MartheParam() :
 
         # point where interpolation shall be conducted for current zone
         idx = self.izone[lay,:,:] == zone
-        xx, yy = np.meshgrid(self.mm.imask.xcc, self.mm.imask.ycc)
+        rec = self.mm.imask.get_data(layer=lay)
+        shape = self.mm.imask.get_data(layer=lay, as_array=True)[0].shape
+        xx = rec['x'].reshape(shape)
+        yy = rec['y'].reshape(shape)
         x_coords = xx[idx].ravel()
         y_coords = yy[idx].ravel()
 
-        return(x_coords, y_coords)
+        return (x_coords, y_coords)
 
     def write_zpc_tpl(self, filename = None):
         """
@@ -470,24 +470,19 @@ class MartheParam() :
         # current version does not handle zones
         zone = 1 
 
+        # ---- 
+        mg = self.mm.imask.to_grids(layer=0, inest=0)[0]
+
         # set base spacing (model coordinates unit) from n_cell
-        self.base_spacing[lay] = n_cell*self.mm.cell_size
+        self.base_spacing[lay] = n_cell*self.mm.imask.to_grids()[0].dx[0]
 
         izone_2d = self.izone[lay,:,:]
 
-        x_vals = self.mm.xcc
-        y_vals = self.mm.ycc
-        xx, yy = np.meshgrid(x_vals,y_vals)
-
-        nrow = self.mm.nrow
-        ncol = self.mm.ncol
-            
-        rows = range(0,nrow,n_cell)
-        cols = range(0,ncol,n_cell)
-        
+        xx, yy = np.meshgrid(mg.xcc,mg.ycc)
+        rows, cols = np.arange(mg.nrow), np.arange(mg.ncol)
         srows, scols = np.meshgrid(rows,cols)
 
-        pp_select = np.zeros((nrow,ncol))
+        pp_select = np.zeros((mg.nrow,mg.ncol))
         pp_select[srows,scols] = 1
 
         buffered_zone = izone_2d.copy() 
