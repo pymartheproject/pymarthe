@@ -266,7 +266,7 @@ def make_silent(martfile):
             wrong = exe_match.group()
             right = re.sub(r'(\s|\w)=','M=', wrong)
             new_line  = re.sub(wrong, right, line)
-            replace_text_in_file(file, line, new_line)
+            replace_text_in_file(martfile, line, new_line)
 
 
 

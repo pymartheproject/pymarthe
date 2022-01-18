@@ -11,6 +11,38 @@ import shapefile
 
 
 
+def shp2points(shpname, stack=True):
+    """
+    Extract xy-coordinates from a point shapefile.
+
+    Parameters
+    ----------
+    shpname (str) : path to the points shapefile.
+    stack (bool) : return coordinates type.
+                   If True: [[x0,y0],[x1,y1],.. , [xN,yN]]
+                   If False: np.array([x0,x1,.. xN], [y0,y1,.. yN])
+                   Default is True
+
+    """
+    # ---- Initialize points shapefile reader
+    r = shapefile.Reader(shpname)
+    # ---- Assert that the shapefile contains points
+    err_msg = 'ERROR : `shpname` must be shapefile of points. ' \
+              f'Given shapefile type: `{r.shapeTypeName}`.'
+    assert r.shapeTypeName == 'POINT', err_msg
+    # ---- Extract points from shapefile
+    points = []
+    for shape in r.iterShapes():
+        points.extend(shape.points)
+    # ---- Return stack/unstack coordinates
+    if stack:
+        return points
+    else:
+        return np.column_stack(points)
+
+
+
+
 def get_parts(xcc, ycc, dx, dy):
     """
     Return list of polygons parts from points

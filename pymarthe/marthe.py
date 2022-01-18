@@ -9,7 +9,8 @@ from shutil import which
 import queue 
 import threading
 import numpy as np
-import pandas as pd 
+import pandas as pd
+from datetime import datetime
 
 from .mfield import MartheField
 from .mpump import MarthePump
@@ -347,7 +348,6 @@ class MartheModel():
 
         # ---- Build spatial index if required
         if self.spatial_index is None:
-            print('Building spatial index ...')
             self.spatial_index = self.build_spatial_idx()
 
         # ---- Intersects points from spatial index in imask
