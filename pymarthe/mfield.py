@@ -93,9 +93,10 @@ class MartheField():
         for ix, iy, ilay in zip(_x, _y, _layer):
             # -- Sorted output index   
             idx = sorted(self.mm.spatial_index.intersection((ix,iy)))
-            # -- Subset by layer and the max inest
-            q = f'layer=={ilay} & inest == inest.max()'
-            df = pd.DataFrame(self.data[idx]).query(q)
+            # -- Subset by layer for value != 0 or 9999
+            nd = [0., 9999.]
+            q1 = f'layer=={ilay} & value not in @nd'
+            df = pd.DataFrame(self.data[idx]).query(q1)
             dfs.append(df)
         # ---- Return intersection as recarray
         return pd.concat(dfs).to_records(index=False)
