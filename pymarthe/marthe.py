@@ -346,10 +346,6 @@ class MartheModel():
                   f"Given: x = {len(_x)}, y = {len(_y)}."
         assert len(_x) == len(_y), err_msg
 
-        # ---- Build spatial index if required
-        if self.spatial_index is None:
-            self.spatial_index = self.build_spatial_idx()
-
         # ---- Intersects points from spatial index in imask
         _layer = [0] * len(_x)
         rec = self.imask.sample(_x, _y, _layer)
@@ -357,9 +353,9 @@ class MartheModel():
 
         # ---- Manage output
         if len(_x) == 1:
-            out = np.dstack([i,j])[0] if stack else (i[0], j[0])
+            out = np.column_stack([i,j]) if stack else (i[0], j[0])
         else:
-            out = np.dstack([i,j])[0] if stack else (i, j)
+            out = np.column_stack([i,j]) if stack else (i, j)
 
         # ---- Return coordinates
         return out
@@ -409,9 +405,9 @@ class MartheModel():
 
         # ---- Manage output
         if len(_i) == 1:
-            out = np.dstack([x, y])[0] if stack else (x[0], y[0])
+            out = np.column_stack([x, y]) if stack else (x[0], y[0])
         else:
-            out = np.dstack([x, y])[0] if stack else (x, y)
+            out = np.column_stack([x, y]) if stack else (x, y)
         
         # ---- Return coordinates
         return out
