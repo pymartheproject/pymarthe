@@ -8,7 +8,7 @@ with the PEST suite.
 __name__ = 'pymarthe'
 __author__ = 'Ryma Aissat, Yohann Cousquer, Alexandre Pryet, Pierre Matran'
 
-__version__ = 0.2
+__version__ = 1.0
 
 
 
