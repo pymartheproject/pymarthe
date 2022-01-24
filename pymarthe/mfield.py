@@ -331,11 +331,11 @@ class MartheField():
 
         # ---- Fetch basic model structure
         rec = deepcopy(self.mm.imask.data)
-        df = pd.DataFrame(rec)
+        df = pd.DataFrame.from_records(rec)
         
         # ---- Modify rec inplace
         for layer, arr2d in enumerate(arr3d):
-            mask = self.get_data(layer=layer, inest=0, as_mask=True)
+            mask = (df.layer == layer) & (df.inest == 0)
             df.loc[mask, 'value'] = arr2d.ravel()
 
         # ---- Return recarray
