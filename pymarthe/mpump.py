@@ -170,7 +170,7 @@ class MarthePump():
         """
 
         # ---- Transform records to Dataframe for query purpose
-        df = pd.DataFrame(self.data)
+        df = pd.DataFrame.from_records(self.data)
 
         # ---- Get columns to perform queries
         col_query = df.drop('value', axis=1).columns
@@ -229,7 +229,7 @@ class MarthePump():
 
         """
         # ---- Convert existing meta data (recarray) in DataFrame
-        df = pd.DataFrame(self._data)
+        df = pd.DataFrame.from_records(self._data)
         # ---- Get boolean mask of required data
         mask = self.get_data(istep, layer, i, j, boundname, as_mask=True)
         # ---- change value 
@@ -274,7 +274,7 @@ class MarthePump():
         # ---- Get boolean mask of wanted data
         mask = self.get_data(istep=istep, layer=layer, i=i, j=j, as_mask=True)
         # --- Extract boundname on subset data
-        df = pd.DataFrame(self.data)
+        df = pd.DataFrame.from_records(self.data)
         boundnames = df.loc[mask, 'boundname'].unique().tolist()
         # ---- Return boundnames as list of string
         return boundnames
@@ -299,7 +299,7 @@ class MarthePump():
         mp.switch_boundnames(switch_dic = {'B1951752/F1': 'F1'})
         """
         # ---- Convert existing meta data (recarray) in DataFrame
-        df = pd.DataFrame(self._data)
+        df = pd.DataFrame.from_records(self._data)
         # ---- Use .replace method on boundname column
         df['boundname'] = df['boundname'].replace(switch_dic)
         # ---- Set new data
@@ -340,7 +340,7 @@ class MarthePump():
             qtypes = [qtype]
 
         # ---- Fetch metadata as DataFrame
-        df = pd.DataFrame(self._data)
+        df = pd.DataFrame.from_records(self._data)
         gb = df.groupby('qtype')
 
         # ---- Split data by qtype

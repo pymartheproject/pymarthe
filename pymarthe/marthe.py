@@ -400,7 +400,7 @@ class MartheModel():
         assert len(_i) == len(_j), err_msg
 
         # ---- Subset data by first layer
-        df = pd.DataFrame(self.imask.get_data(layer=0))
+        df = pd.DataFrame.from_records(self.imask.get_data(layer=0))
         #df_ss = df.query(f"i.isin({_i}) & j.isin({_j})", engine = 'python')
         df_ss = df.query(f"i in @_i  & j in @_j")
 

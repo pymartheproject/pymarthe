@@ -149,7 +149,7 @@ class MartheField():
         else: 
             inests = marthe_utils.make_iterable(inest)
         # ---- Transform records to Dataframe for query purpose
-        df = pd.DataFrame(self.data)
+        df = pd.DataFrame.from_records(self.data)
         # ---- Get mask
         mask = (df['layer'].isin(layers)) & (df['inest'].isin(inests))
         # ---- Return as mask if required
@@ -498,7 +498,7 @@ class MartheField():
 
         # ---- fetch data
         data = self.get_data(layer=layer, inest=inest)
-        df = pd.DataFrame(data).assign(parts=parts)
+        df = pd.DataFrame.from_records(data).assign(parts=parts)
 
         # ---- Apply mask values
         if not masked_values is None:
@@ -575,7 +575,7 @@ class MartheField():
 
         # ---- Subset required data 
         data = self.get_data(layer=layer, inest=inest)
-        df = pd.DataFrame(data).assign(patches=patches)
+        df = pd.DataFrame.from_records(data).assign(patches=patches)
         
         # ---- Apply mask values
         if masked_values is None:
