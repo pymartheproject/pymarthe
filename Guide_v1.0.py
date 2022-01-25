@@ -15,9 +15,10 @@ import pandas as pd
 import numpy as np
 sys.path.append(dev_ws)
 from pymarthe import MartheModel
-from pymarthe.utils import marthe_utils
+from pymarthe.utils import marthe_utils, shp_utils
 from pymarthe.mfield import MartheField
 from pymarthe.mpump import MarthePump
+from pymarthe.msoil import MartheSoil
 from pymarthe.moptim import MartheOptim
 import matplotlib.pyplot as plt
 
@@ -27,7 +28,8 @@ import matplotlib.pyplot as plt
 # ---- MartheModel instance
 
 # -- Load mona.rma 
-mm = MartheModel('mona.rma')
+mona_ws = os.path.join('monav3_pm', 'mona.rma')
+mm = MartheModel(mona_ws)
 
 '''
 Let's begin with some of additional attributes of this brand new 1.0 version of pymarthe
@@ -288,6 +290,109 @@ plt.show()
 # mf.write_data('mynewpermhfile.permh')
 
 
+# --------------------------------------------------------
+# ---- MartheSoil instance
+
+'''
+PyMarthe v1.0 can also manage zonal soil proprerties such as:
+    - cap_sol_progr
+    - equ_ruis_perc
+    - t_demi_percol
+    - def_sol_progr
+    - rumax
+    - defic_sol
+    - ...
+There are parameters of the GARDENIA (@BRGM) software implemented in the .mart
+file in the 'Initialization des calculs' section. These parameters are list-like
+by they have a spatial application (cell-by-cell) that's the reason why the 
+MartheSoil class has functionalities built as MartheField method wrappers.
+Let's have a look on this support class.
+'''
+
+'''
+Soil properties are read from the .mart file. If the main model does not contain
+any zonal soil properties an assertion error is raise.
+'''
+
+# -- Trying to build MartheSoil instance
+ms = MartheSoil(mm)
+
+'''
+The actual mova v.3 model does not contain these properties. So, let's try with
+another Marthe Model named 'Lizonne.rma'.
+'''
+lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
+mm = MartheModel(lizonne_ws)
+
+# -- Build MartheSoil instance externaly
+ms = MartheSoil(mm)
+
+# -- Fetch soil property instance from main model
+mm.load_prop('soil')
+ms = mm.prop['soil']
+
+'''
+The main data corrspond to a simple table (DataFrame) with the correspondance 
+between the existing soil properties in .mart file, the id of the spatial zone
+and the value of the given soil property.
+'''
+# ---- Print basic data
+print(ms.soil_df.to_markdown(tablefmt='fancy_grid', index=False))
+print(f'Number of zone: {ms.nzone}')
+print(f'Number of soil properties: {ms.nsoilprop}')
+print(f'Soil properties of the {mm.mlname} model:')
+print('\n'.join([f'\t- {p}' for p in ms.soilprops]))
+
+'''
+As explained above, soil properties have a spatial application. To fetch complete
+cell-by-cell recarray data make sure to use the .get_data() method. It will replace
+the zone ids in the .zonep file (MartheField) with the value of a given soil property.
+Note: soil properties are defined only on the first layer, others are set to 0.
+'''
+ms.get_data('cap_sol_progr')
+ms.get_data(soilprop = 'cap_sol_progr', layer=1)    # Constant value (=0)
+ms.get_data(soilprop = 'cap_sol_progr', layer=0)
+
+'''
+Moreover, some wrappers of usefull functionalities of MartheField instance can be 
+use on soil properties. 
+'''
+# ---- Sampling (from points shapefile)
+shpname = os.path.join('export', 'points.shp')
+x,y = shp_utils.shp2points(shpname, stack=False)
+ms.sample('cap_sol_progr', x, y)
+
+# ---- Ploting
+plt.rc('font', family='serif', size=9)
+fig, ax = plt.subplots(figsize=(8,6))
+ax.set_title('Zonal progressive soil capacity',
+              fontsize=12, fontweight="bold")
+ms.plot('cap_sol_progr', ax=ax, cmap='Paired')
+plt.show()
+
+# ---- Exporting
+filename = os.path.join('export','cap_sol_progr.shp')
+ms.to_shapefile('cap_sol_progr', filename=filename, epsg=2154)
+
+'''
+To change/set data by soil property and by zone use the .set_data() 
+method with the required value.
+
+'''
+# ---- Changing data
+ms.set_data('cap_sol_progr', value = 122, zone = [1,2])
+ms.set_data('equ_ruis_perc', value = 17.56, zone = 8)
+print(ms.soil_df.to_markdown(tablefmt='fancy_grid', index=False))
+
+'''
+The soil property data has to be write in .mart file with the
+.write_data() method (can be performed by soil property).
+(Don't do it if you want to keep original data)
+'''
+
+#ms.write_data(martfile='Lizonnetest.mart')
+
+
 
 # --------------------------------------------------------
 # ---- MarthePump instance
@@ -307,6 +412,7 @@ Let's see these changes.
 '''
 
 # -- Build MarthePump instance externaly
+mm = MartheModel(mona_ws)
 mp = MarthePump(mm, mode = 'aquifer')
 
 # -- Fetch pumping property from main model
@@ -550,7 +656,7 @@ moptim.obs['07095X0117'].obs_df
 moptim.set_transform(abs, datatype = 'headfluc')
 
 # ---- Get transformed DataFrame
-moptim.apply_transform()
+#moptim._apply_transform()
 
 
 '''
