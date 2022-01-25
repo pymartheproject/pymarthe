@@ -39,7 +39,7 @@ def get_mlfiles(rma_file):
     mlfiles = get_mlfiles(rma_file)
     """
     # ---- Get .rma content as text
-    with open(rma_file, 'r') as f:
+    with open(rma_file, 'r', encoding=encoding) as f:
         content = f.read()
     # ---- Fetch all marthe file paths
     re_mlfile = r'\n(\w+.\w+)\s*'
@@ -116,7 +116,7 @@ def get_layers_infos(layfile, base = 1):
     nnest, layers_infos = get_layers_infos(layfile, base = 1)
     """
     # ---- Get .layer content as text
-    with open(layfile, 'r') as f:
+    with open(layfile, 'r', encoding=encoding) as f:
         content = f.read()
     # ---- set regular expressions
     regex = [r"Cou=\s*(\d+)", r"[Epais|Épais]=\s*([-+]?\d*\.?\d+|\d+)",
@@ -171,7 +171,7 @@ def read_zonsoil_prop(martfile):
 
     """
     # ---- Read .mart file content
-    with open(martfile, 'r') as f:
+    with open(martfile, 'r',encoding=encoding) as f:
         content = f.read()
 
     # ---- Assert that some soil property exist
@@ -187,12 +187,63 @@ def read_zonsoil_prop(martfile):
     block = re.findall(re_init,content, re.DOTALL)[0]
 
     # ---- Extract zonal soil properties
-    dt_dic = {c:dt for c,dt in zip(['property', 'zone', 'value'], [str, int, float])}
+    dt_dic = {c:dt for c,dt in zip(['soilprop', 'zone', 'value'], [str, int, float])}
     df = pd.DataFrame(re.findall(re_prop, block),columns=dt_dic.keys()).astype(dt_dic)
-    df['property'] = df['property'].str.lower()
+    df['soilprop'] = df['soilprop'].str.lower()
 
     # ---- Return zonal soil properties data
-    return df
+    return df.sort_values('soilprop').reset_index(drop=True)
+
+
+
+
+def write_zonsoil_prop(soil_df, martfile):
+    """
+
+    Description:
+    -----------
+    Write soil properties in .mart file. 
+
+    Parameters: 
+    -----------
+    soil_df (DataFrame) : soil data with apply zone ids.
+                            Format:
+                                        property       zone    value
+                                0   cap_sol_progr         54      10.2
+                                1          ru_max        126      41.4
+
+    martfile (str): Marthe .mart file path
+
+    Returns:
+    -----------
+    Write property values in .mart file
+  
+
+    Example
+    -----------
+    martfile = 'mymarthemodel.mart'
+    soil_df = read_zonsoil_prop(martfile)
+    soil_df.value = 125
+    write_zonsoil_prop(soil_df, martfile)
+    """
+    # ---- Fetch actual .mart file content as text
+    with open(martfile, 'r', encoding=encoding) as f:
+        content = f.read()
+    # ---- Set useful regex
+    re_num = r"[-+]?\d*\.?\d+|\d+"
+    # ---- Iterate over each soil DataFrame line
+    for d in soil_df.itertuples():
+        # ---- Regex to match
+        re_match = r"\/{0}\/ZONE_SOL\s*Z=\s*{1}V=\s*({2});".format(
+                                                        d.soilprop.upper(),
+                                                        d.zone, 
+                                                        re_num)
+        # ---- Search pattern
+        match = re.search(re_match, content)
+        # ---- Replace by new value
+        sub = re.sub(match.group(1), str(d.value), match.group(0))
+        # ---- Rewrite .mart file
+        replace_text_in_file(martfile, match.group(0), sub)
 
 
 
@@ -477,7 +528,7 @@ def get_units_dic(mart_file):
               'jour':'J', 'semaine':'W', 'mois': 'M', 'année':'Y'}
 
     # ---- Fetch .mart file content
-    with open(mart_file, 'r') as f:
+    with open(mart_file, 'r', encoding=encoding) as f:
         content = f.read()
 
     # ---- Set block regex
@@ -537,7 +588,7 @@ def get_dates(pastp_file, mart_file):
     # ---- Set date regular expression
     re_anydate = r'date\s*:\s*(\d{2}/\d{2}/\d{4}|[-+]?\d*\.?\d+|\d+)\s*;'
     # ---- Fetch pastp file content as string
-    with open(pastp_file, 'r') as f:
+    with open(pastp_file, 'r', encoding=encoding) as f:
         dates_str = re.findall(re_anydate, f.read())
     # ---- Distinguish classic dates / timedelta dates
     if not '/' in ''.join(dates_str):
@@ -870,7 +921,7 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
     re_listm_fmt = r'(?<=<)[^<:]+(?=:?>)'
 
     # ---- Fetch pastp data by block (each block = data for step i)
-    with open(pastpfile, 'r') as f:
+    with open(pastpfile, 'r', encoding=encoding) as f:
         content = f.read()
         # ---- Set special tag according to pumping mode
         mode_tag = '/DEBIT/' if mode == 'aquifer' else '/Q_EXTER_RIVI/'
@@ -955,7 +1006,7 @@ def convert_at2clp_pastp(pastpfile, mm):
     conv_df = pd.DataFrame({k:v for k,v in zip(list('ijat'), [*ij, *at])}, dtype=int)
 
     # ---- Extract .pastp file content
-    with open(pastpfile, 'r') as f:
+    with open(pastpfile, 'r', encoding=encoding) as f:
         # ---- Extract pastp by block 
         blocks = re.findall(re_block, f.read(), re.DOTALL)
 

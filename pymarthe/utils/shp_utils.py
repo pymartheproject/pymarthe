@@ -9,6 +9,7 @@ import numpy as np
 import shutil
 import shapefile
 
+srefhttp = "https://spatialreference.org"
 
 
 def shp2points(shpname, stack=True):
@@ -191,8 +192,6 @@ def write_prj(shpname, epsg=None, prj=None, wkt_string=None):
     Write a projection file (.proj).
     Figure which CRS option to use (prioritize args over grid reference)
     option to create prjfile from proj4 string without OGR or pyproj dependencies.
-    Taken from flopy librairy :
-    https://github.com/modflowpy/flopy/blob/develop/flopy/export/shapefile_utils.py
     """
     # ---- Get projection filename
     prjname = shpname.replace(".shp", ".prj")
@@ -216,6 +215,22 @@ def write_prj(shpname, epsg=None, prj=None, wkt_string=None):
             output.write(prjtxt)
 
 
+def get_url_text(url, error_msg=None):
+    """
+    Get text from a url.
+    """
+    from urllib.request import urlopen
+
+    try:
+        urlobj = urlopen(url)
+        text = urlobj.read().decode()
+        return text
+    except:
+        e = sys.exc_info()
+        print(e)
+        if error_msg is not None:
+            print(error_msg)
+        return
 
 
 
@@ -223,8 +238,6 @@ class CRS:
     """
     Container to parse and store coordinate reference system parameters,
     and translate between different formats.
-    Taken from flopy librairy :
-    https://github.com/modflowpy/flopy/blob/develop/flopy/export/shapefile_utils.py
     """
 
     def __init__(self, prj=None, esri_wkt=None, epsg=None):
@@ -470,7 +483,6 @@ class CRS:
         -------
         url : str
         """
-        from flopy.utils.flopy_io import get_url_text
 
         epsg_categories = (
             "epsg",
@@ -518,28 +530,33 @@ class EpsgReference:
     """
     Sets up a local database of text representations of coordinate reference
     systems, keyed by EPSG code.
-    The database is epsgref.json, located in the user's data directory. If
-    optional 'appdirs' package is available, this is in the platform-dependent
-    user directory, otherwise in the user's 'HOME/.flopy' directory.
     """
 
     def __init__(self):
-        appdirs = import_optional_dependency("appdirs", errors="silent")
-        if appdirs is not None:
-            datadir = appdirs.user_data_dir("flopy")
+        import os
+        try:
+            from appdirs import user_data_dir
+        except ImportError:
+            user_data_dir = None
+        if user_data_dir:
+            datadir = user_data_dir("pymarthe")
         else:
             # if appdirs is not installed, use user's home directory
-            datadir = os.path.join(os.path.expanduser("~"), ".flopy")
+            datadir = os.path.join(os.path.expanduser("~"), ".pymarthe")
         if not os.path.isdir(datadir):
             os.makedirs(datadir)
         dbname = "epsgref.json"
         self.location = os.path.join(datadir, dbname)
 
+
     def to_dict(self):
         """
         returns dict with EPSG code integer key, and WKT CRS text
         """
+        import os
+        import json
         data = {}
+        
         if os.path.exists(self.location):
             with open(self.location, "r") as f:
                 loaded_data = json.load(f)
@@ -552,6 +569,7 @@ class EpsgReference:
         return data
 
     def _write(self, data):
+        import json
         with open(self.location, "w") as f:
             json.dump(data, f, indent=0)
             f.write("\n")
@@ -594,3 +612,4 @@ class EpsgReference:
         prj = ep.to_dict()
         for k, v in prj.items():
             print(f"{k}:\n{v}\n")
+

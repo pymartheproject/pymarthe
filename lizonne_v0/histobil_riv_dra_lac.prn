@@ -1,0 +1,39 @@
+<< La légende des termes est placée à la fin du fichier >>
+ Projet Modifié (Lizonne.rma) [V7.8a]
+
+Débits de Rivières : Domaine total	
+Date	Date	Par_Sources	Ruissel_Sup	Entr_Injection	Sort_Pompage	Entr_Inject_fix	Sort_Pompag_fix	Dérivat_Entrant	Dérivat_Sortant	Entr_Niv_Impos	Sort_Niv_Impos	Nappe->Rivières	Rivières->Nappe	Lacs->Rivières	Rivières->Lacs	Débor_Riv->Lacs	Débo_Nap_Rivi.	Exutoires	Stockage	DéStockage	Entr_Limit_Zone	Sort_Limit_Zone	Écart_Bilan	
+31/07/2003	  1.8316800E+07	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   1.032875    	     -0.0645490	   0.000000    	   0.000000    	   0.000000    	  0.6260672    	  -1.595432    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	     -0.0010388	
+01/08/2003	  1.8403200E+07	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	  0.9540072    	     -0.0564538	   0.000000    	   0.000000    	   0.000000    	  0.3226319    	  -1.215245    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	      0.0049400	
+
+Volumes de Rivières cumulés : Domaine total	
+Date	Date	Par_Sources	Ruissel_Sup	Entr_Injection	Sort_Pompage	Entr_Inject_fix	Sort_Pompag_fix	Dérivat_Entrant	Dérivat_Sortant	Entr_Niv_Impos	Sort_Niv_Impos	Nappe->Rivières	Rivières->Nappe	Lacs->Rivières	Rivières->Lacs	Débor_Riv->Lacs	Débo_Nap_Rivi.	Exutoires	Stockage	DéStockage	Entr_Limit_Zone	Sort_Limit_Zone	Écart_Bilan	
+31/07/2003	  1.8316800E+07	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	
+01/08/2003	  1.8403200E+07	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   82426.23    	  -4877.605    	   0.000000    	   0.000000    	   0.000000    	   27875.39    	  -104997.2    	   0.000000    	   0.000000    	   0.000000    	   0.000000    	   426.8201    	
+
+Légende du bilan de débit des Rivières :
+ Tous les termes de débit sont en : unité utilisateur de débit.
+ (Pour les bilans de volumes cumulés : tous les termes sont des volumes en 'unité utilisateur de volume d'eau'.)
+
+    Entr = Entrant (positif)
+    Sort = Sortant (négatif)
+
+ Par_Sources = Débit entrant par des sources, ou par des rivières extérieures
+               (aux extrémités amont des affluents).
+ Ruissel_Sup = Débit apporté par ruissellement superficiel (pouvant provenir de zones extérieures).
+ Dérivat    = Débit entrant ou sortant par des 'Dérivations de débit de rivière'.
+ Inject_fix = Débit d'injection dans le réseau, fixé par l'utilisateur.
+ Pompage_fix= Débit de pompage dans le réseau, fixé par l'utilisateur.
+ Entr_Inject = Débit d'injection dans le réseau calculé (résultant du débit d'injection fixé).
+ Sort_Pompage= Débit de pompage dans le réseau calculé (résultant du débit de pompage fixé).
+ Niv_Impos  = Débit, entrant ou sortant, résultant de tronçons à niveau imposé.
+ Débo_Nap_Rivi. = Débit provenant de débordement de nappe (pouvant provenir de zones extérieures).
+ Débor_Riv->Lacs = Débit de débordement des rivières vers des lacs latéraux.
+ Exutoires  = Débit sortant par les exutoires.
+
+ >>> Pour les bilans de rivières par zone :
+ Limit_Zone = Débit entrant ou sortant par les limites de la zone (échange avec les zones voisines).
+
+ Écart_Bilan = Bilan global = Somme des termes Entrants + termes Sortants - Stockage.
+          Ce bilan est calculé avec les Débits Internes calculés dans le réseau.
+          => Les termes de 'Débit interne fixé par l'utilisateur dans le réseau' ne doivent pas être pris en compte.

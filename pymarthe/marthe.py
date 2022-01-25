@@ -14,6 +14,7 @@ from datetime import datetime
 
 from .mfield import MartheField
 from .mpump import MarthePump
+from .msoil import MartheSoil
 from .utils import marthe_utils, shp_utils
 
 encoding = 'latin-1'
@@ -167,7 +168,7 @@ class MartheModel():
 
     def load_prop(self, prop):
         """
-        Load MartheModel property by name.
+        Load MartheModel properties by name.
 
         Parameters:
         ----------
@@ -181,11 +182,11 @@ class MartheModel():
                      - Pumping (MarthePump)
                         - 'aqpump'
                         - 'rivpump'
-                     - Zonal Soil properties (MartheField)
+                     - Zonal Soil properties (MartheSoil)
                         - 'cap_sol_progr'
                         - 'aqui_ruis_perc'
                         - 't_demi_percol'
-                        - 'ru_max'
+                        - 'rumax'
                         - ...
 
         Returns:
@@ -210,17 +211,7 @@ class MartheModel():
 
         # ---- Manage soil property
         elif prop == 'soil':
-            # -- Read soil data from martfile
-            soil_df = marthe_utils.read_zonsoil_prop(self.mlfiles['mart'])
-            # -- Get zonep field recarray
-            zonep = MartheField('zonep', self.mlfiles['zonep'], self)
-            # -- Replace zone id by property values
-            for soil_prop, gb in soil_df.groupby('property'):
-                # -- Replace zone id by soil value & transform to recarray
-                repl_dic = dict(gb[['zone', 'value']].to_numpy())
-                rec = pd.DataFrame(zonep.data).replace({'value': repl_dic}).to_records(index=False)
-                # -- Add MartheField in main prop dictionary 
-                self.prop[soil_prop] = MartheField(soil_prop, rec, self)
+            self.prop['soil'] = MartheSoil(self)
 
         # ---- Not supported property
         else:

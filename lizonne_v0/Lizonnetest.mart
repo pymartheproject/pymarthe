@@ -1,0 +1,398 @@
+ Projet Modifié
+ #<V7.8a># --- Fin du texte libre --- ; Ne pas modifier/retirer cette ligne
+ *** Sauvegardes et contrôles                        ***
+         0=Génération d'un fichier listing détaillé (1=Oui ; 0=Non)
+         0=//////////////////////////////////////////////////////////
+         0=Écriture sur listing des données spatialisées lues [0=Non ; 1=Oui ; 2=Grilles aussi ; -1 => Allégement]
+         0=Sauvegarde de l'état du projet en fin de simulation [pour redémarrage] (0=Non ; 1=Oui ; -1=Binaire)
+         0=Contrôle de la convergence dans une maille particulière
+         0= Numéro de ligne    de la maille à contrôler                 [si contrôle]
+         0= Numéro de colonne  de la maille à contrôler                 [si contrôle]
+         0= Numéro de couche à contrôler [0=Maille avec Débit Résiduel Maxi] [si contrôle]
+         0= Numéro du gigogne de la maille à contrôler [Déf=0] [si contrôle]
+         0= Nombre d'itérations finales à contrôler            [si contrôle]
+          =Allégement du fichier 'bilandeb' [0=Conservation  ;  1, 2=Allégement  ; 9999=Annulation]
+         0=Vérification seule sans calcul
+         0=Sauvegarde des Historiques de Bilan de Masse et de Chaleur par Zones (2=Zones_Type_2 ; 3=Zones_Type_3)
+         0=Sauvegarde de l'Historique du Bilan de Débit de la Nappe (-1=Non ; 1=Oui ; 0=Automatique)
+         0=Sauvegarde des Historiques de Variation par rapport au début de la simulation
+         0=Annulation du calcul du Bilan de Débit de Fluide [Déf=0 => Calcul ; 1 ou -1 => Annule]
+         0=Format d'écriture des Historiques et des Profils (0=Style 'Excel' ; 2='Excel' + 'Successifs')
+         0=Sauvegarde des champs à tous les pas de temps de modèle (0=Non ; 1=Oui ; 2=Tous les sous-pas)
+         1=Sauvegarde de l'Historique du Bilan Hydroclimatique (0=Non ; 1=En Flux ; 2=En Débit)
+         0=Sauvegarde de l'Historique du Bilan massique et de chaleur (-1=Non ; 1=Oui ; 0=Automatique)
+         0=Sauvegarde de l'Historique du Bilan de Débit par Zones (1=Oui ; 2=Zones_Type_2 ; 3=Zones_Type_3)
+         0=Sauvegarde de l'Historique du Bilan de Débit des Drains (-1=Non ; 1=Oui ; 0=Automatique)
+         0=//////////////////////////////////////////////////////////
+         0=Sauvegarde de l'Historique de Convergence de Géochimie (-1=Non ; 1=Oui)
+         0=Format des champs calculés (0=Grille ; -1=Binaire ; 1=Col., Ligne, Couche, Val. etc. (voir Help)
+         0=Écriture détaillée des dates sous forme calendaire (0=jj/mm/aaaa ; -1=jj/mm/aaaa hh:mm)
+         0=Facteur de dilatation y/x pour le fichier de dessin des vitesses [Déf=0 => Pas de dilatation]
+         7=Périodicité de sauvegarde des historiques [Déf=0 => Tous les pas de temps ; -1 => Pas de temps de modèle]
+         0=Sauvegarde de l'Historique des termes du bilan de nitrate (0=Non ; 1=En kg/ha ; 2=En masse)
+         0=Écriture d'un fichier 'Maillage' : Identif , X , Y , dx , dy (0=Non ; 1=Oui)
+         0=Listage des données des réseaux de Rivière, Drains, Lacs (0=Non ; 1=Oui)
+         0=Annulation du calcul du Bilan de Masse et de Chaleur [Déf=0 => Calcul ; 1 ou -1=Annulation]
+ *** Pas de Temps et sous-pas de temps               ***
+         0=Nombre maximal possible de pas de temps de modèle en Transitoire [Déf=0 => Tous]
+         0=//////////////////////////////////////////////////////////
+         0=Nombre de sous-pas de temps de modèle             [Déf=0 => Aucun]
+         0=Numéro du pas de temps (réel) pour un re-démarrage [Défaut=0]
+ *** Contrôle de la Résolution Hydrodynamique de Nappe ***
+       100=Nombre maximal d'itérations pour les pas de temps suivant le pas n°0 [Régime Transitoire]
+       200=Nombre maximal d'itérations pour le pas de temps n°0 (régime permanent initial)
+         0=Variation moyenne de charge hydraulique entre 2 itérations pour convergence [Déf=0 => 1e-6]
+         0=Coefficient de sous-relaxation du calcul [Déf=0 => Pas de sous-relaxation]
+          =Pondération des perméabilités voisines (1=Géomét. ; 3=Amont ; 4=Harmon. ; 5=Arith ; Déf=Optimal)
+         0=Rapport = (Épaisseur minimale si dénoyage) / (Épaisseur moyenne de la couche) [Déf=0 => 5e-3]
+         6=Solveur [0=Gradients Conjugés/Cholesky ; 6=Eisenstat ; 7=GMG etc.]
+        50=Nombre d'itérations internes pour le solveur [Déf=0 => 10]
+          =Périodicité du calcul hydrodynamique [Déf=0 => Tous les pas de temps]
+         0=Régime de l'Hydrodynamique [0=Transitoire ; 1=Permanent]
+         0=Lecture de : 1=Coefficients d'Échange ; 2=Fichier de Fractures Verticales
+          =Schéma pour dénoyages : [0=Pseudo-Zns ; 2=ZNS_automatique]
+         0=Saturation en eau minimale (%) si dénoyage en schéma Pseudo-Zns  [Déf=0 => 1%]
+         0=Schéma Newton-Raphson [ZNS uniquement] [Déf=0 => Non ; 1=Oui]
+         0=Type de 'coefficients d'échange' dans le fichier [0=en Transmissivité ; 1=en Perméabilité]
+          =Saturation en eau minimale (%) pour la limitation des pompages [Déf=0 => 20%]  'N' => 0%
+         0=Résolution compacte << Paramètre supprimé >>
+         0=Perméabilité verticale nominale si Pseudo-Zns [0=Selon saturation ; 1=Valeur nominale]
+         0=Débit résiduel maximal pour convergence interne du solveur GMG [Déf=0 => 1e-4]
+         0=Index de lissage de grille du solveur GMG [Déf=0]
+         0=Index de Pré-conditionnement du solveur GMG [Déf=0]
+          =Hauteur de garde au-dessus des crépines pour limitation des pompages
+         0=Erreur maximale de bilan de débit pour la convergence des itérations externes [Déf=0]
+         0=Type de critère de bilan de débit : 0 = Suffisant ; 1 = Doit en plus être satisfait
+         0=Prise en compte réduite du coefficient d'emmagasin. captif en Nappe Libre ou ZNS (Déf=0 => Non ; 1=Oui)
+ *** Unités des données                              ***
+          =Unité de Perméabilité des aquifères en m/s (ou m2)
+          =Unité de Débit                    en m3/s (ou en kg/s si Gaz)
+          =Unité de Charge, Altitude, Pression  en m
+          =Unité de coefficient d'Emmagasinement Captif en [-] ou [m-1]
+          =Unité de coefficient d'Emmagasinement Libre en [-] ['%' si en %]
+          =Unité de Hauteur Hydroclimatique (pour Pluie, ETP, Infiltration, Recharge) en mm
+          =Unité de Hauteur d'Excédent d'Irrigation en mm
+      jour=Unité de Durée Hydroclimatique (seconde, minute, heure, jour, semaine, décade, mois, année)
+          =Unité de Temps (des pas de temps de modèle) (seconde, minute, heure, jour, décade, mois, année)
+          =Unité de Coordonnées Horizontales en m
+         0=Coefficient uniforme d'Anisotropie Verticale Kv/Kh de la Perméabilité
+         0=Coefficient uniforme d'Anisotropie Horizontale Kx/Ky de la Perméabilité
+         1=Emmagasinement Captif (0=Hydrogéologues ; 1=Spécifique ; 2=Compressibilité)
+          =Unité de Salinité  en kg/m3
+          =Unité de Concentration  en kg/m3
+          =Unité de Porosité et de Teneur en eau en [-] ['%' si en %]
+          =Unité de Volume d'eau (ou de stock) en m3
+          =Unité de Masse en kg
+          =Type de Perméabilité : (Déf=0 => Perméabilité à l'eau  ;  1=Perméabilité intrinsèque)
+          =Unité de Volume pour la concentration géochimique [Déf=0 => par Litre = 1/1000]
+          =Type de Débit Massique et de Chaleur en entrée : [Déf=0 => Par maille ; 'm2'=> Par m2]
+          =Type de Lecture de concentration des minéraux [Déf=0 => mol/m3 terr. ; 1='%Vol' => % Volume]
+          =Unité de Débit de Rivière (Déf=0 => Unité générale de débit)
+          =Unité de Pression de Gaz en m d'eau (Déf=0 => Unité de charge et d'altitude)
+          =Unité de Masse saline en kg
+ *** Options de Géométrie, États de Référence, Processeurs ***
+         0=Référence de Charge  (Charge modèle = Charge lue  + Référence)
+         0=Référence du Substratum  (Substratums modèle = Substratum lu + Référence)
+         0=Épaisseur de la tranche de coupe (Unité de coordonnée de maille ou degrés)
+          =État initial [0=Charge ; 1=Pression ; 2=Saturation ; 3=NAQ ; 4=S_Liq ; 5=S_NAQ] (Déf=Charge)
+          =Orientation du maillage : 0=Standard  ;  1=Coupe verticale : pesanteur sur Oy
+         0=Angle correcteur de la Direction de la Pesanteur (en degrés)
+         0=Effet de l'angle correcteur : 0=Orthonormé ; 1=Escalier (Perpective Cavalière)
+         0=Initialisation des Nombres Aléatoires (pour les particules)  [Déf=0 => 1789]
+         0=//////////////////////////////////////////////////////////
+          =Calcul à symétrie 'Pseudo-Cylindrique' (déconseillé)   [0=Non ; 1=Oui]
+         0=Viscosité (dynamique) de l'Eau si on utilise des Perméabilités Intrinsèques [Déf=0 => 1.002e-3]
+          =État Initial 2 [en MultiPhasique] 1=NAQ ; 2=AQU ; 3=Saturat ; 4=Sat_Liq ; 5=Sat_NAQ ; [Déf=0 => NAQ]
+         0=Compressibilité de l'Eau [m-1]  [Déf=0 => 5e-6]
+         0=Nombre de Processeurs à utiliser [0 = Tous ; -1 => Tous sauf 1]
+         0=Couplage avec le coupleur OpenPalm (0=Non ; 1=Couplage Météo)
+ *** Couplage et Transport : Concentration, Chaleur, Salinité ***
+         0=Nombre maximal d'itérations pour le *Couplage* Densité/Pression ou Viscosité/Température
+         0=Coefficient de Relaxation pour Couplage Densité/Pression ou Viscosité/Température [Déf=0 => 1]
+         0=Nombre maximal d'itérations pour le *Transport* de Salinité/Chaleur/Concentration [Déf=0 => 20]
+          =Méthode de Transport [0=Diff_Finies ; 1=Random_Walk ; 2=Caractéristiques=MOC ; 3=TVD]
+         0=Diffusion moléculaire   (m2/s)  [* = Spatialisée] (Diffusion moléculaire en milieu poreux)
+         0=Dispersivité Longitudinale (m)  [* = Spatialisée]
+         0=Dispersivité Transversale  (m)  [* = Spatialisée]
+         0=Transport Permanent préliminaire avant régime transitoire [Déf=0 => Non ; 1=Oui ; -1=Sauf Conc.]
+         0=Sauvegarde des positions des particules en fin de calcul
+         0=Lecture d'un fichier de positions initiales des particules
+         0=Nombre de sous-pas de temps pour les particules Random Walk [Déf=0 => Aucun]
+         0=Méthode de réflexion des particules R.W. (0=Schéma standard ; 1=Schéma Ito)
+         0=Sauvegarde de l'historique des termes de bilans cumulés de masse et de chaleur (0=Oui ; -1=Non)
+          =Solveur pour le calcul de Transport [0=Orthomin ; 2=Autre]
+         0=Omission des termes diagonaux en Différences Finies (0=Calcul Complet ; 1=Omission)
+         0=Concentration/Température Non limitées par les mini/maxi [Déf=0 => Limitées ; 1=Non Limitées]
+         0=Nombre maximal d'itérations pour une sorption de schéma Langmuir/Freundlich [Déf=0 => 20]
+         0=Coefficient de Relaxation pour un calcul avec sorption Langmuir/Freundlich [Déf=0 => Pas relax]
+         0=Méthode TVD complète [0=Méthode allégée = standard (rapide) ; 1=Méthode complète]
+         0=Rapport Dispersivité Transversale Verticale / Dispersivité Transversale Horizontale
+         0=Nombre de composantes mémorisées dans le solveur de transport Orthomin (Déf 0 => 2)
+ *** Salinité, Densité                               ***
+          =Effet de la Densité (0=Non ; 1=Charge ; 2=Pression ; 3=Charge d'eau Douce)
+          =Loi de Densité(Salinité) (0=Non ; 1=Linéaire ; 3=Schlumberger_VDB[Salinité])
+         0=Dérivée de la loi Densité = F(Salinité) si loi Linéaire [Déf=0 => 0.7]
+         0=Masse de chaque particule de Salinité (si particules)
+         0=Variation moyenne de Salinité entre 2 itérations pour convergence [Déf=0 => 1e-8]
+          =Régime du Transport de Salinité [0=Transitoire ; 1=Permanent]
+         0=Nombre maximum possible de particules de salinité (méthode MOC ou R.W.) [Déf=0 => 60000]
+         0=Durée <=> Permanent si transport MOC ou R.W. en régime Permanent [Déf=0]
+         0=Coefficient de retard (Pas utilisé si calcul en ZNS) [Déf=0 => Pas de retard]
+         0=Temps de 1/2 Dégradation de la salinité (en unité de temps) [Déf=0 => Pas de dégradation]
+         0=Calcul (Transport) de la Salinité
+ *** Température , effets Thermiques                 ***
+         0=Prise en compte des effets de la Température
+          =Loi de Densité de l'eau = F(Températ., Salin) (0=Non ; 1=Schoeller ; 3=Linéaire ; 4=Schlumb_VDB)
+          =Loi de Viscosité de l'eau = F(Températ., Concen.) (0=Non ; 1=Expon ; 2=Racine_Carrée ; etc.)
+         0=Joules portés par chaque particule (si transport par particules)
+         0=Variation moyenne de Température entre 2 itérations pour convergence [Déf=0 => 1e-8]
+          =Régime du Transfert Thermique [0=Transitoire ; 1=Permanent ; 2=Uniquement au pas n°0]
+         0=Conductivité Thermique du minéral (W/m/degré) [Déf=0 => 1.5] [* => Spatialisée]
+         0=Dispersivité Thermique Longitudinale (m) (-1=idem que transport de Masse) [* => Spatialisée]
+         0=Dispersivité Thermique Transversale (m) (-1=idem que transport de Masse) [* => Spatialisée]
+         0=Capacité Thermique Massique de l'Eau (J/kg/degré)  [Déf=0 => 4185]
+         0=Capacité Thermique Volumique du Minéral (J/m3/degré) [Déf=0 => 2e6] [* => Spatialisée]
+         0=Nombre maximum possible de particules de température (méthode MOC ou R.W.) [Déf=0 => 60000]
+         0=Durée <==> Permanent si transport MOC ou R.W. en Régime Permanent [Déf=0]
+         0=Coefficient de Retard [utilisation non standard] [-] [Déf=0 => Pas de retard]
+         0=Temps de 1/2 Dégradation [utilisation non standard] [Déf=0 => Pas de 'dégradation']
+         0=Conductivité Thermique de l'Eau (W/m/degré)   [Déf=0 => 0.6]
+         0=Calcul du champ de Température (Transfert thermique) [0=Non ; 1=Oui]
+         0=Dérivée de la loi Densité = F(Température) si loi Linéaire [Déf=0]
+         0=Masse Volumique de l'eau à température = 0° si loi linéaire [Déf=0 => 1000]
+         0=Température de référence [Viscosité, Gaz, Chimie, Dégradation] [Déf=0 => 20°C]
+         0=Température correspondant à 0 particule [si particules] [Déf=0]
+          =Épontes thermiques simulées par une solution analytique (Vinsome) [0=Non ; 1=Oui]
+ *** Concentration et Trajectoires                   ***
+         0=Calcul de la Concentration
+         0=Masse de chaque particule de Concentration (si transport par particules)
+         0=Variation moyenne de Concentration entre 2 itérations pour convergence [Déf=0 => 1e-8]
+          =Régime du Transport de Concentration [0=Transitoire ; 1=Permanent]
+         0=Concentration correspondant à 0 particule [si particules] [Déf=0]
+          =Calcul de Trajectoires (1 = Oui  ;  'Invers' = -1 = Trajectoires inverses)
+         0=Nombre maximum possible de particules de concentration (méthode MOC ou R.W.) [Déf=0 => 60000]
+         0=Durée <==> Permanent si transport MOC ou R.W. en régime Permanent [Déf=0]
+         0=Coefficient de retard (Non-utilisé si calcul en ZNS) [Déf=0 => Pas de retard]
+         0=Temps de 1/2 Dégradation de la concentration (en unité de temps)  [Déf=0 => Pas de dégradation]
+         0=Nombre de points intermédiaires pour le dessin des trajectoires [Déf=0 => Aucun]
+          =Loi de Sorption [0=Non ou loi Linéaire  ;  1=Langmuir  ;  2=Freundlich]
+         0=Paramètre de Sorption n°1 [Concent_Réfer_Langmuir ; Kfv_Freundlich]
+         0=Paramètre de Sorption n°2 [Site_Total_Langmuir ; Exposant_Freundlich]
+         0=Loi de Dégradation=f(Température) [0=Non ; 1=Leachp ; 2=Agriflux ; 3=Macro ; 4=Wave ..]
+         0=Paramètre pour la Dégradation = F(Température)
+         0=Loi de Dégradation = F(Saturation) [0=Non ; 1=Leachp ; 2=Agriflux ; 3=Macro ; 4=Wave ..]
+         0=Paramètre n°1 pour Dégradation = F(Saturation)
+         0=Paramètre n°2 pour Dégradation = F(Saturation)
+         0=Paramètre n°3 pour Dégradation = F(Saturation)
+         0=Nombre d'éléments de Filiation en chaîne de la Dégradation [déf=0]
+          =Schéma de Dégradation / Filiation [0=Série (Chaîne) ; 1=Parallèle]
+         0=Calcul avec Cinétique d'échange entre Concentration_Mobile & Concentration_Immobile (MIM)
+         0=Numéro du pas de temps (réel) pour le démarrage des trajectoires [Défaut=0]
+         0=Transport de composants gazeux dans la phase gazeuse [0=Non ; 1=Oui]
+ *** Zone Non-Saturée et Multiphasique               ***
+         0=Calcul en Zone Non Saturée [0=Non ; 1=Oui]
+         0=Durée minimale du pas de temps de calcul interne
+         0=Durée maximale du pas de temps de calcul interne
+         0=Variation maximale de teneur en eau pendant le pas de temps de calcul
+         0=Erreur maximale de bilan acceptée [en %  ou  en volume d'eau]
+         0=Type d'erreur de bilan [0=% Convergence_Interne ; 1=Bilan Global en volume ; 2=Bilan Global en %]
+         0=Succion maximale <==> Assèchement maximal (en unité de charge)
+         0=Perméabilité minimale (pour sécurité numérique)
+          =Loi de Rétention [1=Homograph. ; 2=Puissance ; 3=Logarith. ; 4=Van-Genuchten ; 5=Brooks-Corey etc]
+          =Loi Perméabilité [1=Homogr(pression) ; 2=Puissance(Saturat) ; 4=Exponentielle(press) ; 5=Van-Genuch. etc.]
+          =[/// Paramètre non utilisé dans cette version ///]
+          =[/// Paramètre non utilisé dans cette version ///]
+         0=Succion à 1/2 saturation
+         0=Exposant de la loi de Rétention
+          =[/// Paramètre non utilisé dans cette version ///]
+         0=Exposant de la loi de Perméabilité (sauf si loi Van-Genuchten, ou loi Exponentielle, ou loi Brooks-Corey)
+         0=Succion <=> 1/2 perméabilité à saturation [uniquement si relation Perméabilité = f(pression)]
+         0=Variation de saturation pour convergence si schéma diphasique en teneur en eau [Déf=0 => 1e-4 %]
+         0=Saturation minimale des phases (%) en Non-Saturé ou Multiphasique [Déf=0 => 0.01 %]
+          =Loi de Rétention n°2                [si Triphasique]
+         0=Succion à 1/2 Saturation n°2        [si Triphasique]
+         0=Exposant de la loi de Rétention n°2 [si Triphasique]
+          =Loi de Perméabilité Non-Aqueuse [si Multiphasique] [0=idem que celle de la phase aqueuse]
+         0=Teneur Résiduelle en phase Non-Aqueuse [si multiphasique] [Déf=0]
+         0=Teneur résiduelle en phase AQU complémentaire pour la loi de Perméabilité [Déf=0]
+         0=Exposant de la loi de Perméabilité Non-Aqueuse [si Multiphasique] [Déf=idem]
+          =Loi Rétention des Drains-Conduits [1=Homograph. ; 2=Puissance ; 3=Logarit. ; 4=Van-Gen. ; 5=B&Corey etc.]
+          =Loi de Perméabilité des Drains-Conduits [2=Puissance(Saturat.) ; 5=Van-Genuchten ; 6=Brooks & Corey etc.]
+         0=Succion à 1/2 saturation pour les Drains-Conduits en ZNS
+         0=Exposant de la loi de Rétention des Drains-Conduits en ZNS
+         0=Exposant de la loi de Perméabilité des Drains-Conduits (sauf si loi Van Genuchten)
+         0=Porosité des Drains-Conduits en ZNS [Déf=0 => 100 %]
+         0=Durée du pas de temps remise automatiquement au minimum à chaque 'modification' [0=Non ; 1=Oui]
+ *** Eau, Gaz, Huile, Eau Salée                      ***
+         0=Calcul de la Phase Eau       [0=Non ; 1=Oui]
+         0=Calcul de la Phase Gaz (Air) [0=Non ; 1=Oui ; 2=Toujours Atmosphérique]
+         0=Calcul de la Phase Huile, Eau Salée (NAQ) [0=Non ; 1=Oui ; 2=Eau Salée]
+         0=Schéma multiphasique [1=Press_Aqu,Saturat ; 2=Press_Aqu,Press_Naq ; 3=Press_Naq,Saturat ; 0=Automatique]
+         0=Mode de Résolution si schéma Pression_Saturat [0=Variables_séparées = Déf ; 1=Résolut_Simultanée]
+         0=Niveau moyen de la mer (si schéma Ghyben-Hertzberg) [Défaut=0]
+         0=Prélèvements répartis sur les 2 phases [0=Non ; 1=Oui]
+         0=Mode de Répartition des Prélèvements [selon : 0=Crépines/Saturat ; 2=Mobilité]
+ *** Écoulement d'Huile, Eau Salée, NAQ              ***
+         0=Densité de l'Huile, Eau Salée, NAQ  [Déf=0 => 1.0]
+         0=Viscosité de l'Huile, Eau Salée, NAQ  [Déf=0 => 1.002e-3 Pa.s]
+         0=Dissolution de l'Huile <-> Phase Aqueuse [0=Non ; 1=Oui]
+         0=Concentration Maximale à l'équilibre si Dissolution
+         0=Constante de temps de Dissolution [Déf=0 => Instantané]
+ *** Écoulement de Gaz                               ***
+         0=Masse molaire du gaz (grammes) [Déf=0 => Air=29g]
+          =Définition de la Pression du Gaz [Déf=0 => Pression - P_atmosphérique  ; 1=Pression absolue]
+         0=/////////////////////////////////////////////////////
+         0=Loi viscosité du gaz = F(Température) [0=Viscosité Constante ; 1=Linéaire ; 2=Puissance etc.]
+         0=Viscosité Gaz constante         [Déf=0 => 1.82e-5 Pa.s]
+         0=Gradient de Viscosité/Température si loi Linéaire [Déf=0 => 4.85e-8 Pa.s / °C]
+         0=Échanges Gaz <-> Phase Aqueuse [0=Non ; 1=Dissolution ; 2=Vaporisation]
+         0=Numéro de la loi de variation de la constante de Henry pour Dissolution
+         0=Constante de Henry de Référence (bar/fraction massique)
+         0=Correction de Compressibilité : Terme Constant         [Déf=0]
+         0=Correction de Compressibilité : facteur sur Pression [m-1] [Déf=0]
+         0=Correction de Compressibilité : facteur sur Pression**2 [m-2] [Déf=0]
+ *** Géochimie                                       ***
+         0=Calcul d'Interactions Chimiques [0=Non ; 1=Oui ; -1=Uniquement Initialisation]
+         0=ANALY : Nombre de composants (Éléments chimiques primaires en phase liquide)
+         0=Élément Chimique 'H2O' Non Transporté [Déf=0 => Transporté]
+         0=ANALY : Nombre de Minéraux (Éléments chimiques en phase solide)
+         0=ANALY : Nombre d'Espèces ou Infos géochimiques restituées pour sauvegarde
+         0=Spéciation initiale [0=Non ; -1=Première maille ; N=Maille n°N ; *=Dans toutes les mailles]
+          =[/// Paramètre non utilisé dans cette version ///]
+         0=ANALY : Durée pour la spéciation initiale pour les minéraux avec cinétique [Déf=0 => 1e-20 s]
+          =Moteur géochimique [2=PHREEQC ; 3=TREACT ; (1=Analytique)]
+         0=Seuil de variation de concentration pour déclencher le calcul de géochimie [Déf=0 => 1e-10]
+         0=Concentration molaire de l'eau (en moles / volume de solution) [Déf=0 => 55.51]
+         0=Récupération de la densité du fluide par le moteur géochimique [0=Non ; 1=Oui]
+         0=Récupération de la pression partielle de CO2(g) par le moteur géochimique [0=Non ; 1=Oui]
+         0=Utilisation par le module géochimique de la pression de l'eau (Déf=0 => Non)
+         0=Numéro de la maille pour centrage par rapport à la spéciation initiale (si particules)
+         0=Calcul géochimique à certaines dates [0=Non ; -1=Aux sous-pas TVD ; 1=Aux dates spécifiées]
+         0=Possibilité de sauvegarde des champs de variation d'Espèces/Infos par rapport au début du run
+         0=Loi prédéfinie de variation Perméabilité = F(Porosité) [1 = Kozeny-Carman] [Déf=0 => Pas de variation]
+         0=ANALY : Numéro de l'Espèce (info chimique) donnant la variation de volume de matrice poreuse
+         0=ANALY : Variation de volume de matrice /unité temps /unité concentration [quand pas de Géochimie]
+         0=TREACT : Nombre maximal d'itérations pour la géochimie [Déf=0 => 300]
+         0=TREACT : Variation relative de concentration chimique entre 2 itérations pour convergence
+         0=TREACT : Nombre maximal d'itérations pour l'adsorption [Déf=0 => 30]
+         0=TREACT : Variation de concentration Adsorption entre 2 itérations pour convergence
+         0=TREACT : Variation maximale du taux de dissolution/précipitation pour quasi-stationnaire
+         0=TREACT : Variation maximale de concentration totale pour quasi-stationnaire
+         0=Type de Fonctionnement [0=Standard  ;  1=Particulier  ;  2=Débogage (!)]
+         0=Influence de la variation de la porosité (et de la perméabilité) [1=Oui ...]
+         0=Seuil de Variation de Température pour déclencher la Chimie << Non-utilisé >> [Déf=0]
+         0=Paramètre chimique externe n°1 [Déf=0]
+         0=Paramètre chimique externe n°2 [Déf=0]
+         0=Paramètre chimique externe n°3 [Déf=0]
+         0=Paramètre chimique externe n°4 [Déf=0]
+ *** Calibration automatique / Analyse de sensibilité / Optimisation ***
+         0=Calibration automatique / Analyse de sensibilité / Optimisation [0=Non ; 1=Oui]
+         0=Analyse des écarts de simulation [0=Non ; 1=Oui]
+         0=Nombre de pas de temps de 'démarrage' à ignorer pour l'Optimisation ou l'Analyse des écarts
+ *** Réseau de Rivières, Drains, Lacs                ***
+         1=Couplage avec un Réseau de Rivières  [0=Non ; 1=Oui]
+       100=Nombre maximal d'itérations pour le calcul du Débit de Rivières
+         0=Variation moyenne de Débit de Rivière ou Lac entre 2 itérations pour convergence [Déf=0 => 1e-5]
+         0=Nombre maximal de tronçons de Rivière   [Déf=0 => 1500]
+         0=Type de Loi Hauteur-Débit des Rivières [0=Non ; 1=Manning_Large ; 2=Manning]
+         0=État initial des Rivières s'il y a une loi Hauteur-Débit [0=Niveau ; 1=Débit]
+         0=Routage du débit de Rivière [0=Non ; 1=Oui] si Transitoire et si loi Hauteur-Débit
+         0=Schéma de calcul du Routage [0=En Débit  ;  1 ou 2=En Niveau d'eau]
+         0=Schéma d'échanges : 0=Schéma Marthe avec Débordement ; 2=Sans débordement ; 8=Linéaire ; 9=MDFL
+         0=Coefficient de sous-relaxation pour Débit de Rivière [Déf=0 => Pas de relaxation = Conseillé]
+         0=Couplage avec un système de Drains [0=Non ; 1=Drains ; 2=Conduits]
+         0=Système de Drains hiérarchisé en Réseau [0=Non ; 1=Oui]
+         0=Nombre maximal de tronçons de Drains  [Déf=0 => 1500]
+          =[/// Paramètre non utilisé dans cette version ///]
+         0=Solveur pour le routage du réseau de Rivières [0=Strahler  ;  1,..]
+         0=Facteur de correction sur les Vitesses de Ruissellement superficiel % [Déf=0 => Pas de correction]
+         0=Vitesse minimale de ruissellement superficiel (sécurité) [Déf=0 => 0.05 m/s]
+         0=Coefficient de Diffusion pour le transport en Rivières (m2/s)  [Déf=0]
+         0=Coefficient de Diffusion pour le transport dans les Drains-Conduits (m2/s) [Déf=0]
+         0=Calcul de Rivière à tous les pas de temps de modèle [0=idem calcul nappe ; 1=Tous les pas de temps]
+         0=Annulation du Transport dans les Rivières et Drains classiques [0=Transport ; -1 , 1=Annulation]
+         0=Couplage avec un ensemble de Lacs [0=Non ; 1=Oui]
+         0=Nombre maximal de mailles de Lacs  [Déf=0 => 1500]
+         0=Débordement de Nappe => Vers le Drain-Conduit contenu dans la maille [0=Non ; 1=Oui]
+         0=Tous les drains-conduits sont verticaux [0=Non ; 1=Oui : Tous verticaux]
+         0=Tous les affluents de drains sont indépendants [0=Non ; 1=Oui]
+         0=Nombre maximal d'itérations pour le calcul des Lacs
+         0=Profondeur maximale possible pour les Lacs (sécurité)
+         0=Coefficient de sous-relaxation pour le calcul des Lacs [Déf=0 => Pas de sous-relaxation]
+         0=Débordements de Nappe => Rivières et Lacs [Déf=0 => Oui vers les Rivières ; -1=Non]
+ *** Hydroclimatologie                               ***
+         2=Limitation de l'évaporation appliquée au domaine maillé [0=Non ; 1=Limitation ; 2=Suppression]
+         0=Sauvegarde du Bilan Hydroclimatique par Zones de Sol : dans le fichier bilandeb
+          =Bilan Hydroclimatique [0=GARDÉNIA ; 2=Ruissel. , Infiltr. ; 4=Ruiss+Infiltr.]
+         0=Prise en compte de la Fonte de la Neige [0=Non ; 1=Oui]
+         1=Type de Zones pour les Pluie, ETP, Recharge etc. [0=Zones de Sol ; 1=Zones Météo]
+        28=Nombre de Zones Climatiques dans les fichiers Météo séquentiels [Déf=0]
+         0=Type des fichiers Météo [0=Séquentiel ; 1=Accès Direct ; 2=Binaire]
+         0=Numéro du pas de temps du Fichier Météo <=> Pas de temps de Modèle n°0 [Déf=0]
+         0=Infiltration du Ruissellement s'il n'y a pas de réseau de rivières [0=Évacue ; 1=Infiltre]
+         0=Transfert maille par maille du ruissellement avec retard possible
+         0=Le fichier 'Direction Aval' contient le numéro d'élément de rivière associé au ruissellement [1=Oui]
+         0=Apports Hydroclimatiques limités au seul domaine aquifère (0=Non Limité ; 1=Limité)
+         0=Données des fichiers Météo binaires ou en accès-direct [0=Simple Précision ; 1=Double]
+         0=Réduction de l'ETR dans le réservoir Progressif (Déf=0=Toujours ; 1=En dessous de 1/2 saturation)
+         0=Précipitation neigeuse donnée séparément de la pluie liquide [0=Non ; 1=Oui]
+ *** Contrôles sur écran en cours de calcul          ***
+         1=Contrôle maximal sur écran [0=Non ; 1=Oui => Affiche tout]
+         0=Contrôle du bilan de débit [0=Non ; 1=Oui]
+         0=Contrôle du bilan de masse et de chaleur
+         0=Contrôle des couplages
+         0=Contrôle du bilan des rivières
+         0=Contrôle du bilan Hydroclimatique
+         0=Contrôle des itérations Externes de résolution
+         0=Contrôle des itérations Internes de résolution
+         0=Contrôle de la lecture des fichiers de données
+         M=Type d'exécution : Déf=' ' => Normal ; C=Conversationnel ; M=Muet
+         0=Intervalle (en secondes) entre les affichages à l'écran du calcul géochimique
+ *** Allégements des écritures du fichier bilandeb   ***
+         0=Suppression totale : Aucune écriture [0=Conserve ; 1=Supprime le fichier 'bilandeb.txt']
+         0=Suppression de l'écriture des itérations Internes de résolution (-1 => affiche)
+         0=Suppression de l'écriture des itérations Externes de résolution
+         0=Suppression de l'écriture du détail des sous-pas de temps de calcul
+         0=Suppression de l'écriture du bilan de débit
+         0=Suppression de l'écriture du bilan de débit par couche
+         0=Suppression de l'écriture du bilan massique et du bilan de chaleur
+         0=Suppression de l'écriture des détails des couplages
+         0=Suppression de l'écriture du bilan des Rivières et du bilan des Drains
+         0=Suppression de l'écriture des 'warnings' de résolution géochimique
+ *** Cultures, Nitrate                               ***
+         0=Cultures [0=Non ; 1=Cultures ; 2 = Bilan de Nitrate ; 3 = Cultures + Nitrate]
+         0=Type de Zones pour les Cultures et le bilan de Nitrate [0=Zones de Sol ; 1=Zones de Cultures]
+         0=Schéma de Transpiration et Développement de la Végétation [1=Leachp ; 2=Macro ; 3=Agriflux]
+         0=Schéma de développement des Racines et des Prélèvements [2=Macro ; 3=Agriflux]
+         0=Schéma de Stress Hydrique [0=Aucun ; 2=Macro ; 4=Swap]
+         0=Méthode de bilan de nitrate [0=Biche ; 1=Monica]
+         0=Nombre de couches pour bilan nitrate [0=Dans la Capacité Sol ; N > 0 => Jusqu'à la couche n°N]
+         0=Les racines des cultures ne prélèvent pas de masse => Masse déjà prélevée (1=Pas de prélèvement)
+          =Données pour les apports/besoins en nitrate : (' ' = Auto. ; 'N' = kg-Azote ; 'NO3' = kg-NO3)
+ *** Fin des paragraphes                             $$$
+ *** Options supplémentaires (3) (pour accessoires)  ***
+         0=[Option supplémentaire 1]
+         0=[Option supplémentaire 2]
+         0=[Option supplémentaire 3]
+ *** Initialisation avant calcul                     ***
+  /CAP_SOL_PROGR/ZONE_SOL  Z=      1V=       7777;
+  /EQU_RUIS_PERC/ZONE_SOL  Z=      1V=        7777;
+  /T_DEMI_PERCOL/ZONE_SOL  Z=      1V=        7777;
+  /!!!!!/!!!!!
+  /CAP_SOL_PROGR/ZONE_SOL  Z=      2V=       7777;
+  /EQU_RUIS_PERC/ZONE_SOL  Z=      2V=        7777;
+  /T_DEMI_PERCOL/ZONE_SOL  Z=      2V=        7777;
+  /!!!!!/!!!!!
+  /CAP_SOL_PROGR/ZONE_SOL  Z=      8V=       7777;
+  /EQU_RUIS_PERC/ZONE_SOL  Z=      8V=         7777;
+  /T_DEMI_PERCOL/ZONE_SOL  Z=      8V=       7777;
+  /!!!!!/!!!!!
+  /CAP_SOL_PROGR/ZONE_SOL  Z=     10V=       7777;
+  /EQU_RUIS_PERC/ZONE_SOL  Z=     10V=        7777;
+  /T_DEMI_PERCOL/ZONE_SOL  Z=     10V=        7777;
+  /!!!!!/!!!!!
+  /CAP_SOL_PROGR/ZONE_SOL  Z=     11V=       7777;
+  /EQU_RUIS_PERC/ZONE_SOL  Z=     11V=       7777;
+  /T_DEMI_PERCOL/ZONE_SOL  Z=     11V=        7777;
+  /*****/***** Fin d'Initialisation
+ *** Fin du fichier des Paramètres Généraux          ***

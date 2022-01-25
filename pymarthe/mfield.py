@@ -474,7 +474,7 @@ class MartheField():
 
         Returns:
         --------
-        Write filename
+        Write shape in filename.
 
         Examples:
         --------

@@ -1,0 +1,429 @@
+ Projet Modifié (Lizonne.rma) [V7.8a]
+
+ ==============================================================================
+ Lecture des données de :  Arbre (branchem.) des Affluents Rivières et Lacs
+ dans le fichier :
+  Lizonne.arb_r
+
+   Affluents de réseau de rivières
+
+ Lecture de 14 Affluents de réseau de rivières
+
+ L'Affluent n° 418 n'a pas d'aval.
+ L'Affluent n° 640 n'a pas d'aval.
+
+ *** La Maille : Couche = 1 , Col = 24 , Lig = 49                           ***
+     du réseau de Rivières
+     a un Numéro de Tronçon = 24 mais pas de numéro d'Affluent
+     Cet élément de réseau sera ignoré
+
+ *** La Maille : Couche = 1 , Col = 32 , Lig = 49                           ***
+     du réseau de Rivières
+     a un Numéro de Tronçon = 11 mais pas de numéro d'Affluent
+     Cet élément de réseau sera ignoré
+
+ *** La Maille : Couche = 1 , Col = 7 , Lig = 72                            ***
+     du réseau de Rivières
+     a un Numéro de Tronçon = 7 mais pas de numéro d'Affluent
+     Cet élément de réseau sera ignoré
+ 
+ 
+
+                   Réseau des Rivières (366 tronçon(s))
+
+    Vérification de l'arborescence des 14 affluent(s)
+   N°           Numéro        Numéro         Nombre
+ ordre         affluent      affluent     d'affluents
+                             exutoire     du parcours
+(    1)           410           418             7
+(    2)           411           418             7
+(    3)           420           418             6
+(    4)           412           418             6
+(    5)           421           418             5
+(    6)           413           418             5
+(    7)           414           418             4
+(    8)           419           418             4
+(    9)           422           418             3
+(   10)           416           418             3
+(   11)           417           418             2
+(   12)           415           418             2
+(   13)           418           418             1
+(   14)           640           640             1
+ 
+
+    Liste des 8 source(s) du réseau de Rivières
+ Ordre    Ordre       N°     N°    Nb de tronçons    Débit
+ Source  Tronçon    Afflu. Tronç   avant exutoire    Amont
+(     1) (   305)    415      1        40              0.000
+(     2) (    64)    640      2        45              0.000
+(     3) (   114)    419      1        58              0.000
+(     4) (   261)    416      1        64              0.000
+(     5) (    41)    413      1        87              0.000
+(     6) (    30)    420      1        92              0.000
+(     7) (   243)    411      1       118              0.000
+(     8) (   138)    410      1       131              0.000
+
+ Réseau des Rivières (366 tronçons)
+
+         2 = Nombre de passages nécessaires pour calculer les ordres de Strahler
+         0 = Nombre d'écarts résiduels d'ordres au dernier passage
+         9 = Nombre de jonctions du réseau
+         2 = Ordre de Strahler maximal
+ ** Affl. :  420 Tronç:    4         Couc:  4  Col:  29 Lig:  14            **
+    Altitude Fond Riv =   142.000 < Subs_Nappe =   148.400 >>> Diff =     6.400
+ ** Affl. :  420 Tronç:    3         Couc:  2  Col:  30 Lig:  14            **
+    Altitude Fond Riv =   149.000 < Subs_Nappe =   160.700 >>> Diff =    11.700
+ ** Affl. :  420 Tronç:    5         Couc:  2  Col:  29 Lig:  15            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   150.000 >>> Diff =    14.000
+ ** Affl. :  413 Tronç:    2         Couc:  1  Col:  21 Lig:  16            **
+    Altitude Fond Riv =   166.000 < Subs_Nappe =   182.900 >>> Diff =    16.900
+ ** Affl. :  420 Tronç:    7         Couc:  2  Col:  28 Lig:  16            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   138.100 >>> Diff =     5.100
+ ** Affl. :  420 Tronç:    8         Couc:  2  Col:  28 Lig:  17            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   134.300 >>> Diff =     6.300
+ ** Affl. :  413 Tronç:    6         Couc:  1  Col:  19 Lig:  18            **
+    Altitude Fond Riv =   135.000 < Subs_Nappe =   137.000 >>> Diff =     2.000
+ ** Affl. :  413 Tronç:    5         Couc:  1  Col:  20 Lig:  18            **
+    Altitude Fond Riv =   140.000 < Subs_Nappe =   167.800 >>> Diff =    27.800
+ ** Affl. :  420 Tronç:    9         Couc:  1  Col:  28 Lig:  18            **
+    Altitude Fond Riv =   127.000 < Subs_Nappe =   147.000 >>> Diff =    20.000
+ ** Affl. :  413 Tronç:    7         Couc:  1  Col:  19 Lig:  19            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   148.000 >>> Diff =    22.000
+ ** Affl. :  420 Tronç:   10         Couc:  1  Col:  28 Lig:  19            **
+    Altitude Fond Riv =   120.000 < Subs_Nappe =   128.000 >>> Diff =     8.000
+ ** Affl. :  420 Tronç:   11         Couc:  1  Col:  28 Lig:  20            **
+    Altitude Fond Riv =   118.000 < Subs_Nappe =   142.000 >>> Diff =    24.000
+ ** Affl. :  420 Tronç:   12         Couc:  1  Col:  28 Lig:  21            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   118.000 >>> Diff =     2.000
+ ** Affl. :  420 Tronç:   15         Couc:  2  Col:  28 Lig:  24            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   113.200 >>> Diff =     7.200
+ ** Affl. :  420 Tronç:   16         Couc:  1  Col:  28 Lig:  25            **
+    Altitude Fond Riv =   102.000 < Subs_Nappe =   133.000 >>> Diff =    31.000
+ ** Affl. :  420 Tronç:   17         Couc:  4  Col:  28 Lig:  26            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =    97.500 >>> Diff =     1.500
+ ** Affl. :  420 Tronç:   18         Couc:  4  Col:  28 Lig:  27            **
+    Altitude Fond Riv =    98.000 < Subs_Nappe =   100.000 >>> Diff =     2.000
+ ** Affl. :  420 Tronç:   19         Couc:  2  Col:  29 Lig:  27            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   116.700 >>> Diff =    20.700
+ ** Affl. :  410 Tronç:   46         Couc:  4  Col:  42 Lig:  27            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   110.900 >>> Diff =     4.900
+ ** Affl. :  412 Tronç:   57         Couc:  2  Col:  34 Lig:  28            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   101.800 >>> Diff =     5.800
+ ** Affl. :  410 Tronç:   49         Couc:  2  Col:  40 Lig:  28            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   110.000 >>> Diff =     4.000
+ ** Affl. :  410 Tronç:   48         Couc:  2  Col:  41 Lig:  28            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   124.000 >>> Diff =    18.000
+ ** Affl. :  410 Tronç:   45         Couc:  2  Col:  42 Lig:  28            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   126.700 >>> Diff =    20.700
+ ** Affl. :  420 Tronç:   22         Couc:  4  Col:  29 Lig:  29            **
+    Altitude Fond Riv =    91.000 < Subs_Nappe =    95.000 >>> Diff =     4.000
+ ** Affl. :  421 Tronç:   23         Couc:  4  Col:  30 Lig:  29            **
+    Altitude Fond Riv =    90.000 < Subs_Nappe =   102.000 >>> Diff =    12.000
+ ** Affl. :  412 Tronç:   60         Couc:  2  Col:  32 Lig:  29            **
+    Altitude Fond Riv =    95.000 < Subs_Nappe =    98.900 >>> Diff =     3.900
+ ** Affl. :  412 Tronç:   59         Couc:  2  Col:  33 Lig:  29            **
+    Altitude Fond Riv =    97.000 < Subs_Nappe =   101.600 >>> Diff =     4.600
+ ** Affl. :  412 Tronç:   55         Couc:  2  Col:  35 Lig:  29            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   105.300 >>> Diff =     9.300
+ ** Affl. :  410 Tronç:   51         Couc:  2  Col:  39 Lig:  29            **
+    Altitude Fond Riv =   100.000 < Subs_Nappe =   116.600 >>> Diff =    16.600
+ ** Affl. :  410 Tronç:   41         Couc:  2  Col:  45 Lig:  29            **
+    Altitude Fond Riv =   115.000 < Subs_Nappe =   139.500 >>> Diff =    24.500
+ ** Affl. :  410 Tronç:   39         Couc:  4  Col:  47 Lig:  29            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   116.800 >>> Diff =     0.800
+ ** Affl. :  419 Tronç:    1         Couc:  1  Col:   7 Lig:  30            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   109.100 >>> Diff =     0.100
+ ** Affl. :  419 Tronç:    2         Couc:  1  Col:   8 Lig:  30            **
+    Altitude Fond Riv =   104.000 < Subs_Nappe =   111.000 >>> Diff =     7.000
+ ** Affl. :  421 Tronç:   63         Couc:  4  Col:  30 Lig:  30            **
+    Altitude Fond Riv =    87.000 < Subs_Nappe =   113.000 >>> Diff =    26.000
+ ** Affl. :  411 Tronç:   40         Couc:  2  Col:  36 Lig:  30            **
+    Altitude Fond Riv =    99.000 < Subs_Nappe =   108.700 >>> Diff =     9.700
+ ** Affl. :  410 Tronç:   37         Couc:  4  Col:  48 Lig:  30            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   121.500 >>> Diff =     5.500
+ ** Affl. :  421 Tronç:   64         Couc:  4  Col:  30 Lig:  31            **
+    Altitude Fond Riv =    86.000 < Subs_Nappe =    94.000 >>> Diff =     8.000
+ ** Affl. :  411 Tronç:   38         Couc:  2  Col:  37 Lig:  31            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   103.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   37         Couc:  2  Col:  38 Lig:  31            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   113.100 >>> Diff =    17.100
+ ** Affl. :  410 Tronç:   36         Couc:  2  Col:  48 Lig:  31            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   133.000 >>> Diff =    17.000
+ ** Affl. :  410 Tronç:   32         Couc:  4  Col:  50 Lig:  31            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   121.000 >>> Diff =     5.000
+ ** Affl. :  410 Tronç:   31         Couc:  4  Col:  51 Lig:  31            **
+    Altitude Fond Riv =   121.000 < Subs_Nappe =   141.400 >>> Diff =    20.400
+ ** Affl. :  410 Tronç:    1         Couc:  5  Col:  75 Lig:  31            **
+    Altitude Fond Riv =   198.000 < Subs_Nappe =   200.100 >>> Diff =     2.100
+ ** Affl. :  411 Tronç:   36         Couc:  2  Col:  38 Lig:  32            **
+    Altitude Fond Riv =    97.000 < Subs_Nappe =   104.000 >>> Diff =     7.000
+ ** Affl. :  410 Tronç:   34         Couc:  4  Col:  49 Lig:  32            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   122.800 >>> Diff =     6.800
+ ** Affl. :  410 Tronç:   33         Couc:  4  Col:  50 Lig:  32            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   128.300 >>> Diff =    12.300
+ ** Affl. :  410 Tronç:   30         Couc:  4  Col:  51 Lig:  32            **
+    Altitude Fond Riv =   123.000 < Subs_Nappe =   131.700 >>> Diff =     8.700
+ ** Affl. :  410 Tronç:   29         Couc:  4  Col:  52 Lig:  32            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   132.500 >>> Diff =     6.500
+ ** Affl. :  410 Tronç:   28         Couc:  4  Col:  53 Lig:  32            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   131.100 >>> Diff =     5.100
+ ** Affl. :  410 Tronç:   27         Couc:  4  Col:  54 Lig:  32            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   127.700 >>> Diff =     1.700
+ ** Affl. :  410 Tronç:   26         Couc:  2  Col:  55 Lig:  32            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   156.200 >>> Diff =    30.200
+ ** Affl. :  410 Tronç:   25         Couc:  4  Col:  56 Lig:  32            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   136.300 >>> Diff =     3.300
+ ** Affl. :  410 Tronç:   24         Couc:  4  Col:  57 Lig:  32            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   150.600 >>> Diff =    14.600
+ ** Affl. :  410 Tronç:   23         Couc:  4  Col:  58 Lig:  32            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   139.000 >>> Diff =     3.000
+ ** Affl. :  410 Tronç:   22         Couc:  4  Col:  59 Lig:  32            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   139.000 >>> Diff =     3.000
+ ** Affl. :  410 Tronç:   21         Couc:  4  Col:  60 Lig:  32            **
+    Altitude Fond Riv =   138.000 < Subs_Nappe =   140.000 >>> Diff =     2.000
+ ** Affl. :  410 Tronç:   17         Couc:  4  Col:  62 Lig:  32            **
+    Altitude Fond Riv =   143.000 < Subs_Nappe =   171.300 >>> Diff =    28.300
+ ** Affl. :  421 Tronç:   70         Couc:  2  Col:  27 Lig:  33            **
+    Altitude Fond Riv =    86.000 < Subs_Nappe =   114.500 >>> Diff =    28.500
+ ** Affl. :  411 Tronç:   35         Couc:  4  Col:  38 Lig:  33            **
+    Altitude Fond Riv =   102.000 < Subs_Nappe =   123.000 >>> Diff =    21.000
+ ** Affl. :  411 Tronç:   34         Couc:  4  Col:  39 Lig:  33            **
+    Altitude Fond Riv =   103.000 < Subs_Nappe =   117.000 >>> Diff =    14.000
+ ** Affl. :  410 Tronç:   20         Couc:  2  Col:  60 Lig:  33            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   165.900 >>> Diff =    29.900
+ ** Affl. :  410 Tronç:   19         Couc:  2  Col:  61 Lig:  33            **
+    Altitude Fond Riv =   140.000 < Subs_Nappe =   167.700 >>> Diff =    27.700
+ ** Affl. :  410 Tronç:   16         Couc:  4  Col:  62 Lig:  33            **
+    Altitude Fond Riv =   143.000 < Subs_Nappe =   153.000 >>> Diff =    10.000
+ ** Affl. :  410 Tronç:   13         Couc:  4  Col:  65 Lig:  33            **
+    Altitude Fond Riv =   149.000 < Subs_Nappe =   171.000 >>> Diff =    22.000
+ ** Affl. :  410 Tronç:   12         Couc:  4  Col:  66 Lig:  33            **
+    Altitude Fond Riv =   153.000 < Subs_Nappe =   172.700 >>> Diff =    19.700
+ ** Affl. :  421 Tronç:   73         Couc:  2  Col:  25 Lig:  34            **
+    Altitude Fond Riv =    88.000 < Subs_Nappe =    89.000 >>> Diff =     1.000
+ ** Affl. :  421 Tronç:   72         Couc:  2  Col:  26 Lig:  34            **
+    Altitude Fond Riv =    88.000 < Subs_Nappe =   102.600 >>> Diff =    14.600
+ ** Affl. :  411 Tronç:   32         Couc:  2  Col:  40 Lig:  34            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   133.800 >>> Diff =    27.800
+ ** Affl. :  411 Tronç:   30         Couc:  4  Col:  40 Lig:  36            **
+    Altitude Fond Riv =   107.000 < Subs_Nappe =   108.000 >>> Diff =     1.000
+ ** Affl. :  411 Tronç:   29         Couc:  4  Col:  41 Lig:  36            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   116.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   28         Couc:  4  Col:  41 Lig:  37            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   120.000 >>> Diff =    11.000
+ ** Affl. :  411 Tronç:   27         Couc:  4  Col:  42 Lig:  37            **
+    Altitude Fond Riv =   107.000 < Subs_Nappe =   112.000 >>> Diff =     5.000
+ ** Affl. :  411 Tronç:   26         Couc:  4  Col:  43 Lig:  37            **
+    Altitude Fond Riv =   108.000 < Subs_Nappe =   124.000 >>> Diff =    16.000
+ ** Affl. :  411 Tronç:   25         Couc:  4  Col:  43 Lig:  38            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   120.000 >>> Diff =    11.000
+ ** Affl. :  411 Tronç:   24         Couc:  4  Col:  44 Lig:  38            **
+    Altitude Fond Riv =   111.000 < Subs_Nappe =   118.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   23         Couc:  4  Col:  44 Lig:  39            **
+    Altitude Fond Riv =   115.000 < Subs_Nappe =   124.000 >>> Diff =     9.000
+ ** Affl. :  411 Tronç:   20         Couc:  4  Col:  45 Lig:  41            **
+    Altitude Fond Riv =   118.000 < Subs_Nappe =   134.000 >>> Diff =    16.000
+ ** Affl. :  411 Tronç:   19         Couc:  4  Col:  46 Lig:  41            **
+    Altitude Fond Riv =   119.000 < Subs_Nappe =   122.000 >>> Diff =     3.000
+ ** Affl. :  411 Tronç:   18         Couc:  4  Col:  47 Lig:  41            **
+    Altitude Fond Riv =   124.000 < Subs_Nappe =   128.000 >>> Diff =     4.000
+ ** Affl. :  411 Tronç:   17         Couc:  4  Col:  47 Lig:  42            **
+    Altitude Fond Riv =   125.000 < Subs_Nappe =   130.000 >>> Diff =     5.000
+ ** Affl. :  411 Tronç:   15         Couc:  4  Col:  49 Lig:  42            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   129.000 >>> Diff =     1.000
+ ** Affl. :  411 Tronç:   14         Couc:  4  Col:  49 Lig:  43            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   143.800 >>> Diff =    17.800
+ ** Affl. :  411 Tronç:   13         Couc:  4  Col:  50 Lig:  43            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   138.500 >>> Diff =    10.500
+ ** Affl. :  411 Tronç:   12         Couc:  4  Col:  51 Lig:  43            **
+    Altitude Fond Riv =   130.000 < Subs_Nappe =   137.900 >>> Diff =     7.900
+ ** Affl. :  411 Tronç:   10         Couc:  4  Col:  52 Lig:  43            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   137.000 >>> Diff =     4.000
+
+  ** Pas de temps n° 0 ; Date = 1.832E+07 :
+ ==> 85 Tronçon(s) avec Niveau Rivière < Altitude du fond de la rivière
+                       ou Altitude fond < Substratum  nappe
+                       ou Altitude fond > Topographie nappe
+                       ou Perméabilité Lit > 0. +  Épaisseur Lit = 0.
+                       ou          Largeur = 0. ou      Longueur = 0.
+                       ou Manning  +   Rugosité = 0. ou Pente du lit = 0.
+
+ ** Affl. :  420 Tronç:    4         Couc:  4  Col:  29 Lig:  14            **
+    Altitude Fond Riv =   142.000 < Subs_Nappe =   148.400 >>> Diff =     6.400
+ ** Affl. :  420 Tronç:    3         Couc:  2  Col:  30 Lig:  14            **
+    Altitude Fond Riv =   149.000 < Subs_Nappe =   160.700 >>> Diff =    11.700
+ ** Affl. :  420 Tronç:    5         Couc:  2  Col:  29 Lig:  15            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   150.000 >>> Diff =    14.000
+ ** Affl. :  413 Tronç:    2         Couc:  1  Col:  21 Lig:  16            **
+    Altitude Fond Riv =   166.000 < Subs_Nappe =   182.900 >>> Diff =    16.900
+ ** Affl. :  420 Tronç:    7         Couc:  2  Col:  28 Lig:  16            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   138.100 >>> Diff =     5.100
+ ** Affl. :  420 Tronç:    8         Couc:  2  Col:  28 Lig:  17            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   134.300 >>> Diff =     6.300
+ ** Affl. :  413 Tronç:    6         Couc:  1  Col:  19 Lig:  18            **
+    Altitude Fond Riv =   135.000 < Subs_Nappe =   137.000 >>> Diff =     2.000
+ ** Affl. :  413 Tronç:    5         Couc:  1  Col:  20 Lig:  18            **
+    Altitude Fond Riv =   140.000 < Subs_Nappe =   167.800 >>> Diff =    27.800
+ ** Affl. :  420 Tronç:    9         Couc:  1  Col:  28 Lig:  18            **
+    Altitude Fond Riv =   127.000 < Subs_Nappe =   147.000 >>> Diff =    20.000
+ ** Affl. :  413 Tronç:    7         Couc:  1  Col:  19 Lig:  19            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   148.000 >>> Diff =    22.000
+ ** Affl. :  420 Tronç:   10         Couc:  1  Col:  28 Lig:  19            **
+    Altitude Fond Riv =   120.000 < Subs_Nappe =   128.000 >>> Diff =     8.000
+ ** Affl. :  420 Tronç:   11         Couc:  1  Col:  28 Lig:  20            **
+    Altitude Fond Riv =   118.000 < Subs_Nappe =   142.000 >>> Diff =    24.000
+ ** Affl. :  420 Tronç:   12         Couc:  1  Col:  28 Lig:  21            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   118.000 >>> Diff =     2.000
+ ** Affl. :  420 Tronç:   15         Couc:  2  Col:  28 Lig:  24            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   113.200 >>> Diff =     7.200
+ ** Affl. :  420 Tronç:   16         Couc:  1  Col:  28 Lig:  25            **
+    Altitude Fond Riv =   102.000 < Subs_Nappe =   133.000 >>> Diff =    31.000
+ ** Affl. :  420 Tronç:   17         Couc:  4  Col:  28 Lig:  26            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =    97.500 >>> Diff =     1.500
+ ** Affl. :  420 Tronç:   18         Couc:  4  Col:  28 Lig:  27            **
+    Altitude Fond Riv =    98.000 < Subs_Nappe =   100.000 >>> Diff =     2.000
+ ** Affl. :  420 Tronç:   19         Couc:  2  Col:  29 Lig:  27            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   116.700 >>> Diff =    20.700
+ ** Affl. :  410 Tronç:   46         Couc:  4  Col:  42 Lig:  27            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   110.900 >>> Diff =     4.900
+ ** Affl. :  412 Tronç:   57         Couc:  2  Col:  34 Lig:  28            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   101.800 >>> Diff =     5.800
+ ** Affl. :  410 Tronç:   49         Couc:  2  Col:  40 Lig:  28            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   110.000 >>> Diff =     4.000
+ ** Affl. :  410 Tronç:   48         Couc:  2  Col:  41 Lig:  28            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   124.000 >>> Diff =    18.000
+ ** Affl. :  410 Tronç:   45         Couc:  2  Col:  42 Lig:  28            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   126.700 >>> Diff =    20.700
+ ** Affl. :  420 Tronç:   22         Couc:  4  Col:  29 Lig:  29            **
+    Altitude Fond Riv =    91.000 < Subs_Nappe =    95.000 >>> Diff =     4.000
+ ** Affl. :  421 Tronç:   23         Couc:  4  Col:  30 Lig:  29            **
+    Altitude Fond Riv =    90.000 < Subs_Nappe =   102.000 >>> Diff =    12.000
+ ** Affl. :  412 Tronç:   60         Couc:  2  Col:  32 Lig:  29            **
+    Altitude Fond Riv =    95.000 < Subs_Nappe =    98.900 >>> Diff =     3.900
+ ** Affl. :  412 Tronç:   59         Couc:  2  Col:  33 Lig:  29            **
+    Altitude Fond Riv =    97.000 < Subs_Nappe =   101.600 >>> Diff =     4.600
+ ** Affl. :  412 Tronç:   55         Couc:  2  Col:  35 Lig:  29            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   105.300 >>> Diff =     9.300
+ ** Affl. :  410 Tronç:   51         Couc:  2  Col:  39 Lig:  29            **
+    Altitude Fond Riv =   100.000 < Subs_Nappe =   116.600 >>> Diff =    16.600
+ ** Affl. :  410 Tronç:   41         Couc:  2  Col:  45 Lig:  29            **
+    Altitude Fond Riv =   115.000 < Subs_Nappe =   139.500 >>> Diff =    24.500
+ ** Affl. :  410 Tronç:   39         Couc:  4  Col:  47 Lig:  29            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   116.800 >>> Diff =     0.800
+ ** Affl. :  419 Tronç:    1         Couc:  1  Col:   7 Lig:  30            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   109.100 >>> Diff =     0.100
+ ** Affl. :  419 Tronç:    2         Couc:  1  Col:   8 Lig:  30            **
+    Altitude Fond Riv =   104.000 < Subs_Nappe =   111.000 >>> Diff =     7.000
+ ** Affl. :  421 Tronç:   63         Couc:  4  Col:  30 Lig:  30            **
+    Altitude Fond Riv =    87.000 < Subs_Nappe =   113.000 >>> Diff =    26.000
+ ** Affl. :  411 Tronç:   40         Couc:  2  Col:  36 Lig:  30            **
+    Altitude Fond Riv =    99.000 < Subs_Nappe =   108.700 >>> Diff =     9.700
+ ** Affl. :  410 Tronç:   37         Couc:  4  Col:  48 Lig:  30            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   121.500 >>> Diff =     5.500
+ ** Affl. :  421 Tronç:   64         Couc:  4  Col:  30 Lig:  31            **
+    Altitude Fond Riv =    86.000 < Subs_Nappe =    94.000 >>> Diff =     8.000
+ ** Affl. :  411 Tronç:   38         Couc:  2  Col:  37 Lig:  31            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   103.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   37         Couc:  2  Col:  38 Lig:  31            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   113.100 >>> Diff =    17.100
+ ** Affl. :  410 Tronç:   36         Couc:  2  Col:  48 Lig:  31            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   133.000 >>> Diff =    17.000
+ ** Affl. :  410 Tronç:   32         Couc:  4  Col:  50 Lig:  31            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   121.000 >>> Diff =     5.000
+ ** Affl. :  410 Tronç:   31         Couc:  4  Col:  51 Lig:  31            **
+    Altitude Fond Riv =   121.000 < Subs_Nappe =   141.400 >>> Diff =    20.400
+ ** Affl. :  410 Tronç:    1         Couc:  5  Col:  75 Lig:  31            **
+    Altitude Fond Riv =   198.000 < Subs_Nappe =   200.100 >>> Diff =     2.100
+ ** Affl. :  411 Tronç:   36         Couc:  2  Col:  38 Lig:  32            **
+    Altitude Fond Riv =    97.000 < Subs_Nappe =   104.000 >>> Diff =     7.000
+ ** Affl. :  410 Tronç:   34         Couc:  4  Col:  49 Lig:  32            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   122.800 >>> Diff =     6.800
+ ** Affl. :  410 Tronç:   33         Couc:  4  Col:  50 Lig:  32            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   128.300 >>> Diff =    12.300
+ ** Affl. :  410 Tronç:   30         Couc:  4  Col:  51 Lig:  32            **
+    Altitude Fond Riv =   123.000 < Subs_Nappe =   131.700 >>> Diff =     8.700
+ ** Affl. :  410 Tronç:   29         Couc:  4  Col:  52 Lig:  32            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   132.500 >>> Diff =     6.500
+ ** Affl. :  410 Tronç:   28         Couc:  4  Col:  53 Lig:  32            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   131.100 >>> Diff =     5.100
+ ** Affl. :  410 Tronç:   27         Couc:  4  Col:  54 Lig:  32            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   127.700 >>> Diff =     1.700
+ ** Affl. :  410 Tronç:   26         Couc:  2  Col:  55 Lig:  32            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   156.200 >>> Diff =    30.200
+ ** Affl. :  410 Tronç:   25         Couc:  4  Col:  56 Lig:  32            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   136.300 >>> Diff =     3.300
+ ** Affl. :  410 Tronç:   24         Couc:  4  Col:  57 Lig:  32            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   150.600 >>> Diff =    14.600
+ ** Affl. :  410 Tronç:   23         Couc:  4  Col:  58 Lig:  32            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   139.000 >>> Diff =     3.000
+ ** Affl. :  410 Tronç:   22         Couc:  4  Col:  59 Lig:  32            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   139.000 >>> Diff =     3.000
+ ** Affl. :  410 Tronç:   21         Couc:  4  Col:  60 Lig:  32            **
+    Altitude Fond Riv =   138.000 < Subs_Nappe =   140.000 >>> Diff =     2.000
+ ** Affl. :  410 Tronç:   17         Couc:  4  Col:  62 Lig:  32            **
+    Altitude Fond Riv =   143.000 < Subs_Nappe =   171.300 >>> Diff =    28.300
+ ** Affl. :  421 Tronç:   70         Couc:  2  Col:  27 Lig:  33            **
+    Altitude Fond Riv =    86.000 < Subs_Nappe =   114.500 >>> Diff =    28.500
+ ** Affl. :  411 Tronç:   35         Couc:  4  Col:  38 Lig:  33            **
+    Altitude Fond Riv =   102.000 < Subs_Nappe =   123.000 >>> Diff =    21.000
+ ** Affl. :  411 Tronç:   34         Couc:  4  Col:  39 Lig:  33            **
+    Altitude Fond Riv =   103.000 < Subs_Nappe =   117.000 >>> Diff =    14.000
+ ** Affl. :  410 Tronç:   20         Couc:  2  Col:  60 Lig:  33            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   165.900 >>> Diff =    29.900
+ ** Affl. :  410 Tronç:   19         Couc:  2  Col:  61 Lig:  33            **
+    Altitude Fond Riv =   140.000 < Subs_Nappe =   167.700 >>> Diff =    27.700
+ ** Affl. :  410 Tronç:   16         Couc:  4  Col:  62 Lig:  33            **
+    Altitude Fond Riv =   143.000 < Subs_Nappe =   153.000 >>> Diff =    10.000
+ ** Affl. :  410 Tronç:   13         Couc:  4  Col:  65 Lig:  33            **
+    Altitude Fond Riv =   149.000 < Subs_Nappe =   171.000 >>> Diff =    22.000
+ ** Affl. :  410 Tronç:   12         Couc:  4  Col:  66 Lig:  33            **
+    Altitude Fond Riv =   153.000 < Subs_Nappe =   172.700 >>> Diff =    19.700
+ ** Affl. :  421 Tronç:   73         Couc:  2  Col:  25 Lig:  34            **
+    Altitude Fond Riv =    88.000 < Subs_Nappe =    89.000 >>> Diff =     1.000
+ ** Affl. :  421 Tronç:   72         Couc:  2  Col:  26 Lig:  34            **
+    Altitude Fond Riv =    88.000 < Subs_Nappe =   102.600 >>> Diff =    14.600
+ ** Affl. :  411 Tronç:   32         Couc:  2  Col:  40 Lig:  34            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   133.800 >>> Diff =    27.800
+ ** Affl. :  411 Tronç:   30         Couc:  4  Col:  40 Lig:  36            **
+    Altitude Fond Riv =   107.000 < Subs_Nappe =   108.000 >>> Diff =     1.000
+ ** Affl. :  411 Tronç:   29         Couc:  4  Col:  41 Lig:  36            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   116.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   28         Couc:  4  Col:  41 Lig:  37            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   120.000 >>> Diff =    11.000
+ ** Affl. :  411 Tronç:   27         Couc:  4  Col:  42 Lig:  37            **
+    Altitude Fond Riv =   107.000 < Subs_Nappe =   112.000 >>> Diff =     5.000
+ ** Affl. :  411 Tronç:   26         Couc:  4  Col:  43 Lig:  37            **
+    Altitude Fond Riv =   108.000 < Subs_Nappe =   124.000 >>> Diff =    16.000
+ ** Affl. :  411 Tronç:   25         Couc:  4  Col:  43 Lig:  38            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   120.000 >>> Diff =    11.000
+ ** Affl. :  411 Tronç:   24         Couc:  4  Col:  44 Lig:  38            **
+    Altitude Fond Riv =   111.000 < Subs_Nappe =   118.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   23         Couc:  4  Col:  44 Lig:  39            **
+    Altitude Fond Riv =   115.000 < Subs_Nappe =   124.000 >>> Diff =     9.000
+ ** Affl. :  411 Tronç:   20         Couc:  4  Col:  45 Lig:  41            **
+    Altitude Fond Riv =   118.000 < Subs_Nappe =   134.000 >>> Diff =    16.000
+ ** Affl. :  411 Tronç:   19         Couc:  4  Col:  46 Lig:  41            **
+    Altitude Fond Riv =   119.000 < Subs_Nappe =   122.000 >>> Diff =     3.000
+ ** Affl. :  411 Tronç:   18         Couc:  4  Col:  47 Lig:  41            **
+    Altitude Fond Riv =   124.000 < Subs_Nappe =   128.000 >>> Diff =     4.000
+ ** Affl. :  411 Tronç:   17         Couc:  4  Col:  47 Lig:  42            **
+    Altitude Fond Riv =   125.000 < Subs_Nappe =   130.000 >>> Diff =     5.000
+ ** Affl. :  411 Tronç:   15         Couc:  4  Col:  49 Lig:  42            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   129.000 >>> Diff =     1.000
+ ** Affl. :  411 Tronç:   14         Couc:  4  Col:  49 Lig:  43            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   143.800 >>> Diff =    17.800
+ ** Affl. :  411 Tronç:   13         Couc:  4  Col:  50 Lig:  43            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   138.500 >>> Diff =    10.500
+ ** Affl. :  411 Tronç:   12         Couc:  4  Col:  51 Lig:  43            **
+    Altitude Fond Riv =   130.000 < Subs_Nappe =   137.900 >>> Diff =     7.900
+ ** Affl. :  411 Tronç:   10         Couc:  4  Col:  52 Lig:  43            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   137.000 >>> Diff =     4.000
+
+  ** Pas de temps n° 1 ; Date = 1.840E+07 :
+ ==> 85 Tronçon(s) avec Niveau Rivière < Altitude du fond de la rivière
+                       ou Altitude fond < Substratum  nappe
+                       ou Altitude fond > Topographie nappe
+                       ou Perméabilité Lit > 0. +  Épaisseur Lit = 0.
+                       ou          Largeur = 0. ou      Longueur = 0.
+                       ou Manning  +   Rugosité = 0. ou Pente du lit = 0.
+
