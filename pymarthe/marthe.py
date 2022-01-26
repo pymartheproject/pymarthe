@@ -78,6 +78,23 @@ class MartheModel():
 
     def load_geometry(self, g=None):
         """
+        Load and store geometry grid information of a MartheModel instance.
+
+        Parameters:
+        ----------
+        g (str, optional) : Marthe geometry grid file.
+                            Can be 'sepon', 'topog', 'hsubs', ..
+                            If None all geometry grid file will be loaded.
+                            Default is None.
+
+        Returns:
+        --------
+        mf (MartheField) : store geometry field in .geometry attribut.
+
+        Examples:
+        --------
+        mm.load_geometry('sepon')
+        
         """
         # ---- Fetch geometry field to load
         _g = list(self.geometry.keys()) if g is None else marthe_utils.make_iterable(g)
