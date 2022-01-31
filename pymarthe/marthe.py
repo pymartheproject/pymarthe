@@ -94,7 +94,7 @@ class MartheModel():
         Examples:
         --------
         mm.load_geometry('sepon')
-        
+
         """
         # ---- Fetch geometry field to load
         _g = list(self.geometry.keys()) if g is None else marthe_utils.make_iterable(g)
