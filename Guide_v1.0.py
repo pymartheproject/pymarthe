@@ -332,7 +332,7 @@ mm.load_prop('soil')
 ms = mm.prop['soil']
 
 '''
-The main data corrspond to a simple table (DataFrame) with the correspondance 
+The main data correspond to a simple table (DataFrame) with the correspondance 
 between the existing soil properties in .mart file, the id of the spatial zone
 and the value of the given soil property.
 '''
@@ -358,7 +358,7 @@ Moreover, some wrappers of usefull functionalities of MartheField instance can b
 use on soil properties. 
 '''
 # ---- Sampling (from points shapefile)
-shpname = os.path.join('export', 'points.shp')
+shpname = os.path.join(mm.mldir, 'export', 'points.shp')
 x,y = shp_utils.shp2points(shpname, stack=False)
 ms.sample('cap_sol_progr', x, y)
 
