@@ -56,7 +56,7 @@ class MartheField():
 
 
 
-    def sample(self, x, y, layer):
+    def sample(self, x, y, layer, masked_values=None):
         """
         Sample field data by x, y, layer coordinates.
         It will perform simple a spatial intersection with field data.
@@ -65,6 +65,7 @@ class MartheField():
         ----------
         x, y (float/iterable) : xy-coordinate(s) of the required point(s)
         layer (int/iterable) : layer id(s) to intersect data.
+        masked_values (None/list): values to ignore during the sampling process 
 
         Returns:
         --------
@@ -88,13 +89,15 @@ class MartheField():
         if self.mm.spatial_index is None:
             self.mm.build_spatial_idx()
 
+        # -- Manage masked values
+        nd = [] if masked_values is None else marthe_utils.make_iterable(masked_values)
+
         # ---- Perform intersection on spatial index
         dfs = []
         for ix, iy, ilay in zip(_x, _y, _layer):
             # -- Sorted output index   
             idx = sorted(self.mm.spatial_index.intersection((ix,iy)))
             # -- Subset by layer for value != 0 or 9999
-            nd = [0., 9999.]
             q1 = f'layer=={ilay} & value not in @nd'
             df = pd.DataFrame(self.data[idx]).query(q1)
             dfs.append(df)

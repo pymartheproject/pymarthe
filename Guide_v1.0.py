@@ -399,8 +399,8 @@ The soil property data has to be write in .mart file with the
 
 '''
 The new behaviour of Marthe pumping data is similar than the old version.
-But the pumping data storage has change to be almost the same as MartheField
-with recarray. The readers (in .pastp file) had been changed in favor of 
+But the pumping data storage has change to be a DataFrame (list-like properties).
+The readers (in .pastp file) had been changed in favor of 
 regular expressions (regex) instead of the line-by-line reading.
 
 Reminder:

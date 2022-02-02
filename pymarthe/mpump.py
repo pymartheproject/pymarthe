@@ -53,7 +53,7 @@ class MarthePump():
         self._vars = self.vars + ['qfilename', 'qtype', 'qrow', 'qcol']
         self.qtypes = ['mail', 'record', 'listm']
 
-        # ---- Read pumping data (and metadata) from .pastp file according to pumping type
+        # ---- Read pumping data (and metadata) from .pastp file according to pumping type (DataFrame)
         self._extract_data(mode)
 
 
@@ -82,16 +82,15 @@ class MarthePump():
         if self.mode == 'aquifer':
             self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
             # ---- Convert xy columns to ij
-            if all(loc in self.data.dtype.names for loc in list('xy')):
+            if all(loc in self.data.columns for loc in list('xy')):
                 # -- Print message to inform about convertion
                 print('Converting xy pumping data into row(s), column(s) ...')
                 # -- Fetch data as DataFrame
-                _df = pd.DataFrame(self._data)
+                _df = self._data.copy(deep=True)
                 # -- Convert xy to ij (could take a while)
-                _df['i'], _df['j'] = self.mm.get_ij(_df.pop('x'),_df.pop('y'))
+                _df['i'], _df['j'] = self.mm.get_ij(_df['x'], _df['y'])
                 _df['boundname'] =_df['i'].astype(str) + '_' + _df['j'].astype(str)
-                self.data, self._data = [ _df[c].to_records(index=False) for c in [self.vars, self._vars] ]
-                
+                self.data, self._data = _df[self.vars], _df[self._vars]
         # ---- Manage 'rivpump'
         if self.mode == 'river':
             # ---- Convert aff/trc data in column, line, plan (layer) format in .pastp file
@@ -170,7 +169,7 @@ class MarthePump():
         """
 
         # ---- Transform records to Dataframe for query purpose
-        df = pd.DataFrame.from_records(self.data)
+        df = self.data.copy(deep=True)
 
         # ---- Get columns to perform queries
         col_query = df.drop('value', axis=1).columns
@@ -189,7 +188,7 @@ class MarthePump():
             return mask
         # ---- Return data as recarray
         else:
-            return df.loc[mask].to_records(index=False)
+            return df.loc[mask]
 
 
 
@@ -229,14 +228,13 @@ class MarthePump():
 
         """
         # ---- Convert existing meta data (recarray) in DataFrame
-        df = pd.DataFrame.from_records(self._data)
+        df = self._data.copy(deep=True)
         # ---- Get boolean mask of required data
         mask = self.get_data(istep, layer, i, j, boundname, as_mask=True)
         # ---- change value 
         df.loc[mask, 'value'] = value
         # ---- replace previous data
-        self._data = df[self._vars].to_records(index=False)
-        self.data = df[self.vars].to_records(index=False)
+        self._data, self.data = df[self._vars], df[self.vars]
 
 
 
@@ -274,7 +272,7 @@ class MarthePump():
         # ---- Get boolean mask of wanted data
         mask = self.get_data(istep=istep, layer=layer, i=i, j=j, as_mask=True)
         # --- Extract boundname on subset data
-        df = pd.DataFrame.from_records(self.data)
+        df = self.data.copy(deep=True)
         boundnames = df.loc[mask, 'boundname'].unique().tolist()
         # ---- Return boundnames as list of string
         return boundnames
@@ -299,12 +297,11 @@ class MarthePump():
         mp.switch_boundnames(switch_dic = {'B1951752/F1': 'F1'})
         """
         # ---- Convert existing meta data (recarray) in DataFrame
-        df = pd.DataFrame.from_records(self._data)
+        df = self._data.copy(deep=True)
         # ---- Use .replace method on boundname column
         df['boundname'] = df['boundname'].replace(switch_dic)
         # ---- Set new data
-        self._data = df[self._vars].to_records(index=False)
-        self.data = df[self.vars].to_records(index=False)
+        self._data, self.data = df[self._vars], df[self.vars]
 
 
 
@@ -339,13 +336,12 @@ class MarthePump():
         elif isinstance(qtype, str):
             qtypes = [qtype]
 
-        # ---- Fetch metadata as DataFrame
-        df = pd.DataFrame.from_records(self._data)
-        gb = df.groupby('qtype')
+        # ---- group data by qtype
+        gb = self._data.groupby('qtype')
 
         # ---- Split data by qtype
         dfs = [gb.get_group(qt) 
-               if qt in df['qtype'].unique()
+               if qt in self._data['qtype'].unique()
                else pd.DataFrame() 
                for qt in qtypes]
 

@@ -969,8 +969,7 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
                 _dfs.append(_df)
 
     # ---- Return concatenate (meta)DataFrame
-    data, metadata = [df.reset_index(drop=True).to_records(index=False)
-                      for df in list(map(pd.concat, [dfs, _dfs]))]
+    data, metadata = [df.reset_index(drop=True) for df in list(map(pd.concat, [dfs, _dfs]))]
     return data, metadata
 
 
