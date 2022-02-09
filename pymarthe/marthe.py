@@ -15,7 +15,7 @@ from datetime import datetime
 from .mfield import MartheField
 from .mpump import MarthePump
 from .msoil import MartheSoil
-from .utils import marthe_utils, shp_utils
+from .utils import marthe_utils, shp_utils, pest_utils
 
 encoding = 'latin-1'
 
@@ -37,8 +37,9 @@ class MartheModel():
         mm = MartheModel('/Users/john/zone/model/mymodel.rma')
 
         """
-        # ---- Get model working directory and rma file 
-        self.mldir, self.rma_file = os.path.split(rma_path)
+        # ---- Get model working directory and rma file
+        self.rma_path = rma_path 
+        self.mldir, self.rma_file = os.path.split(self.rma_path)
 
         # ---- Get model name 
         self.mlname = self.rma_file.split('.')[0]
@@ -233,6 +234,40 @@ class MartheModel():
         # ---- Not supported property
         else:
             print(f"Property `{prop}` not supported.")
+
+
+
+
+    @classmethod
+    def from_config(cls, configfile):
+        """
+        """
+        # -- Build MartheModel from configuration file
+        hdic, pdics = pest_utils.read_config(configfile)
+        mm = cls(hdic['Model full path'])
+
+        # -- Iterate over parameter dictionaries
+        for pdic in pdics:
+            # -- Load property by name
+            prop = pdic['property name']
+            if not prop in mm.prop.keys():
+                mm.load_prop(prop)
+
+            # -- Set list-like properties
+            if pdic['type'] == 'list':
+                mm.prop[prop].set_data_from_parfile(parfile = os.path.normpath(pdic['parfile']),
+                                                    keys = pdic['keys'].split('\t'),
+                                                    optname = pdic['optname'],
+                                                    btrans = pdic['btrans'])
+            # -- Set list-like properties
+            elif pdic['type'] == 'array':
+                pass
+
+        # -- Return MartheModel instance
+        return mm
+
+
+
 
 
 

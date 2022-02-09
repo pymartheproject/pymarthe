@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pandas as pd
 import re, ast
-from .utils import marthe_utils
+from .utils import marthe_utils, pest_utils
 
 
 encoding = 'latin-1'
@@ -55,6 +55,8 @@ class MarthePump():
 
         # ---- Read pumping data (and metadata) from .pastp file according to pumping type (DataFrame)
         self._extract_data(mode)
+        # ---- Set property style
+        self._proptype = 'list'
 
 
 
@@ -89,13 +91,16 @@ class MarthePump():
                 _df = self._data.copy(deep=True)
                 # -- Convert xy to ij (could take a while)
                 _df['i'], _df['j'] = self.mm.get_ij(_df['x'], _df['y'])
-                _df['boundname'] =_df['i'].astype(str) + '_' + _df['j'].astype(str)
                 self.data, self._data = _df[self.vars], _df[self._vars]
         # ---- Manage 'rivpump'
         if self.mode == 'river':
             # ---- Convert aff/trc data in column, line, plan (layer) format in .pastp file
             marthe_utils.convert_at2clp_pastp(self.pastp_file, mm = self.mm)
             self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
+
+        # ---- Set generic boundnames
+        generic_bdn =  [f'pump_{i}_{j}' for i,j in zip(self.data.i, self.data.j)]
+        self.data['boundname'], self._data['boundname'] = [generic_bdn]*2
 
 
 
@@ -190,6 +195,22 @@ class MarthePump():
         else:
             return df.loc[mask]
 
+
+
+    def set_data_from_parfile(self, parfile, keys, optname, btrans):
+        """
+        """
+        # -- Get all data
+        df = self._data.copy(deep=True)
+        # -- Get kmi and transformed values
+        kmi, bvalues = pest_utils.parse_mlp_parfile(parfile, keys, optname, btrans)
+        # -- Convert to MultiIndex Dataframe
+        mi_df = df.set_index(keys)
+        # -- Set values and back to single index
+        mi_df.loc[kmi, optname] = bvalues.values
+        data = mi_df.reset_index()
+        # -- Set data inplace
+        self.data, self._data = data[self.vars], data[self._vars]
 
 
 
@@ -296,12 +317,10 @@ class MarthePump():
         --------
         mp.switch_boundnames(switch_dic = {'B1951752/F1': 'F1'})
         """
-        # ---- Convert existing meta data (recarray) in DataFrame
-        df = self._data.copy(deep=True)
         # ---- Use .replace method on boundname column
-        df['boundname'] = df['boundname'].replace(switch_dic)
-        # ---- Set new data
-        self._data, self.data = df[self._vars], df[self.vars]
+        self._data['boundname'].replace(switch_dic, inplace=True)
+        self.data['boundname'].replace(switch_dic, inplace=True)
+
 
 
 

@@ -13,6 +13,12 @@ from pymarthe import *
 from .utils import marthe_utils, pest_utils
 
 
+base_obs = ['obsnme', 'date', 'obsval',
+            'datatype', 'locnme', 'obsfile',
+            'weight', 'obgnme', 'trans' ]
+
+
+
 class MartheObs():
     """
     Class to manage Marthe or external observations for PEST coupling purpose
@@ -53,16 +59,20 @@ class MartheObs():
                                
         weight (list, kwargs): weight per each observations
 
-        transform (str/func, kwargs) : keyword/function to use for transforming 
+        trans (str/func, kwargs) : keyword/function to use for transforming 
                                        observation values.
                                        Can be:
                                         - function (np.log10, np.sqrt, ...)
                                         - string function name ('log10', 'sqrt')
 
+        insfile (str, kwargs) : path to the instruction file 
+                                (for writing purpose)
+                                Default build as 'locnme.ins'
+
         Examples
         --------
         dt = pd.date_range('1996-05-09', '2003-06-10', freq='D')
-        mobs = MartheObs(0, 'p31', dt, value, weigth = 0.5, transform = 'log10')
+        mobs = MartheObs(0, 'p31', dt, value, weigth = 0.5, trans = 'log10')
 
         """
 
@@ -76,8 +86,12 @@ class MartheObs():
         self.obsfile = obsfile
         self.weight = kwargs.get('weight', 1)
         self.obgnme = kwargs.get('obgnme', locnme)
-        self.transform = kwargs.get('transform', 'none')
-        self.obs_df = pd.DataFrame()
+
+        # -- Check transformation validity
+        self.trans = kwargs.get('trans', 'none')
+        pest_utils.check_trans(self.trans)
+
+        self.insfile = kwargs.get('insfile', f'{self.locnme}.ins')
 
         # ---- Get number of observation values
         ndigit = len(str(len(self.value)-1))
@@ -90,23 +104,14 @@ class MartheObs():
                             for i in range(len(self.value))]
 
         # ---- Fill observations DataFrame with input data
-        self.obs_df = self.obs_df.assign(obsval = self.value,
-                                         date = self.date,
-                                         obsnme = self.obsnmes)
-        self.obs_df[['datatype', 'locnme', 'obsfile']] = [self.datatype,
-                                                          self.locnme,
-                                                          self.obsfile]
-        # ---- Add kwargs if required
-        self.obs_df['weight'] = self.weight
-        self.obs_df['obgnme'] = self.obgnme
-        self.obs_df['transform'] = self.transform
-
-        # ---- Set observation names as index
-        self.obs_df.set_index('obsnme', drop=False, inplace=True)
+        self.obs_df = pd.DataFrame(index=self.obsnmes)
+        self.obs_df[base_obs] = [ self.obsnmes, self.date, self.value,
+                                  self.datatype, self.locnme, self.obsfile,
+                                   self.weight, self.obgnme, self.trans ]
 
 
 
-    def write_ins(self, ins_dir = '.'):
+    def write_insfile(self, ins_dir = '.'):
         """
         Write formatted instruction file (pest).
         Wrapper of pest_utils.write_insfile().
@@ -124,8 +129,16 @@ class MartheObs():
         --------
         mmobs.write_ins('ins')
         """
-        insfile = os.path.join(ins_dir, f'{self.locnme}.ins')
+        insfile = os.path.join(ins_dir, self.insfile)
         pest_utils.write_insfile(self.obsnmes, insfile)
+    
+
+
+    def to_config(self):
+        """
+        """
+        infos = ', '.join([self.locnme, self.datatype, self.trans])
+        return infos
 
 
 
@@ -134,9 +147,3 @@ class MartheObs():
         Internal string method.
         """
         return 'MartheObs'
-
-
-    
-
-
-

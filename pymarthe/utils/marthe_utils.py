@@ -836,7 +836,7 @@ def read_listm_qfile(qfile, istep, fmt):
                             names=list(dt.keys()), dtype=dt)
         # ---- Add istep
         df['istep'] = istep
-        df['boundname'] = df['i'].astype(str) + '_' + df['j'].astype(str)
+        df['boundname'] = 'boundname'
         # ---- Manage metadata
         metacols = ['qfilename', 'qtype', 'qrow', 'qcol']
         df[metacols] = np.array([qfile, 'listm', df.index, 0], dtype=object)
@@ -870,7 +870,7 @@ def read_record_qfile(i,j,k,v,qfile,qcol):
     # ---- Read just qcol column in qfile
     data = pd.read_csv(qfile, usecols=[qcol], dtype='f8',  delim_whitespace=True)
     # ---- Extract boundname and value
-    bdnme = data.columns[0]
+    bdnme = 'boundname'
     value = [v] + data[bdnme].tolist()
     istep = qrow = list(range(len(value)))
     df = pd.DataFrame({'istep':istep,'layer':k,'i': i,'j':j,
@@ -923,6 +923,9 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
     re_col = r"\s*Col=\s*({})".format(re_num)
     re_listm_fmt = r'(?<=<)[^<:]+(?=:?>)'
 
+    # ---- Get working directory full path
+    mm_ws = os.path.split(pastpfile)[0]
+
     # ---- Fetch pastp data by block (each block = data for step i)
     with open(pastpfile, 'r', encoding=encoding) as f:
         content = f.read()
@@ -946,7 +949,7 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
                 if any(s in line for s in ['/LISTM', '/LIST_M']):
                     fmt = '|'.join(re.findall(re_listm_fmt, line))
                     path = line.split('N: ')[-1].split('<')[0]
-                    qfilename = os.path.normpath(path.strip())
+                    qfilename = os.path.normpath(os.path.join(mm_ws, path.strip()))
                     # -- Extract data from LISTM qfile (as DataFrame)
                     df, _df = read_listm_qfile(qfilename, istep, fmt)
                 # 2) Manage MAILLE (unique pumping cell)
@@ -955,13 +958,14 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
                     _file, _col = [re.search(r, line) for r in [re_file, re_col]]
                     qcol = 0 if _col is None else int(_col.group(1)) -1 # convert to 0-based
                     if _file is None:
-                        bdnme = str(i) + '_' + str(j)
+                        bdnme = 'boundname'
                         df = pd.DataFrame([[istep,k,i,j,v,bdnme]],
                              columns=['istep','layer','i','j','value','boundname'])
                         _df = df.copy(deep=True)
                         _df[['qfilename', 'qtype', 'qrow','qcol']] = [None, 'mail', None, None]
                     else:
-                        qfilename = os.path.normpath(_file.group(1))
+
+                        qfilename = os.path.normpath(os.path.join(mm_ws, _file.group(1)))
                         df, _df = read_record_qfile(i,j,k,v, qfilename, qcol)
 
                 # ---- Append (meta)DataFrame list

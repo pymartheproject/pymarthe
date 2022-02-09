@@ -9,23 +9,26 @@ import numpy as np
 import pandas as pd 
 import pyemu
 import warnings
+from datetime import datetime
 
 from pymarthe.marthe import MartheModel
 from pymarthe.mobs import MartheObs
-# from pymarthe.mparam import MartheParam
+from pymarthe.mparam import MartheListParam
 from .utils import marthe_utils, pest_utils
 
 
 # ---- Set no data customs values
 NO_DATA_VALUES = [-9999.,-8888.]
 
-# ----- Set columns informations for observations
-base_obs = ['datatype', 'locnme', 'obsval',
-            'date', 'obsfile', 'obgnme',
-            'obsnme','weight', 'transform']
 
-# ----- Set columns informations for parameters
-base_param = []
+base_obs = ['obsnme', 'date', 'obsval',
+            'datatype', 'locnme', 'obsfile',
+            'weight', 'obgnme', 'trans' ]
+
+base_param = ['parnme', 'trans', 'btrans', 'parchglim',
+              'defaultvalue', 'parlbnd', 'parubnd',
+              'pargp', 'scale', 'offset', 'dercom']
+
 
 # ---- Set encoding 
 encoding = 'latin-1'
@@ -38,7 +41,7 @@ class MartheOptim():
     instruction, template, control from a Marthe model
     and other external data.
     """
-    def __init__(self, mm, name = None):
+    def __init__(self, mm, name = None, **kwargs):
         """
         Parameters
         ----------
@@ -62,13 +65,64 @@ class MartheOptim():
         self.name = f'{mm.mlname}_optim' if name is None else name
         # ---- Initialize observation and parameters
         self.obs, self.param = {}, {}
-        self._base_obs_df, self.obs_df = [pd.DataFrame(columns = base_obs)]*2
-        self._base_param_df, self.param_df = [pd.DataFrame(columns = base_param)]*2
-        #self.props = ['permh', 'emmca', 'emmli','kepon', 'aqpump', 'rivpump']
         # ---- Fetch available observation localisation names
         self.available_locnmes = marthe_utils.read_histo_file(mm.mlfiles['histo']).index
         # ---- Set commun no data values
         self.nodata = NO_DATA_VALUES
+        # ---- Set parameter and observation folder
+        self.par_dir = kwargs.get('par_dir', '.')
+        self.tpl_dir = kwargs.get('tpl_dir', '.')
+        self.ins_dir = kwargs.get('ins_dir', '.')
+        self.sim_dir = kwargs.get('sim_dir', '.')
+        self.obs_dir = kwargs.get('obs_dir', '.')
+
+
+
+    def get_obs_df(self):
+        """
+        Get all observations information in a large DataFrame.
+
+        Parameters:
+        ----------
+
+        Returns:
+        --------
+        obs_df (DataFrame) : merged provided observations
+
+        Examples:
+        --------
+        moptim.get_obs_df()
+        """
+        if len(self.obs) > 0:
+            return pd.concat([mo.obs_df for mo in self.obs.values()])
+        else:
+            return pd.DataFrame(columns = base_obs)
+
+
+
+
+    def get_param_df(self):
+        """
+        Get all parameters informations in a large DataFrame.
+
+        Parameters:
+        ----------
+
+        Returns:
+        --------
+        param_df (DataFrame) : merged provided parameters
+
+        Examples:
+        --------
+        moptim.get_param_df()
+        """
+        if len(self.param) > 0:
+            return pd.concat([mp.param_df for mp in self.param.values()])
+        else:
+            return pd.DataFrame(columns = base_param)
+
+
+
 
 
 
@@ -79,8 +133,7 @@ class MartheOptim():
 
         Parameters:
         ----------
-        self : MartheObs instance
-        locnme (str, optinonal) : name of a set of observation
+        locnme (str/it, optinonal) : name of a set of observation
         null_weight (bool, optional) : consider observation with null weight.
                                        Default is True
 
@@ -93,16 +146,14 @@ class MartheOptim():
         print(f"There are {moptim.get_nobs()} observations.")
         """
         # ---- Subset by locnme if required
-        if locnme is None:
-            df = self.obs_df
-        else:
-            df = self.obs_df.query(f"locnme == '{locnme}'")
+        _ln = list(self.obs.keys()) if locnme is None else marthe_utils.make_iterable(locnme)
+        # ---- Build query
+        q = "locnme in @_ln"
         # ---- Ignore null weight observation if required
         if not null_weight:
-            nobs = len(df.query("weight != 0"))
-        else:
-            nobs = len(df)
+            q = ' & '.join([q, "weight != 0"])
         # ---- Return
+        nobs = len(self.get_obs_df().query(q))
         return nobs
 
 
@@ -113,7 +164,7 @@ class MartheOptim():
 
         Parameters:
         ----------
-        datatype (str, optional) : required data type
+        datatype (str/it, optional) : required data type
 
         Returns:
         --------
@@ -123,12 +174,14 @@ class MartheOptim():
         --------
         print(f"There are {moptim.get_nlocs()} observations.")
         """
-        if datatype is None:
-            df = self.obs_df
-        else:
-            df = self.obs_df.query(f"datatype == '{datatype}'")
+        obs_df = self.get_obs_df()
+        # ---- Subset by locnme if required
+        _dt = obs_df['datatype'].unique() if datatype is None else marthe_utils.make_iterable(datatype)
+        # ---- Build query
+        q = "datatype in @_dt"
         # ---- Return
-        return len(df['locnme'].unique())
+        nlocs = len(obs_df.query(q)['locnme'].unique())
+        return nlocs
 
 
 
@@ -149,7 +202,8 @@ class MartheOptim():
         ndt = moptim.get_ndatatypes()
         print(f"There are {ndt} observation data types")
         """
-        return len(self.obs_df['datatype'].unique())
+        ndt = len(self.get_obs_df()['datatype'].unique())
+        return ndt
 
 
 
@@ -237,7 +291,7 @@ class MartheOptim():
 
         weight (list, kwargs): weight per each observations
 
-        transform (str/func, kwargs) : keyword/function to use for transforming 
+        trans (str/func, kwargs) : keyword/function to use for transforming 
                                        observation values.
                                        Can be:
                                         - function (np.log10, np.sqrt, ...)
@@ -288,7 +342,7 @@ class MartheOptim():
         mobs = MartheObs(iloc = self.get_nlocs(),
                          locnme = locnme,
                          date = df.index,
-                         value = df['value'],
+                         value = df['value'].values,
                          obsfile = obsfile,
                          datatype = datatype,
                          **kwargs)
@@ -300,10 +354,6 @@ class MartheOptim():
         # ---- Build MartheObs instance
         self.obs[locnme] = mobs
 
-        # ---- Update main observation DataFrame
-        obs_dfs = [self.obs_df, mobs.obs_df]
-        self.obs_df = pd.concat(obs_dfs)
-
         # # ---- Verbose
         # print(f"Observation '{locnme}' had been added successfully.")
 
@@ -311,45 +361,77 @@ class MartheOptim():
 
     def remove_obs(self, locnme=None, verbose=False):
         """
-        Delete observation(s) provided observations
+        Delete provided observation(s) 
 
         Parameters:
         ----------
-        locnme (str, optional) : observation location name (ex. BSS id).
+        locnme (str/it, optional) : observation location name (ex. BSS id).
                                  If None, all locnmes will be removed.
                                  Default is None.
+        verbose (bool) : print message about deleted observation(s)
 
         Returns:
         --------
         Delete observation(s) by locnme in
-        observation dictionary and DataFrame.
+        observation dictionary.
 
         Examples:
         --------
-        moptim.delete_obs('p31.dat')
+        moptim.delete_obs('p31')
         """
+
         if locnme is None:
-            # ---- Load (again) empty DataFrame
-            self.obs_df = self._base_obs_df
             self.obs = {}
             if verbose:
                 print('All provided observations had been removed successfully.')
         else:
-            del self.obs[locnme]
-            self.obs_df = self.obs_df.query(f"locnme != '{locnme}'")
+            for ln in marthe_utils.make_iterable(locnme):
+                del self.obs[ln]
+                if verbose:
+                    print(f"Observation `{ln}` had been removed successfully.")
+
+
+    def remove_param(self, parname=None, verbose=False):
+        """
+        Delete provided parameter(s).
+
+        Parameters:
+        ----------
+        parname (str/it, optional) : parameter name(s) (ex. 'p31').
+                                 If None, all locnmes will be removed.
+                                 Default is None.
+        verbose (bool) : print message about deleted parameter(s)
+
+        Returns:
+        --------
+        Delete parameters(s) by parname in
+        parameter dictionary.
+
+        Examples:
+        --------
+        moptim.delete_param('p31')
+        """
+
+        if parname is None:
+            self.param = {}
             if verbose:
-                print(f"Observation '{locnme}' had been removed successfully.")
+                print('All provided parameters had been removed successfully.')
+        else:
+            for par in marthe_utils.make_iterable(parname):
+                del self.param[par]
+                if verbose:
+                    print(f"Parameter `{par}` had been removed successfully.")
 
 
 
 
-    def set_transform(self, transform, datatype=None, locnme=None):
+    def set_obs_trans(self, trans, datatype=None, locnme=None):
         """
         Set transformation keyword to observations values.
 
         Parameters:
         ----------
-        transform (str/func) : keyword/function to use for transforming 
+        trans (str/func) : keyword/function to use for transforming 
                                        observation values.
                                        Can be:
                                         - function (np.log10, np.sqrt, ...)
@@ -362,64 +444,82 @@ class MartheOptim():
 
         Returns:
         --------
-        Set `transform` argument for required observations.
+        Set `trans` argument for required observations.
 
         Examples:
         --------
-        moptim.set_transform('log10', datatype=['head', 'flow'])
+        moptim.set_trans('log10', datatype=['head', 'flow'])
 
         """
+        # -- Check transformations validity
+        pest_utils.check_trans(trans)
+
+        # ---- Fetch all observation in large DataFrame
+        obs_df = self.get_obs_df()
         # ---- Get datatype, locnme required as iterable
-        _dt = self.obs_df['datatype'].unique() if datatype is None else marthe_utils.make_iterable(datatype)
+        _dt = obs_df['datatype'].unique() if datatype is None else marthe_utils.make_iterable(datatype)
         _ln = self.obs.keys() if locnme is None else marthe_utils.make_iterable(locnme)
 
         # ---- Set transformation to all required data
-        locnmes = self.obs_df.query('datatype in @_dt & locnme in @_ln')['locnme'].unique()
+        locnmes = obs_df.query('datatype in @_dt & locnme in @_ln')['locnme'].unique()
         for ln in locnmes:
-            self.obs[ln].transform = transform
-            self.obs[ln].obs_df['transform'] = transform
-            self.obs_df.loc[self.obs_df.locnme == ln, 'transform'] = transform
+            self.obs[ln].trans = trans
+            self.obs[ln].obs_df['trans'] = trans
 
 
 
 
-    def apply_transform(self, nodata=None):
+
+
+    def set_param_trans(self, trans, btrans, parname=None, pargp=None):
         """
-        Apply transformation to observations values.
+        Set transformation keyword to parameters values.
 
         Parameters:
         ----------
-        nodata (float/list, optional) : observation value to not transform.
-                                        If none, basic no values [-9999., -8888]
-                                        are considered.
-                                        Default is None. 
+        trans (str) : keyword/function to use for transforming 
+                            parameter values.
+        btrans (str) : keyword/function to use for back transforming 
+                            parameter values.
+
+        parname (str/it, optional): parameter name.
+                                 If None, all parameters will be consider.
+                                 Default is None.
+
+        pargp (str/it, optional) : parameter group.
+                                   If None, all parameter groups will be consider.
+                                   Default is None.
 
         Returns:
         --------
-        transformed (DataFrame) : observation DataFrame with transformed 'obsval'.
+        Set `trans` and `btrans` argument for required parameter values.
 
         Examples:
         --------
-        transform_df = moptim.apply_transform()
+        moptim.set_param_trans('log', 'np.exp', pargp = 'pump')
+
         """
-        dfs = []
-        for ln, df in self.obs_df.groupby('locnme'):
-            # -- Manage transformator
-            t = self.obs[ln].transform
-            if t == 'none':
-                t = lambda x : x
-            # -- Build none nodata mask
-            nd = self.nodata if nodata is None else marthe_utils.make_iterable(nodata)
-            mask = ~df['obsval'].isin(nd)
-            df.loc[mask,'obsval'] = df.loc[mask, 'obsval'].transform(t)
-            dfs.append(df)
+        # -- Check transformations validity
+        pest_utils.check_trans(trans)
+        pest_utils.check_trans(btrans)
 
-        # ---- Return transformed observations DataFrame
-        return pd.concat(dfs)
+        # ---- Fetch all parameters in large DataFrame
+        param_df = self.get_param_df()
+        # ---- Get parameter names and groups as iterable
+        _pn = self.param.keys() if parname is None else marthe_utils.make_iterable(parname)
+        _pg = param_df['pargp'].unique() if pargp is None else marthe_utils.make_iterable(pargp)
+
+        # ---- Set transformation to all required data
+        for pn in _pn:
+            if (self.param[pn].parname == pn) & (self.param[pn].pargp in _pg):
+                self.param[pn].trans, self.param[pn].btrans = trans, btrans
+                self.param[pn].param_df[['trans', 'btrans']] = [trans, btrans]
 
 
 
-    def write_ins(self, locnme=None, ins_dir = '.'):
+
+
+    def write_ins(self, locnme=None, ins_dir = None):
         """
         Write formatted instruction file (pest).
         Wrapper of pest_utils.write_insfile().
@@ -440,11 +540,13 @@ class MartheOptim():
         --------
         moptim.write_insfile(locnme = 'myobs', ins_dir = 'ins')
         """
-        # ---- Manage single locnme writing
-        locnmes = list(self.obs.keys()) if locnme is None else [locnme]
+        # ---- Manage multiple locnme writing
+        locnmes = list(self.obs.keys()) if locnme is None else marthe_utils.make_iterable(locnme)
+        # ---- Manage instruction directory
+        ins_dir = self.ins_dir if ins_dir is None else ins_dir
         # ---- Iterate over locnmes
         for locnme in locnmes:
-            self.obs[locnme].write_ins(ins_dir=ins_dir)
+            self.obs[locnme].write_insfile(ins_dir=ins_dir)
 
 
 
@@ -531,9 +633,11 @@ class MartheOptim():
         """
         # ----- Verify at least 1 locnme exist
         msg = f'ERROR : no observations provided yet. Use .add_obs() function.'
-        assert len(self.obs_df) > 0, msg
+        assert len(self.obs) > 0, msg
+        # ---- Extract actual observation DataFrame
+        obs_df = self.get_obs_df()
         # ---- Build default dictionary
-        default_dic = {dt: 1 for dt in self.obs_df['datatype'].unique()}
+        default_dic = {dt: 1 for dt in obs_df['datatype'].unique()}
         # ---- Set tuning factor dictionary
         if lambda_dic is None:
             lambda_dic = default_dic
@@ -544,7 +648,7 @@ class MartheOptim():
         # ---- Iterate over data types
         for datatype in default_dic.keys():
             # -- Get number of observation sets for a given data type
-            dt_df = self.obs_df.query(f"datatype == '{datatype}'")
+            dt_df = obs_df.query(f"datatype == '{datatype}'")
             m = self.get_nlocs(datatype)
             # ---- Iterate over locnmes
             for locnme in dt_df['locnme'].unique():
@@ -553,20 +657,127 @@ class MartheOptim():
                 # -- Compute weights
                 w = pest_utils.compute_weight(lambda_dic[datatype], lambda_n, m, n, sigma_dic[datatype])
                 # -- Set computed weights
-                mask = (self.obs_df.datatype == datatype) & (self.obs_df.locnme == locnme)
-                self.obs_df.loc[mask, 'weight'] = w
-                self.obs[locnme].obs_df['weight'] = w
                 self.obs[locnme].weight = w
+                self.obs[locnme].obs_df['weight'] = w
 
 
 
 
 
-    def add_param(self):
+    def add_param(self, parname, mobj, **kwargs):
         """
         *** UNDER DEVELOPMENT ***
         """
+        if mobj._proptype == 'array':
+            izone = kwargs.pop('izone', None)
+            self._add_map(parname, mobj, izone, spacing, **kwargs)
+            pass
+        elif mobj._proptype == 'list':
+            kmi = kwargs.pop('kmi', None)
+            self._add_mlp(parname, mobj, kmi, **kwargs)
+
+
+
+    def _add_map(self, parname, mobj, izone, **kwargs):
+        """
+        """
         return
+
+
+
+    def _add_mlp(self, parname, mobj, kmi, **kwargs):
+        """
+        """
+        # -- Bunch of assertion to avoid invalid inputs
+        optname = kwargs.get('optname', 'value')
+        err_kmi = 'ERROR : list-like parameter require a KeysMultiIndex (`kmi`) argument. ' \
+                   'See pymarthe.utils.pest_utils.get_kmi() function.'
+        err_optname = f'ERROR : invalid `optname` argument. '\
+                      f'Must be a column name of {str(mobj)} object. ' \
+                      f'Given : {optname}.'
+        assert kmi is not None, err_kmi
+        assert optname in mobj.data.columns, err_optname
+        # -- Build MartheListParam instance (mlp)
+        tplfile = kwargs.pop('tplfile', os.path.join(self.tpl_dir, f'{parname}.tpl'))
+        parfile = kwargs.pop('parfile', os.path.join(self.par_dir, f'{parname}.dat'))
+        mlp = MartheListParam(parname= parname,
+                              mobj= mobj,
+                              kmi=kmi,
+                              parfile = parfile,
+                              tplfile = tplfile,
+                              **kwargs)
+
+        self.param[parname] = mlp
+
+
+
+
+
+    def write_config(self, filename=None):
+        """
+        """
+        # -- Set configuration file name
+        dfilename = os.path.join(self.mm.mldir, f'{self.name}.config')
+        configfile = dfilename if filename is None else filename
+
+        # -- Generate header informations
+        title = 'MARTHE OPTIMIZATION CONFIGURATION FILE'
+        title += ' ({})'.format(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+        mlname = 'Model name: {}'.format(self.mm.mlname)
+        mlrp = 'Model full path: {}'.format(os.path.join(self.mm.rma_path))
+        npar = 'Number of parameters: {}'.format(len(self.get_param_df()))
+        nblock = 'Number of parameters blocks: {}'.format(len(self.param))
+        ndt = 'Number of observation data types: {}'.format(self.get_ndatatypes())
+        nloc = 'Number of observation sets: {}'.format(self.get_nlocs())
+        nobs = 'Number of observations: {}'.format(self.get_nobs())
+        nobs0 = 'Number of not null observations: {}'.format(self.get_nobs(null_weight=False))
+        par_dir = 'Parameter files directory: {}'.format(self.par_dir)
+        tpl_dir = 'Parameter templates directory: {}'.format(self.tpl_dir)
+        headers = '\n'.join([mlname, mlrp, ndt, nloc, nobs, nobs0,
+                             npar, nblock, par_dir, tpl_dir])
+
+        # -- Write config file
+        with open(configfile, 'w', encoding=encoding) as f:
+            # -- write headers
+            f.write(title + '\n'*2)
+            f.write('***\n')
+            f.write(headers)
+            f.write('\n***')
+            f.write('\n'*2)
+            # -- Write parameter configuration blocks
+            for mp in self.param.values():
+                f.write(mp.to_config())
+                f.write('\n'*2)
+
+            # -- Write parameter configuration block
+            f.write('\n[START_OBS]\n')
+            f.write('\n'.join([mo.to_config() for mo in self.obs.values()]))
+            f.write('\n[END_OBS]\n')
+
+
+
+
+    def write_parfile(self, parname= None):
+        """
+        """
+        # -- Manage parameter name to write
+        pnmes = self.param.keys() if parname is None else marthe_utils.make_iterable(parname)
+        # -- Write parameter file for each provided parameter
+        for pnme in pnmes:
+            self.param[pnme].write_parfile()
+
+
+
+    def write_tpl(self, parname= None):
+        """
+        """
+        # -- Manage parameter name to write
+        pnmes = self.param.keys() if parname is None else marthe_utils.make_iterable(parname)
+        # -- Write parameter file for each provided parameter
+        for pnme in pnmes:
+            self.param[pnme].write_tplfile()
+
+
 
 
     def build_pst(self):

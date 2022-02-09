@@ -52,6 +52,8 @@ class MartheField():
         self.set_data(data)
         self.maxlayer = len(self.to_grids(inest=0))
         self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
+        # ---- Set property style
+        self._proptype = 'array'
 
 
 
@@ -504,10 +506,10 @@ class MartheField():
         df = pd.DataFrame.from_records(data).assign(parts=parts)
 
         # ---- Apply mask values
-        if not masked_values is None:
-            df = df[~df['value'].isin(masked_values)]
-            # ---- Fetch subset parts (goemetries)
-            parts = df.pop('parts')
+        mv = [] if masked_values is None else masked_values
+        df = df[~df['value'].isin(mv)]
+        # ---- Fetch subset parts (goemetries)
+        parts = df.pop('parts')
 
         # ---- Log transform if required
         values = df.pop('value')

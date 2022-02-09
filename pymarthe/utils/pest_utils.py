@@ -3,6 +3,7 @@
 import os
 import numpy as np
 import pandas as pd
+import re, ast
 
 ############################################################
 #        Utils for pest preprocessing for Marthe
@@ -12,6 +13,11 @@ import pandas as pd
 #Modified from PyEMU 
 #https://github.com/jtwhite79/pyemu/
 # ----------------------------------------------------------------------------------------------------------
+
+
+# ---- Set encoding
+encoding = 'latin-1'
+
 
 # ---- Set formater dictionaries
 def SFMT(item):
@@ -25,9 +31,180 @@ FFMT = lambda x: "{0:<20.10E} ".format(float(x))
 IFMT = lambda x: "{0:<10d} ".format(int(x))
 FMT_DIC = {"obsnme": SFMT, "obsval": FFMT, "ins_line": SFMT, "date": SFMT, "value": FFMT}
 PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value": FFMT}
+LL_PARAM_DIC = {"parnme": SFMT, "tplnme": SFMT, "defaultvalue": FFMT, 'transformed': FFMT}
 
 # ---- Set observation character start and length
 VAL_START, VAL_CHAR_LEN = 12, 19
+
+
+
+def write_mlp_tplfile(tplfile, param_df):
+    """
+    """
+    df = param_df.copy(deep=True)
+    df['tplnme'] = '~' + df['parnme'].str.replace('__', '_')  + '~'
+    with open(tplfile, 'w', encoding=encoding) as f:
+        f.write('ptf ~\n')
+        f.write(df.to_string(col_space=0, columns=['parnme', 'tplnme'],
+                                   formatters=LL_PARAM_DIC, justify="left",
+                                   header=False, index=False, index_names=False,
+                                   max_rows = len(df), min_rows = len(df)))
+
+
+def write_mlp_parfile(parfile, param_df, trans='none'):
+    """
+    """
+    df = param_df.copy(deep=True)
+    df['transformed'] = transform(param_df['defaultvalue'], trans)
+    with open(parfile, 'w', encoding=encoding) as f:
+        f.write(df.to_string(col_space=0, columns=['parnme', 'transformed'],
+                             formatters=LL_PARAM_DIC, justify="left",
+                             header=False, index=False, index_names=False,
+                             max_rows = len(df), min_rows = len(df)))
+
+
+
+def read_mlp_parfile(parfile):
+    """
+    """
+    par_df = pd.read_csv(parfile, header=None,
+                         delim_whitespace=True, names = ['parnme','value'])
+    return par_df
+
+
+
+
+
+def parse_mlp_parfile(parfile, keys, optname, btrans):
+    """
+    """
+    par_df = read_mlp_parfile(parfile)
+    items = []
+    for ipar in par_df.parnme:
+        parsed = ipar.split('__')
+        items.append([ast.literal_eval(s) 
+                          if s.isnumeric() 
+                          else s 
+                          for s in parsed])
+    kmi = pd.MultiIndex.from_tuples(items, names = keys)
+    bvalues = transform(par_df['value'], btrans)
+    return kmi, bvalues
+
+
+
+
+def transform(it, trans, fail = 'raise'):
+    """
+    """
+    s = pd.Series(it)
+    # -- 
+    res = "Invalid transformation."
+    if trans == 'none':
+        return s.transform(lambda x: x)
+    else:
+        try:
+            res = s.transform(trans)
+        except:
+            pass
+        finally:
+            try:
+                res = s.transform(eval(trans))
+            except:
+                pass
+        if isinstance(res, str):
+            if fail == 'raise':
+                raise ValueError(res)
+            else:
+                return False
+        else:
+            return res
+
+
+
+
+def is_valid_trans(trans):
+    """
+    """
+    # -- Generate basic serie
+    s = pd.Series(np.arange(1,3))
+    res = transform(s, trans, fail = 'bool')
+    if isinstance(res, pd.Series):
+        return True
+    else:
+        return False
+
+
+
+
+def check_trans(trans):
+    """
+    """
+    err = 'ERROR: Invalid transformation. Must be a pandas ' \
+          ' string function or a litteral expression understood ' \
+          f'by the python built-in eval() function. Given: {trans}.'
+
+    assert is_valid_trans(trans), err
+
+
+
+
+
+
+def read_config(configfile):
+    """
+    """
+    # -- Get content
+    with open(configfile, 'r', encoding=encoding) as f:
+        content = f.read()
+
+    # -- Set usefull regex
+    re_hblock = r'\*{3}(.+?)\*{3}'
+    re_pblock = r'\[START_PARAM\](.+?)\[END_PARAM\]'
+    re_item_pblock = r'(.+)=\s*(.+)\n'
+    re_item_hblock = r'(.+):\s*(.+)\n'
+
+    # -- Get headers as dictionary
+    hblock =  re.search(re_hblock, content, re.DOTALL).group(0)
+    hdic = dict(re.findall(re_item_hblock, hblock))
+
+    # -- Get parameters info as dictionary
+    pblocks =  re.findall(re_pblock, content, re.DOTALL)
+    pdics = []
+    for pb in  pblocks:
+        pdic = dict(re.findall(re_item_pblock, pb))
+        pdics.append(pdic)
+
+    # --- return
+    return hdic, pdics
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def get_kmi(mobj, keys, **kwargs):
+    """
+    Return standard Keys Multi Index from a marthe object data.
+    keys >= 2
+    """
+    # -- Perform kwargs getting process on Marthe object
+    df = mobj.get_data(**kwargs)
+    # -- Generate KeysMultiIndex
+    kmi = pd.MultiIndex.from_frame(df[keys])
+    # -- Return 
+    return kmi
+
 
 
 
@@ -95,12 +272,15 @@ def write_insfile(obsnmes, insfile):
     df = pd.DataFrame(dict(obsnme = obsnmes))
     df['ins_line'] = df['obsnme'].apply(lambda s: 'l1 ({}){}:{}'.format(s,VAL_START,VAL_CHAR_LEN))
     # ---- Write formated instruction file
-    with open(insfile,'w') as f:
+    with open(insfile,'w', encoding=encoding) as f:
         f.write('pif ~\n')
         f.write(df.to_string(col_space=0, columns=["ins_line"],
                              formatters=FMT_DIC, justify="left",
                              header=False, index=False, index_names=False,
                              max_rows = len(df), min_rows = len(df)))
+
+
+
 
 
 
@@ -144,20 +324,23 @@ def write_simfile(dates, values, simfile):
 
 
 
-def write_tpl_from_df(tpl_file,df, columns = ["name","tpl"] ) :  
-    f_tpl = open(tpl_file,'w')
-    f_tpl.write("ptf ~\n")
-    f_tpl.write(df.to_string(col_space=0,
-        columns=columns,
-        formatters=PP_FMT,
-        justify="left",
-        header=False,
-        index=False) + '\n')
+# def write_tpl_from_df(tpl_file,df, columns = ["name","tpl"] ) :  
+#     f_tpl = open(tpl_file,'w')
+#     f_tpl.write("ptf ~\n")
+#     f_tpl.write(df.to_string(col_space=0,
+#         columns=columns,
+#         formatters=PP_FMT,
+#         justify="left",
+#         header=False,
+#         index=False) + '\n')
 
 
 
-def sum_weighted_squared_res(sim,obs,weight):
-    """
-    Returns sum of weighted squared residuals
-    """
-    return( np.sum( np.pow(weight(sim-obs), 2) ) )
+# def sum_weighted_squared_res(sim,obs,weight):
+#     """
+#     Returns sum of weighted squared residuals
+#     """
+#     return( np.sum( np.pow(weight(sim-obs), 2) ) )
+
+
+
