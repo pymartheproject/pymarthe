@@ -15,11 +15,11 @@ import pandas as pd
 import numpy as np
 #sys.path.append(dev_ws)
 from pymarthe import MartheModel
-from pymarthe.utils import marthe_utils, shp_utils
+from pymarthe.utils import marthe_utils, shp_utils, pest_utils
 from pymarthe.mfield import MartheField
 from pymarthe.mpump import MarthePump
 from pymarthe.msoil import MartheSoil
-from pymarthe.mopt import MartheOptim
+from pymarthe.moptim import MartheOptim
 import matplotlib.pyplot as plt
 
 # 1) --->  MONA MODEL <---
@@ -700,12 +700,11 @@ and correspond to a non-unique set of parameters. These `keys` must be part of t
 column names of the data of the entity parametrized. For example, for a pumping 
 parametrization, the `keys` must be in `mm.prop['aqpump'].data.columns`. The other 
 main argument to provide is the name of the column which values will be parametrized 
-(`optname`). 
+(`value_col`). 
 Note : To build the `kmi` object, the user can use the pest_utils.get_kmi() facility.
 Let's try to perform pumping parametrization on the mona model.
 '''
 
-from pymarthe.utils.pest_utils import get_kmi
 mm = MartheModel(mona_ws)
 mm.load_prop('aqpump')
 mp = mm.prop['aqpump']
@@ -728,7 +727,7 @@ to the following keys : `istep`, `layer`, `boundname`.
 Of course, we have to specilize only the  required values of each keys
 (if it's not specilized, all values are considered).
 '''
-kmi = get_kmi( mobj = mp,
+kmi = pest_utils.get_kmi( mobj = mp,
                keys = ['boundname', 'layer', 'istep',],
                boundname = pwnames, layer = 2)
 print(kmi)
@@ -739,12 +738,12 @@ use the .add_param() method. This will create a new MartheListParam
 instance in the .param dictionary. 
 '''
 # -- Get kmi for first pumping well
-kmi1 = get_kmi( mobj = mp,
+kmi1 = pest_utils.get_kmi( mobj = mp,
                 keys = ['boundname', 'layer', 'istep',],
                 layer = 2, boundname = pwnames[0])
 
 mopt.add_param(parname = pwnames[0], mobj = mp,
-                 kmi = kmi1, optname = 'value')
+                 kmi = kmi1, value_col = 'value')
 
 print(mopt.param)
 print(mopt.param[pwnames[0]].param_df)
@@ -768,30 +767,30 @@ the user need to apply a correct expression function.
 '''
 
 # -- Get kmi for second pumping well
-kmi2 = get_kmi( mobj = mp,
+kmi2 = pest_utils.get_kmi( mobj = mp,
                 keys = ['boundname', 'layer', 'istep',],
                 layer = 2, boundname = pwnames[1])
 '''
 # -- Unvalid transform
 mopt.add_param(parname = '87_15', mobj = mp,
-                 kmi = kmi2, optname = 'value',
+                 kmi = kmi2, value_col = 'value',
                  trans = '-log10',
                  btrans = '-10**x')
 '''
 # -- Valid transform
 mopt.add_param(parname = pwnames[1], mobj = mp,
-                 kmi = kmi2, optname = 'value',
+                 kmi = kmi2, value_col = 'value',
                  trans = 'lambda x: np.log10(-x + 1)',
                  btrans = 'lambda x: - np.power(10, x) + 1')
 
 mopt.param[pwnames[1]].param_df.head()
 
 # -- Add last pumping with default value 
-kmi3 = get_kmi( mobj = mp,
+kmi3 = pest_utils.get_kmi( mobj = mp,
                 keys = ['boundname', 'layer', 'istep',],
                 layer = 2, boundname = pwnames[2])
 mopt.add_param(parname = pwnames[2], mobj = mp,
-                 kmi = kmi3, optname = 'value',
+                 kmi = kmi3, value_col = 'value',
                  defaultvalue = 0, scale = 2)
 
 mopt.param[pwnames[2]].param_df.head()

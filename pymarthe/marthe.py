@@ -238,7 +238,7 @@ class MartheModel():
 
 
 
-    def write_prop(prop=None):
+    def write_prop(self, prop=None):
         """
         Write MartheModel required properties by name.
 

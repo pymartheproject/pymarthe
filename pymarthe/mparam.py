@@ -42,6 +42,11 @@ class MartheListParam():
                        btrans = 'none', defaultvalue=None, **kwargs):
         """
         """
+        self.parname = parname
+        self.type = 'list'
+        self.mobj = mobj
+        self.kmi = kmi
+        self.value_col = value_col
         # -- Set parameter default value
         if defaultvalue is None:
             self.defaultvalue = mobj.data.set_index(self.kmi.names).loc[self.kmi, value_col].to_list()
@@ -53,11 +58,6 @@ class MartheListParam():
                                test_on = marthe_utils.make_iterable(self.defaultvalue))
         
         # -- Atributs
-        self.parname = parname
-        self.type = 'list'
-        self.mobj = mobj
-        self.kmi = kmi
-        self.value_col = value_col
         self.parnmes = self.gen_parnmes()
         self.trans = trans
         self.btrans = btrans

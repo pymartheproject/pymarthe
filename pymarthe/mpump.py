@@ -197,17 +197,17 @@ class MarthePump():
 
 
 
-    def set_data_from_parfile(self, parfile, keys, optname, btrans):
+    def set_data_from_parfile(self, parfile, keys, value_col, btrans):
         """
         """
         # -- Get all data
         df = self._data.copy(deep=True)
         # -- Get kmi and transformed values
-        kmi, bvalues = pest_utils.parse_mlp_parfile(parfile, keys, optname, btrans)
+        kmi, bvalues = pest_utils.parse_mlp_parfile(parfile, keys, value_col, btrans)
         # -- Convert to MultiIndex Dataframe
         mi_df = df.set_index(keys)
         # -- Set values and back to single index
-        mi_df.loc[kmi, optname] = bvalues.values
+        mi_df.loc[kmi, value_col] = bvalues.values
         data = mi_df.reset_index()
         # -- Set data inplace
         self.data, self._data = data[self.vars], data[self._vars]

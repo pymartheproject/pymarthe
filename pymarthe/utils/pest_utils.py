@@ -320,10 +320,10 @@ def run_from_config(configfile, **kwargs):
     """
     """
     # -- Load MartheModel with parametrized properties
-    from paymarthe import MartheModel
+    from pymarthe import MartheModel
     mm = MartheModel.from_config(configfile)
     # -- Overwrite new data from parfiles
-    mm.write_data()
+    mm.write_prop()
     # -- Run model
     mm.run_model(**kwargs)
 
