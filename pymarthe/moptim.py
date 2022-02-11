@@ -689,14 +689,14 @@ class MartheOptim():
         """
         """
         # -- Bunch of assertion to avoid invalid inputs
-        optname = kwargs.get('optname', 'value')
+        value_col = kwargs.get('value_col', 'value')
         err_kmi = 'ERROR : list-like parameter require a KeysMultiIndex (`kmi`) argument. ' \
                    'See pymarthe.utils.pest_utils.get_kmi() function.'
-        err_optname = f'ERROR : invalid `optname` argument. '\
+        err_value_col = f'ERROR : invalid `value_col` argument. '\
                       f'Must be a column name of {str(mobj)} object. ' \
-                      f'Given : {optname}.'
+                      f'Given : {value_col}.'
         assert kmi is not None, err_kmi
-        assert optname in mobj.data.columns, err_optname
+        assert value_col in mobj.data.columns, err_value_col
         # -- Build MartheListParam instance (mlp)
         tplfile = kwargs.pop('tplfile', os.path.join(self.tpl_dir, f'{parname}.tpl'))
         parfile = kwargs.pop('parfile', os.path.join(self.par_dir, f'{parname}.dat'))
@@ -748,7 +748,6 @@ class MartheOptim():
             for mp in self.param.values():
                 f.write(mp.to_config())
                 f.write('\n'*2)
-
             # -- Write parameter configuration block
             f.write('\n[START_OBS]\n')
             f.write('\n'.join([mo.to_config() for mo in self.obs.values()]))

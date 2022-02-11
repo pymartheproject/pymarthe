@@ -38,27 +38,29 @@ class MartheListParam():
     """
     Class for handling Marthe list-like properties. 
     """
-    def __init__(self, parname, mobj, kmi, optname = 'value', trans = 'none', 
+    def __init__(self, parname, mobj, kmi, value_col = 'value', trans = 'none', 
                        btrans = 'none', defaultvalue=None, **kwargs):
         """
         """
+        # -- Set parameter default value
+        if defaultvalue is None:
+            self.defaultvalue = mobj.data.set_index(self.kmi.names).loc[self.kmi, value_col].to_list()
+        else:
+            self.defaultvalue = defaultvalue
+
         # -- Transformation validity
-        pest_utils.check_trans(trans)
-        pest_utils.check_trans(btrans)
+        pest_utils.check_trans(trans, btrans,
+                               test_on = marthe_utils.make_iterable(self.defaultvalue))
         
         # -- Atributs
         self.parname = parname
         self.type = 'list'
         self.mobj = mobj
         self.kmi = kmi
-        self.optname = optname
+        self.value_col = value_col
         self.parnmes = self.gen_parnmes()
         self.trans = trans
         self.btrans = btrans
-        if defaultvalue is None:
-            self.defaultvalue = mobj.data.set_index(self.kmi.names).loc[self.kmi, optname].to_list()
-        else:
-            self.defaultvalue = defaultvalue
         self.parchglim = kwargs.get('parchglim', 'factor')
         self.parlbnd = kwargs.get('parlbnd', 1e-10) 
         self.parubnd = kwargs.get('parubnd', 1e+10) 
@@ -96,7 +98,7 @@ class MartheListParam():
             'class= {}'.format(str(self.mobj)),
             'property name= {}'.format(self.mobj.prop_name),
             'keys= {}'.format('\t'.join(self.kmi.names)),
-            'optname= {}'.format(self.optname),
+            'value_col= {}'.format(self.value_col),
             'trans= {}'.format(self.trans),
             'btrans= {}'.format(self.btrans),
             'parfile= {}'.format(self.parfile),

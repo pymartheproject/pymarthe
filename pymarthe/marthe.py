@@ -238,6 +238,48 @@ class MartheModel():
 
 
 
+    def write_prop(prop=None):
+        """
+        Write MartheModel required properties by name.
+
+        Parameters:
+        ----------
+        prop (str) : supported property name.
+                     Can be :
+                     - Field (MartheField)
+                        - 'permh'
+                        - 'emmca'
+                        - 'emmli'
+                        - 'kepon'
+                     - Pumping (MarthePump)
+                        - 'aqpump'
+                        - 'rivpump'
+                     - Zonal Soil properties (MartheSoil)
+                        - 'cap_sol_progr'
+                        - 'aqui_ruis_perc'
+                        - 't_demi_percol'
+                        - 'rumax'
+                        - ...
+
+        Returns:
+        --------
+        write property data (already loaded)
+
+        Examples:
+        --------
+        mm = MartheModel('mona.rma')
+        mm.write_prop('emmca')
+
+        """
+        # -- Manage property(ies) to write 
+        props = self.prop.keys() if prop is None else marthe_utils.make_iterable(prop)
+        # -- Write required properties
+        for p in props:
+            self.prop[p].write_data()
+
+
+
+
     @classmethod
     def from_config(cls, configfile):
         """
@@ -257,7 +299,7 @@ class MartheModel():
             if pdic['type'] == 'list':
                 mm.prop[prop].set_data_from_parfile(parfile = os.path.normpath(pdic['parfile']),
                                                     keys = pdic['keys'].split('\t'),
-                                                    optname = pdic['optname'],
+                                                    value_col = pdic['value_col'],
                                                     btrans = pdic['btrans'])
             # -- Set list-like properties
             elif pdic['type'] == 'array':

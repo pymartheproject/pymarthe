@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 import numpy as np
 import pandas as pd
@@ -75,7 +74,7 @@ def read_mlp_parfile(parfile):
 
 
 
-def parse_mlp_parfile(parfile, keys, optname, btrans):
+def parse_mlp_parfile(parfile, keys, value_col, btrans):
     """
     """
     par_df = read_mlp_parfile(parfile)
@@ -136,16 +135,23 @@ def is_valid_trans(trans):
 
 
 
-def check_trans(trans):
+def check_trans(trans, btrans=None, test_on =None):
     """
     """
-    err = 'ERROR: Invalid transformation. Must be a pandas ' \
-          ' string function or a litteral expression understood ' \
-          f'by the python built-in eval() function. Given: {trans}.'
+    err_trans = 'ERROR: Invalid transformation. Must be a pandas ' \
+                'string function or a litteral expression understood ' \
+                'by the python built-in eval() function. '
 
-    assert is_valid_trans(trans), err
+    err_test = 'ERROR: transformation and back-transformation not compatibles -> ' \
+                f'btrans(trans(value)) != value. Given trans= {trans}, btrans= {btrans}'
 
+    assert is_valid_trans(trans), err_trans + f'Given: {trans}.'
 
+    if btrans is not None:
+        assert is_valid_trans(btrans), err_trans + f'Given: {btrans}.'
+        it = pd.Series(np.arange(-1,3)) if test_on is None else pd.Series(test_on)
+        test = transform(transform(it, trans), btrans)
+        assert all(x for x in it.values == test.values), err_test
 
 
 
@@ -176,20 +182,6 @@ def read_config(configfile):
 
     # --- return
     return hdic, pdics
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -324,23 +316,15 @@ def write_simfile(dates, values, simfile):
 
 
 
-# def write_tpl_from_df(tpl_file,df, columns = ["name","tpl"] ) :  
-#     f_tpl = open(tpl_file,'w')
-#     f_tpl.write("ptf ~\n")
-#     f_tpl.write(df.to_string(col_space=0,
-#         columns=columns,
-#         formatters=PP_FMT,
-#         justify="left",
-#         header=False,
-#         index=False) + '\n')
-
-
-
-# def sum_weighted_squared_res(sim,obs,weight):
-#     """
-#     Returns sum of weighted squared residuals
-#     """
-#     return( np.sum( np.pow(weight(sim-obs), 2) ) )
-
+def run_from_config(configfile, **kwargs):
+    """
+    """
+    # -- Load MartheModel with parametrized properties
+    from paymarthe import MartheModel
+    mm = MartheModel.from_config(configfile)
+    # -- Overwrite new data from parfiles
+    mm.write_data()
+    # -- Run model
+    mm.run_model(**kwargs)
 
 
