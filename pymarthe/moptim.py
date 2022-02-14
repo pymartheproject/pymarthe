@@ -339,11 +339,13 @@ class MartheOptim():
             self.remove_obs(locnme)
 
         # ---- Build MartheObs instance from data input
+        insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))
         mobs = MartheObs(iloc = self.get_nlocs(),
                          locnme = locnme,
                          date = df.index,
                          value = df['value'].values,
                          obsfile = obsfile,
+                         insfile = insfile,
                          datatype = datatype,
                          **kwargs)
 
@@ -519,7 +521,7 @@ class MartheOptim():
 
 
 
-    def write_ins(self, locnme=None, ins_dir = None):
+    def write_ins(self, locnme=None):
         """
         Write formatted instruction file (pest).
         Wrapper of pest_utils.write_insfile().
@@ -542,11 +544,9 @@ class MartheOptim():
         """
         # ---- Manage multiple locnme writing
         locnmes = list(self.obs.keys()) if locnme is None else marthe_utils.make_iterable(locnme)
-        # ---- Manage instruction directory
-        ins_dir = self.ins_dir if ins_dir is None else ins_dir
         # ---- Iterate over locnmes
         for locnme in locnmes:
-            self.obs[locnme].write_insfile(ins_dir=ins_dir)
+            self.obs[locnme].write_insfile()
 
 
 
@@ -783,6 +783,8 @@ class MartheOptim():
         """
         *** UNDER DEVELOPMENT ***
         """
+        # -- Generate a generic pst instance
+        add_
         return
 
 

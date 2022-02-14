@@ -133,6 +133,7 @@ def get_layers_infos(layfile, base = 1):
     layers_infos = df.astype({col:dt for col, dt in zip(df.columns, dtypes)})
     # ---- Manage layer counting from base
     layers_infos['layer'] = layers_infos['layer'].add(base-1)
+
     # ---- Add layer name if exist
     re_lnmes =  r";\s*Name=\s*(.+)\n"
     if re.search(re_lnmes, content) is None:

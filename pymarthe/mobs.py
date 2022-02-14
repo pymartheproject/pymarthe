@@ -111,7 +111,7 @@ class MartheObs():
 
 
 
-    def write_insfile(self, ins_dir = '.'):
+    def write_insfile(self):
         """
         Write formatted instruction file (pest).
         Wrapper of pest_utils.write_insfile().
@@ -129,8 +129,7 @@ class MartheObs():
         --------
         mmobs.write_ins('ins')
         """
-        insfile = os.path.join(ins_dir, self.insfile)
-        pest_utils.write_insfile(self.obsnmes, insfile)
+        pest_utils.write_insfile(self.obsnmes, self.insfile)
     
 
 

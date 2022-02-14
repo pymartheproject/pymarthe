@@ -33,7 +33,7 @@ PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value"
 LL_PARAM_DIC = {"parnme": SFMT, "tplnme": SFMT, "defaultvalue": FFMT, 'transformed': FFMT}
 
 # ---- Set observation character start and length
-VAL_START, VAL_CHAR_LEN = 12, 19
+VAL_START, VAL_CHAR_LEN = 0, 3
 
 
 

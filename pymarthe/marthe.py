@@ -500,6 +500,59 @@ class MartheModel():
 
 
 
+    def get_layer_from_depth(self, x, y, depth, as_list=True):
+        """
+        Function to infer the layer id at a given xyz coordonates.
+
+        Parameters:
+        ----------
+        x, y (float/iterable) : xy-coordinate(s) of the required point(s)
+        depth (float/iterable) : depth to infer (=z)
+        as_list (bool): whatever returning only list of layer ids or 
+                        whole Dataframe with x,y,depth,layer,name.
+                        Default is True.
+
+        Returns:
+        --------
+        ilays (list) : 
+
+        Examples:
+        --------
+        mm = MartheModel('mymodel.rma')
+        x, y = [456788.78, 459388.78], [6789567.2, 6789569.89]
+        layers = mm.get_layer_from_depth(x,y,depth=[223.1, 568])
+
+        """
+        # ---- Verify that
+        if self.geometry['topog'] is None:
+            self.load_geometry('topog')
+        # ---- Make coordinates iterables
+        _x, _y, _d = [marthe_utils.make_iterable(var) for var in [x,y,depth]]
+        # ---- Get topo at x, y points
+        _topo = self.geometry['topog'].sample(x=_x, y=_y, layer=0)['value']
+        # ---- Get copy of layer data
+        df = self.layers_infos.copy(deep=True)
+        # ---- Iterate over xy-topography
+        ilays, layer_nmes = [], []
+        for topo, d in zip(_topo, _d):
+            # -- Compute depth from topo
+            df['depth'] = df['thickness'].cumsum() - topo
+            # -- identify layer id
+            ilay = df.loc[df.depth > d, 'layer'].iloc[0]
+            lay_nme =  df.loc[df.depth > d, 'name'].iloc[0]
+            ilays.append(ilay)
+            layer_nmes.append(lay_nme)
+        # ---- Return
+        if as_list:
+            return ilays
+        else:
+            return pd.DataFrame({'x': _x, 'y': _y, 'depth':_d,
+                                 'layer': ilays, 'name': layer_nmes})
+
+
+
+
+
     def run_model(self,exe_name = 'marthe', rma_file = None, 
                       silent = True, verbose=False, pause=False,
                       report=False, cargs=None):
