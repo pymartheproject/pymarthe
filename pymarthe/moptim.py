@@ -649,11 +649,11 @@ class MartheOptim():
         for datatype in default_dic.keys():
             # -- Get number of observation sets for a given data type
             dt_df = obs_df.query(f"datatype == '{datatype}'")
-            m = self.get_nlocs(datatype)
+            m = len(dt_df['locnme'].unique())
             # ---- Iterate over locnmes
             for locnme in dt_df['locnme'].unique():
                 # -- Get number of observations for a given set of observation
-                n = self.get_nobs(locnme)
+                n = len(dt_df.query('locnme == @locnme'))
                 # -- Compute weights
                 w = pest_utils.compute_weight(lambda_dic[datatype], lambda_n, m, n, sigma_dic[datatype])
                 # -- Set computed weights
