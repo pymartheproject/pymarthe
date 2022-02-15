@@ -124,8 +124,34 @@ class MartheListParam():
         pest_utils.write_mlp_tplfile(tf, self.param_df)
 
 
-    # @classmethod
-    # def from_config(self, configblock):
-    #     """
-    #     """
-    #     return
+    def __str__(self):
+        """
+        Internal string method.
+        """
+        return 'MartheListParam'
+
+
+
+
+
+
+class MartheArrayParam():
+    """
+    Class for handling Marthe array-like properties. 
+    """
+    def __init__(self, parname, mobj, izone, **kwargs):
+        """
+        """
+        self.parname = parname
+        self.type = 'array'
+        self.mobj = mobj
+
+
+
+    def __str__():
+        """
+        Internal string method.
+        """
+        return 'MartheArrayParam'
+
+
