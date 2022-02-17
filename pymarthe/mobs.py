@@ -69,6 +69,17 @@ class MartheObs():
                                 (for writing purpose)
                                 Default build as 'locnme.ins'
 
+        fluc_dic (dict, kwargs) : fluctuation information from fluctuation process.
+                                  Usefull only for fluctuation information.
+
+        interp_method (str, kwargs): Interpolation method to use 
+                                     to match simulated data with observations
+                                     Can be 'linear', 'time', 'index', 'values', 'pad', 'nearest',
+                                     'zero', 'slinear', 'quadratic', 'cubic', 'spline', 'barycentric',
+                                     'polynomial', 'krogh', 'piecewise_polynomial', 'spline', 'pchip',
+                                     'akima', 'from_derivatives'.
+                                     Default is 'index' (linear interpolation on index).
+
         Examples
         --------
         dt = pd.date_range('1996-05-09', '2003-06-10', freq='D')
@@ -109,6 +120,11 @@ class MartheObs():
                                   self.datatype, self.locnme, self.obsfile,
                                    self.weight, self.obgnme, self.trans ]
 
+        # ---- Store fluctuation arguments
+        self.fluc_dic = kwargs.get('fluc_dic', dict())
+        # ---- Store simulated data interpolation
+        self.interp_method = kwargs.get('interp_method', 'index')
+
 
 
     def write_insfile(self):
@@ -136,8 +152,19 @@ class MartheObs():
     def to_config(self):
         """
         """
-        infos = ', '.join([self.locnme, self.datatype, self.trans])
-        return infos
+        lines = ['[START_OBS]']
+        data = [
+            'locnme= {}'.format(self.locnme),
+            'datatype= {}'.format(self.datatype),
+            'trans= {}'.format(self.trans),
+            'fluc_dic= {}'.format(str(self.fluc_dic)),
+            'interp_method= {}'.format(self.interp_method),
+            'dates_out= {}'.format('|'.join([str(v) for v in self.date]))
+              ]
+        lines.extend(data)
+        lines.append('[END_OBS]')
+
+        return '\n'.join(lines)
 
 
 

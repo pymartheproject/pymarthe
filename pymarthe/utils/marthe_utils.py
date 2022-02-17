@@ -608,38 +608,7 @@ def get_dates(pastp_file, mart_file):
 
 
 
-def read_prn(prnfile):
-    '''
-    Description
-    -----------
-
-    This function reads file of simulated data (historiq.prn)
-    and returns files for every points. Each file contains two columns : date and its simulation value
-   
-    Parameters
-    ----------
-    path_file : Directory path with simulated data 
-
-    Return
-    ------
-    df_sim : Dataframe containing the same columns than in the reading file
-
-    
-    Example
-    -----------
-    read_prn(path_file)
-        
-    '''
-    df_sim = pd.read_csv(prnfile,  sep='\t',skiprows = 3,encoding=encoding, 
-                         index_col = 0, parse_dates = True)
-    df_sim.index.names = ['Date']
-    df_sim.columns = df_sim.columns.str.replace(' ','')
-    df_sim = df_sim.iloc[:,1:-1]
-    return  df_sim
-
-
-
-def read_mi_prn(prnfile = 'historiq.prn'):
+def read_prn(prnfile = 'historiq.prn'):
     """
     Function to read simulated prn file
 
@@ -655,7 +624,7 @@ def read_mi_prn(prnfile = 'historiq.prn'):
                      columns = MultiIndex(level_0 = 'type',         # Data type ('Charge', 'Débit', ...)
                                           level_1 = 'gigogne')      # (optional) Refined grid number 
                                                                       (0 <= gigogne <= N_gigogne)
-                                          level_2 = 'boundname',    # Custom name 
+                                          level_2 = 'name',    # Custom name 
 
     Examples:
     --------
@@ -687,9 +656,9 @@ def read_mi_prn(prnfile = 'historiq.prn'):
     tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
     # ---- Set multi-index names
     if nest:
-        idx_names = ['type', 'inest', 'boundname']
+        idx_names = ['type', 'inest', 'name']
     else:
-        idx_names = ['type', 'boundname']
+        idx_names = ['type', 'name']
     # ---- Build multi-index
     midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
     # ---- Read prn file without headers (with date format)
@@ -1141,4 +1110,6 @@ def write_obsfile(date, value, obsfile):
     df = pd.DataFrame(dict(value = list(value)), index = date)
     # ---- Write DataFrame
     df.to_csv(obsfile,  sep = '\t', header = True, index = True)
+
+
 

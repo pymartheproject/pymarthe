@@ -3,6 +3,9 @@ import os
 import numpy as np
 import pandas as pd
 import re, ast
+import pyemu
+
+from pymarthe.utils import ts_utils
 
 ############################################################
 #        Utils for pest preprocessing for Marthe
@@ -33,7 +36,10 @@ PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value"
 LL_PARAM_DIC = {"parnme": SFMT, "tplnme": SFMT, "defaultvalue": FFMT, 'transformed': FFMT}
 
 # ---- Set observation character start and length
-VAL_START, VAL_CHAR_LEN = 0, 3
+VAL_START, VAL_END = 21, 40
+
+# ---- Set parameters columns to switch
+par_switch_col = {'trans':'partrans', 'defaultvalue':'parval1'}
 
 
 
@@ -166,8 +172,10 @@ def read_config(configfile):
     # -- Set usefull regex
     re_hblock = r'\*{3}(.+?)\*{3}'
     re_pblock = r'\[START_PARAM\](.+?)\[END_PARAM\]'
-    re_item_pblock = r'(.+)=\s*(.+)\n'
+    re_oblock = r'\[START_OBS\](.+?)\[END_OBS\]'
     re_item_hblock = r'(.+):\s*(.+)\n'
+    re_item_block = r'(.+)=\s*(.+)\n'
+    
 
     # -- Get headers as dictionary
     hblock =  re.search(re_hblock, content, re.DOTALL).group(0)
@@ -177,11 +185,19 @@ def read_config(configfile):
     pblocks =  re.findall(re_pblock, content, re.DOTALL)
     pdics = []
     for pb in  pblocks:
-        pdic = dict(re.findall(re_item_pblock, pb))
+        pdic = dict(re.findall(re_item_block, pb))
         pdics.append(pdic)
 
+    # -- Get observations info as dictionary
+    oblocks =  re.findall(re_oblock, content, re.DOTALL)
+    odics = []
+    for ob in  oblocks:
+        odic = dict(re.findall(re_item_block, ob))
+        odics.append(odic)
+
+
     # --- return
-    return hdic, pdics
+    return hdic, pdics, odics
 
 
 
@@ -237,8 +253,8 @@ def write_insfile(obsnmes, insfile):
     Write pest instruction file.
     Format:
         pif ~
-        l1 (obsnme0)12:21
-        l1 (obsnme1)12:21
+        l1 (obsnme0)21:40
+        l1 (obsnme1)21:40
 
     Values start at character 12.
     Values is 21 characters long.
@@ -262,7 +278,7 @@ def write_insfile(obsnmes, insfile):
     """
     # ---- Build instruction lines
     df = pd.DataFrame(dict(obsnme = obsnmes))
-    df['ins_line'] = df['obsnme'].apply(lambda s: 'l1 ({}){}:{}'.format(s,VAL_START,VAL_CHAR_LEN))
+    df['ins_line'] = df['obsnme'].apply(lambda s: 'l1 ({}){}:{}'.format(s,VAL_START,VAL_END))
     # ---- Write formated instruction file
     with open(insfile,'w', encoding=encoding) as f:
         f.write('pif ~\n')
@@ -270,8 +286,6 @@ def write_insfile(obsnmes, insfile):
                              formatters=FMT_DIC, justify="left",
                              header=False, index=False, index_names=False,
                              max_rows = len(df), min_rows = len(df)))
-
-
 
 
 
@@ -304,13 +318,85 @@ def write_simfile(dates, values, simfile):
     write_simfile(dates = sim.index, sim, 'mysimfile.dat')
     """
     # ---- Build instruction lines
-    df = pd.DataFrame(dict(value = values), index = dates)
+    df = pd.DataFrame(dict(date= dates, value = values))
     # ---- Write formated instruction file
-    with open(simfile,'w') as f:
-        f.write(df.to_string(col_space=0, columns=["value"],
-                             formatters=FMT_DIC, justify="left",
-                             header=False, index=True, index_names=False,
-                             max_rows = len(df), min_rows = len(df)))
+    df.to_csv(simfile, header=False, index=False, sep='\t', float_format = FFMT, date_format='%s')
+
+
+
+
+
+def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index', fluc_dic=dict(), sim_dir='.'):
+    """
+    """
+    # -- Fetch prn as MultiIndex DataFrame
+    if isinstance(prn, pd.DataFrame):
+        prn_df = prn
+    else:
+        prn_df = marthe_utils.read_prn(prn)
+
+    # -- Manage if fluctuation
+    if len(fluc_dic) == 0:
+        suffix = ''
+        validity = name in prn_df.columns.get_level_values('name')
+    else:
+        suffix, on = fluc_dic['tag'] + 'fluc', fluc_dic['on']
+        validity = name.replace(suffix,'') in prn_df.columns.get_level_values('name')
+    
+    # -- Assert that the required name is in prn
+    err_msg = f'ERROR : `{name}` not found in simulated data. ' \
+              'It must be provided in the Marthe .histo file.'
+    assert validity, err_msg
+
+    # -- Get records by name
+    df = prn_df.xs(key=name.replace(suffix,''), level='name', axis=1)
+    df.columns = ['value']
+
+    # -- Tranform to fluctuation if required
+    if len(fluc_dic) > 0:
+        df = df.apply(lambda col: col.sub(col.agg(on) if isinstance(on, str) else on))
+
+    # -- Interpolate values on observations if required
+    if not dates_out is None:
+        df['value'] = ts_utils.interpolate(df['value'], dates_out, method = interp_method)
+
+    # -- Write simulated data in external file
+    write_simfile(dates = df.index,
+                 values = transform(df['value'], trans).values,
+                 simfile = os.path.join(sim_dir, f'{name}.dat'))
+
+
+
+
+def pst_from_mopt(mopt, add_reg=False):
+    """
+    """
+    # -- Collect io files
+    tpl = [mp.tplfile for mp in mopt.param.values()]
+    par = [mp.parfile for mp in mopt.param.values()]
+    ins = [mo.insfile for mo in mopt.obs.values()]
+    sim = [os.path.join(mopt.sim_dir, f'{mo.locnme}.dat') for mo in mopt.obs.values()]
+
+    # -- Generate basic pst from io files
+    pst = pyemu.Pst.from_io_files(tpl,par,ins,sim)
+
+    # -- Set param data 
+    param_df = mopt.get_param_df().rename(par_switch_col, axis=1)
+    param_df['parnme'] = param_df['parnme'].str.replace('__','_')
+    param_df.set_index('parnme', drop = False, inplace = True)
+    param_df['partrans'] = 'none'
+    pst.parameter_data.loc[param_df.index] = param_df[pst.par_fieldnames]
+
+    # -- Set observation data
+    obs_df = mopt.get_obs_df()
+    pst.observation_data.loc[obs_df.index] = obs_df[pst.obs_fieldnames]
+
+    # -- Add regularization if required
+    if add_reg:
+        pyemu.helpers.zero_order_tikhonov(pst)
+
+    # -- Return Pest Control File
+    return pst
 
 
 
@@ -326,5 +412,15 @@ def run_from_config(configfile, **kwargs):
     mm.write_prop()
     # -- Run model
     mm.run_model(**kwargs)
-
+    # -- Extract simulated data
+    prn = marthe_utils.read_prn(os.path.join(mm.mldir,'historiq.prn'))
+    hdic, _, odics = read_config(configfile)
+    for odic in odics:
+        extract_prn(prn= prn, 
+                    name= odic['locnme'],
+                    dates_out= pd.DatetimeIndex(odic['dates_out'].split('|')),
+                    trans= odic['trans'],
+                    interp_method= odic['interp_method'],
+                    fluc_dic= eval(odic['fluc_dic']),
+                    sim_dir= os.path.normpath(hdic['Simulation files directory']))
 

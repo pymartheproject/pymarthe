@@ -285,7 +285,7 @@ class MartheModel():
         """
         """
         # -- Build MartheModel from configuration file
-        hdic, pdics = pest_utils.read_config(configfile)
+        hdic, pdics, _ = pest_utils.read_config(configfile)
         mm = cls(hdic['Model full path'])
 
         # -- Iterate over parameter dictionaries
