@@ -38,9 +38,6 @@ LL_PARAM_DIC = {"parnme": SFMT, "tplnme": SFMT, "defaultvalue": FFMT, 'transform
 # ---- Set observation character start and length
 VAL_START, VAL_END = 21, 40
 
-# ---- Set parameters columns to switch
-par_switch_col = {'trans':'partrans', 'defaultvalue':'parval1'}
-
 
 
 def write_mlp_tplfile(tplfile, param_df):
@@ -366,37 +363,6 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
                  simfile = os.path.join(sim_dir, f'{name}.dat'))
 
 
-
-
-def pst_from_mopt(mopt, add_reg=False):
-    """
-    """
-    # -- Collect io files
-    tpl = [mp.tplfile for mp in mopt.param.values()]
-    par = [mp.parfile for mp in mopt.param.values()]
-    ins = [mo.insfile for mo in mopt.obs.values()]
-    sim = [os.path.join(mopt.sim_dir, f'{mo.locnme}.dat') for mo in mopt.obs.values()]
-
-    # -- Generate basic pst from io files
-    pst = pyemu.Pst.from_io_files(tpl,par,ins,sim)
-
-    # -- Set param data 
-    param_df = mopt.get_param_df().rename(par_switch_col, axis=1)
-    param_df['parnme'] = param_df['parnme'].str.replace('__','_')
-    param_df.set_index('parnme', drop = False, inplace = True)
-    param_df['partrans'] = 'none'
-    pst.parameter_data.loc[param_df.index] = param_df[pst.par_fieldnames]
-
-    # -- Set observation data
-    obs_df = mopt.get_obs_df()
-    pst.observation_data.loc[obs_df.index] = obs_df[pst.obs_fieldnames]
-
-    # -- Add regularization if required
-    if add_reg:
-        pyemu.helpers.zero_order_tikhonov(pst)
-
-    # -- Return Pest Control File
-    return pst
 
 
 

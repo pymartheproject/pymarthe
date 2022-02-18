@@ -782,11 +782,33 @@ class MartheOptim():
 
 
 
-    def build_pst(self, add_reg = False, write=False, **kwargs):
+    def build_pst(self, add_reg0 = False, write=False, **kwargs):
         """
         """
-        # -- Build pst from MartheOptim 
-        pst = pest_utils.pst_from_mopt(self, add_reg=add_reg)
+        # -- Collect io files
+        tpl = [mp.tplfile for mp in self.param.values()]
+        par = [mp.parfile for mp in self.param.values()]
+        ins = [mo.insfile for mo in self.obs.values()]
+        sim = [os.path.join(self.sim_dir, f'{mo.locnme}.dat') for mo in self.obs.values()]
+
+        # -- Generate basic pst from io files
+        pst = pyemu.Pst.from_io_files(tpl,par,ins,sim)
+
+        # -- Set param data 
+        param_df = self.get_param_df().rename({'trans':'partrans',
+                                               'defaultvalue':'parval1'}, axis=1)
+        param_df['parnme'] = param_df['parnme'].str.replace('__','_')
+        param_df.set_index('parnme', drop = False, inplace = True)
+        param_df['partrans'] = 'none'
+        pst.parameter_data.loc[param_df.index] = param_df[pst.par_fieldnames]
+
+        # -- Set observation data
+        obs_df = self.get_obs_df()
+        pst.observation_data.loc[obs_df.index] = obs_df[pst.obs_fieldnames]
+
+        # -- Add regularization if required
+        if add_reg0:
+            pyemu.helpers.zero_order_tikhonov(pst)
 
         # -- Set kwargs
         for k,v in kwargs.items():
@@ -800,8 +822,8 @@ class MartheOptim():
             pst.write(os.path.join(self.mm.mldir, f'{self.name}.pst'))
         elif isinstance(write, str):
             pst.write(write)
-        else:
-            return pst
+        
+        return pst
 
 
 
@@ -810,3 +832,4 @@ class MartheOptim():
         Internal string method.
         """
         return 'MartheOptim'
+
