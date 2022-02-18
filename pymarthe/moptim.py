@@ -602,7 +602,9 @@ class MartheOptim():
             df['value'] = [x - sub_val if not x in self.nodata else x for x in df['value']]
             # ---- Add fluctuation observation
             new_dt = self.obs[ln].datatype + tag + 'fluc'
-            self.add_obs(data = df, locnme = new_locnme, datatype = new_dt, check_loc = False)
+            self.add_obs(data = df, locnme = new_locnme,
+                         datatype = new_dt, check_loc = False,
+                         fluc_dic = {'tag':tag,'on':on})
 
 
 
@@ -723,35 +725,36 @@ class MartheOptim():
         # -- Generate header informations
         title = 'MARTHE OPTIMIZATION CONFIGURATION FILE'
         title += ' ({})'.format(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-        mlname = 'Model name: {}'.format(self.mm.mlname)
-        mlrp = 'Model full path: {}'.format(os.path.join(self.mm.rma_path))
-        npar = 'Number of parameters: {}'.format(len(self.get_param_df()))
-        nblock = 'Number of parameters blocks: {}'.format(len(self.param))
-        ndt = 'Number of observation data types: {}'.format(self.get_ndatatypes())
-        nloc = 'Number of observation sets: {}'.format(self.get_nlocs())
-        nobs = 'Number of observations: {}'.format(self.get_nobs())
-        nobs0 = 'Number of not null observations: {}'.format(self.get_nobs(null_weight=False))
-        par_dir = 'Parameter files directory: {}'.format(self.par_dir)
-        tpl_dir = 'Parameter templates directory: {}'.format(self.tpl_dir)
-        headers = '\n'.join([mlname, mlrp, ndt, nloc, nobs, nobs0,
-                             npar, nblock, par_dir, tpl_dir])
+        headers = ['***']
+        headers.append('Model name: {}'.format(self.mm.mlname))
+        headers.append('Model full path: {}'.format(os.path.join(self.mm.rma_path)))
+        headers.append('Number of parameters: {}'.format(len(self.get_param_df())))
+        headers.append('Number of parameters blocks: {}'.format(len(self.param)))
+        headers.append('Number of observation data types: {}'.format(self.get_ndatatypes()))
+        headers.append('Number of observation sets: {}'.format(self.get_nlocs()))
+        headers.append('Number of observations: {}'.format(self.get_nobs()))
+        headers.append('Number of not null observations: {}'.format(self.get_nobs(null_weight=False)))
+        headers.append('Parameter files directory: {}'.format(self.par_dir))
+        headers.append('Parameter templates directory: {}'.format(self.tpl_dir))
+        headers.append('Observation files directory: {}'.format(self.obs_dir))
+        headers.append('Simulation files directory: {}'.format(self.sim_dir))
+        headers.append('***')
 
         # -- Write config file
         with open(configfile, 'w', encoding=encoding) as f:
             # -- write headers
-            f.write(title + '\n'*2)
-            f.write('***\n')
-            f.write(headers)
-            f.write('\n***')
+            f.write(title)
+            f.write('\n'*2)
+            f.write('\n'.join(headers))
             f.write('\n'*2)
             # -- Write parameter configuration blocks
             for mp in self.param.values():
                 f.write(mp.to_config())
                 f.write('\n'*2)
             # -- Write parameter configuration block
-            f.write('\n[START_OBS]\n')
-            f.write('\n'.join([mo.to_config() for mo in self.obs.values()]))
-            f.write('\n[END_OBS]\n')
+            for mo in self.obs.values():
+                f.write(mo.to_config())
+                f.write('\n'*2)
 
 
 
@@ -779,13 +782,27 @@ class MartheOptim():
 
 
 
-    def build_pst(self):
+    def build_pst(self, add_reg = False, write=False, **kwargs):
         """
-        *** UNDER DEVELOPMENT ***
         """
-        # -- Generate a generic pst instance
-        add_
-        return
+        # -- Build pst from MartheOptim 
+        pst = pest_utils.pst_from_mopt(self, add_reg=add_reg)
+
+        # -- Set kwargs
+        for k,v in kwargs.items():
+            if k in pst.control_data.__dict__['_df'].index:
+                pst.control_data.__dict__['_df'].loc[k,'value'] = v
+            elif k in pst.reg_data.__dict__.keys():
+                pst.reg_data.__dict__[k] = v
+
+        # -- Return or write pst if required
+        if write == True:
+            pst.write(os.path.join(self.mm.mldir, f'{self.name}.pst'))
+        elif isinstance(write, str):
+            pst.write(write)
+        else:
+            return pst
+
 
 
     def __str__(self):
