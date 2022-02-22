@@ -18,7 +18,7 @@ class MartheGrid():
     Class to handle Marthe single grid.
     """
 
-    def __init__(self, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field = None):
+    def __init__(self, istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field = None):
 
         """
 
@@ -42,6 +42,8 @@ class MartheGrid():
         mygrid = MartheGrid(0, 0, 125, 126, 325., 750., dx, dy, xcc, ycc, array,  field = 'PERMEAB')
 
         """
+        self.field  = '' if field is None else str(field)
+        self.istep  = int(istep)
         self.layer  = int(layer)
         self.inest  = int(inest)
         self.nrow   = int(nrow)
@@ -56,7 +58,8 @@ class MartheGrid():
         self.xcc    = xcc.astype(float)
         self.ycc    = ycc.astype(float)
         self.array  = array.astype(float)
-        self.field  = '' if field is None else str(field)
+        self.xvertices = np.append(np.array(self.xl), self.xl + np.cumsum(self.dx))
+        self.yvertices = np.append(np.array(self.yl), self.yl + np.cumsum(self.dy))
         self.isnested = True if inest != 0 else False
         self.isregular = True if all(len(np.unique(a)) == 1 for a in [dx,dy]) else False
         self.isuniform = True if len(np.unique(array)) == 1 else False

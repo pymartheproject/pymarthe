@@ -16,7 +16,7 @@ import numpy as np
 #sys.path.append(dev_ws)
 from pymarthe import MartheModel
 from pymarthe.utils import marthe_utils, shp_utils, pest_utils
-from pymarthe.mfield import MartheField
+from pymarthe.mfield import MartheField, MartheFieldSeries
 from pymarthe.mpump import MarthePump
 from pymarthe.msoil import MartheSoil
 from pymarthe.moptim import MartheOptim
@@ -130,11 +130,13 @@ ticks = np.arange(1, len(np.unique(mm.get_outcrop())) + 1)
 plt.colorbar(ticks=ticks)
 plt.show()
 
+
+
 # --------------------------------------------------------
 # ---- MartheField instance
 
 '''
-The new MartheFiled instance was created to manage Marthe gridded/field data.
+The MartheFiled instance was created to manage Marthe gridded/field data.
 It generally instantialized with a Marthe grid file such as permh, emmca, emmli, kepon, ..
 All single Marthe grid data in this file are stored in a numpy recarray with
 usefull informations: 'layer', 'inest', 'i', 'j', 'x', 'y', 'value'.
@@ -288,6 +290,98 @@ plt.show()
 # -- Write data as Marthe grid file (Don't do it if you want to keep original data)
 # mf.write_data()
 # mf.write_data('mynewpermhfile.permh')
+
+
+'''
+MartheField instance can export the model cells geometry with field records as 
+spatial vectorized file (shapefile) for a specific layer. To do so, use the 
+.to_shapefile() method.
+'''
+filename = os.path.join(mm.mldir, 'export', 'permh.shp')
+mf.to_shapefile(filename, layer = 5, log=True)
+
+
+# --------------------------------------------------------
+# ---- MartheFieldSeries
+
+'''
+The MartheFieldSeries class was created to read,stack and explore simulated field given by
+a MARTHE model. It can read the field output file (generally named 'chamsim.out') and stack
+a given simulated field as a dictioary of MartheField instance.
+For example, if the MARTHE model write simulated head fields for every time step, the
+MartheFieldSeries will store a dictionary with the following format:
+{istep_0 : MartheField_0, istep_1: MartheField_1, ... , istep_N: MartheField_N}.
+Be careful, the simulated field can contains sevral field for several time steps, it means
+that this text file can be very large and take some time to extract field data. A progresion
+bar may inform the user about the state of data extraction.
+Let's try to collect simulated head data of the MONA model.
+'''
+
+sim = os.path.join(mm.mldir, 'chasim_cal_histo.out')
+mfs = MartheFieldSeries(mm, field = 'charge', outfile=sim)
+mfs.data
+
+
+'''
+MartheFieldSeries has some useful methods to facilitate visualization and post-processing
+manipulation. One of them is the .get_timeseries() method which allows the user to sample
+some points in the model domain to get the time serie values of the given field.
+Let's try it!
+'''
+# -- Add some points on first
+x = [343.4, 370.3, 328.1, 333.4, 346.7]
+y = [223.4, 220.2, 257.1, 289.3, 289.5]
+layer = 0
+
+# -- extract time series
+mfs.get_timeseries(x, y, layer)
+
+'''
+You may notice that default names are given to xy-points, it's possible to provide custom
+names with the `names` argument. Morevover, the user can choose if he prefer to get a index
+as a date, the time step number or both of them (MultiIndex) thank's to the `index` argument.
+'''
+# -- Set custom names
+names = [f'well_{i}' for i in range(len(x))]
+
+# -- Cho0se index
+df = mfs.get_timeseries(x, y, layer, names, index = 'istep')
+print(df)
+df = mfs.get_timeseries(x, y, layer, names, index = 'both')
+print(df)
+df = mfs.get_timeseries(x, y, layer, names, index = 'date')
+print(df)
+
+
+# -- Plot time series of required points easily
+plt.rc('font', family='serif', size=11)
+ax = df['well_0'].plot(figsize=(11,5), lw=1.5, color = 'blue',
+                      xlabel = '', ylabel = 'Heads [m]',
+                      title='Simulated head of well_0')
+ax.fill_between(df.index, df.well_0.min(), df.well_0, color = 'blue', alpha = 0.2)
+plt.show()
+
+'''
+In order to see the evolution of  given simulated field across the time is to save the 
+field simulated values as an animation (.gif format). The .save_animation() method is
+a great tool to do it. The user can manage the duration of each field states
+(`dpf`: duration per frame) and the resolution of the images (`dpi`: dots per inch).
+Note: the user must have the `imageio` python package to save the animation.
+'''
+# -- Focus on layer 7
+filename = os.path.join(mm.mldir, 'export', 'head_animation.gif')
+mfs.save_animation(filename, dpf= 0.3, dpi=200, layer = 7)
+# -- Focus on values between 15-25m
+filename = os.path.join(mm.mldir, 'export', 'head_animation2.gif')
+mfs.save_animation(filename, dpf= 0.3, dpi=200, layer = 7, vmin = 15, vmax = 25, cmap='jet')
+
+
+'''
+A MartheFieldSeries instance can also save the model cells with field values for each
+time step as shapefile object for a given layer with the .to_shapefile() method.
+'''
+filename = os.path.join(mm.mldir, 'export', 'heads.shp')
+mfs.to_shapefile(filename, layer=5)
 
 
 # --------------------------------------------------------
@@ -846,7 +940,7 @@ Let's give an example.
 '''
 
 # -- Add some observations
-# -- Override checking locnmes
+
 ws = os.path.join(mm.mldir, 'obs')
 for dat in os.listdir(ws)[:10]:
     obsfile = os.path.join(ws, dat)

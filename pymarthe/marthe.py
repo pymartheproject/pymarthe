@@ -165,7 +165,7 @@ class MartheModel():
         si = index.Index()
         # ---- Fetch model cell as polygons
         polygons = []
-        for mg in self.imask.to_grids():
+        for mg in self.imask.to_grids(layer=0):
             polygons.extend([p[0] for p in mg.to_pyshp()])
         # ---- Build bounds
         bounds = []
@@ -480,10 +480,10 @@ class MartheModel():
                   f"Given: i = {len(_i)}, j = {len(_j)}."
         assert len(_i) == len(_j), err_msg
 
-        # ---- Subset data by first layer
+        # ---- Subset data by pairs on first layer
         df = pd.DataFrame.from_records(self.imask.get_data(layer=0))
-        #df_ss = df.query(f"i.isin({_i}) & j.isin({_j})", engine = 'python')
-        df_ss = df.query(f"i in @_i  & j in @_j")
+        df['temp'] = df['i'].astype(str) + '_' + df['j'].astype(str)
+        df_ss = df.loc[df.temp.isin([f'{ii}_{jj}' for ii,jj in zip(_i,_j)])]
 
         # ---- Fetch corresponding xcc, ycc
         x, y = [df_ss[c].to_numpy() for c in list('xy')]

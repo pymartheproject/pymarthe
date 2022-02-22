@@ -151,6 +151,7 @@ class MartheObs():
 
     def to_config(self):
         """
+        Convert MartheObs main informations to string.
         """
         lines = ['[START_OBS]']
         data = [

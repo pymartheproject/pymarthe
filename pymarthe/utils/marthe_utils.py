@@ -361,6 +361,7 @@ def read_grid_file(grid_file):
 
     # ---- Define infos regex
     re_headers = [r"Field=(\w*)",
+                  r"Time_Step=([-+]?\d*\.?\d+|\d+)",
                   r"\nLayer=(\d+)",
                   r"Nest_grid=(\d+)",
                   r"X_Left_Corner=([-+]?\d*\.?\d+|\d+)",
@@ -378,7 +379,7 @@ def read_grid_file(grid_file):
     # ---- Iterate over each grid
     grid_list = []
 
-    for field, layer, inest, xl, yl , ncol, nrow, str_grid_tup in zip(*headers, str_grids):
+    for field, istep, layer, inest, xl, yl , ncol, nrow, str_grid_tup in zip(*headers, str_grids):
         # ---- Get 
         data_type, str_grid = str_grid_tup
         # ---- Manage uniform value
@@ -418,7 +419,7 @@ def read_grid_file(grid_file):
             ycc, dy = np.dstack([l[[1,-1]] for l in arr_list[2:-1]])[0]
         # -- Store grid arguments
         layer = int(layer) - 1 # switch to 0-based
-        args = (layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
+        args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # -- Append MartheGrid instance to the grid list
         grid_list.append(MartheGrid(*args))
 

@@ -8,6 +8,7 @@ import os, sys
 import numpy as np
 import pandas as pd
 from copy import deepcopy
+import shutil
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
 
@@ -16,13 +17,13 @@ from .utils import marthe_utils, shp_utils
 from .utils.grid_utils import MartheGrid
 
 encoding = 'latin-1'
-
+dmv = [-9999., 0., 9999] # Default masked values
 
 class MartheField():
     """
     Wrapper Marthe --> python
     """
-    def __init__(self, field, data, mm=None, spatial_index = False):
+    def __init__(self, field, data, mm=None):
         """
         Marthe gridded property instance.
 
@@ -52,6 +53,7 @@ class MartheField():
         self.set_data(data)
         self.maxlayer = len(self.to_grids(inest=0))
         self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
+        self.dmv = dmv 
         # ---- Set property style
         self._proptype = 'array'
 
@@ -109,7 +111,7 @@ class MartheField():
 
 
 
-    def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False):
+    def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values= list()):
         """
         Function to select/subset data.
 
@@ -153,10 +155,12 @@ class MartheField():
             inests = np.unique(self.data['inest'])
         else: 
             inests = marthe_utils.make_iterable(inest)
+        # ---- Manage masked_values
+        mv = marthe_utils.make_iterable(masked_values)
         # ---- Transform records to Dataframe for query purpose
         df = pd.DataFrame.from_records(self.data)
         # ---- Get mask
-        mask = (df['layer'].isin(layers)) & (df['inest'].isin(inests))
+        mask = (df['layer'].isin(layers)) & (df['inest'].isin(inests)) & (~df['value'].isin(mv))
         # ---- Return as mask if required
         if as_mask:
             return mask
@@ -378,7 +382,8 @@ class MartheField():
         dx, dy = map(abs,map(np.gradient, [xcc,ycc])) # Using the absolute gradient
         xl, yl = xcc[0] - dx[0]/2, ycc[-1] - dy[-1]/2
         # ---- Stack all MartheGrid arguments in ordered list
-        args = [layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array]
+        istep = -9999
+        args = [istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array]
         # ---- Return MartheGrid instance
         return MartheGrid(*args, field = self.field)
 
@@ -452,7 +457,7 @@ class MartheField():
 
 
 
-    def to_shapefile(self, filename = None, layer=0, inest=None, masked_values = [-9999., 0.], log = False, epsg=None, prj=None):
+    def to_shapefile(self, filename = None, layer=0, inest=None, masked_values = dmv, log = False, epsg=None, prj=None):
         """
         Write field data as shapefile by layer.
 
@@ -469,7 +474,7 @@ class MartheField():
                                 If None, all nested grid are considered.
                                 Default is None.
         masked_values (list, optional) : field values to ignore.
-                                         Default is [-9999., 0.].
+                                         Default is [-9999., 0., 9999].
         log (bool, optional) : logarithmic transformation of all values.
                                Default is False.
         epsg (int, optional) : Geodetic Parameter Dataset.
@@ -529,7 +534,7 @@ class MartheField():
 
 
 
-    def plot(self, ax=None, layer=0, inest=None, vmin=None, vmax=None, log = False, masked_values = [-9999., 0.], **kwargs):
+    def plot(self, ax=None, layer=0, inest=None, vmin=None, vmax=None, log = False, masked_values = dmv, **kwargs):
         """
         Plot data by layer
 
@@ -546,7 +551,7 @@ class MartheField():
                                 Default is None.
         vmin, vmax (float, optional) : min/max value(s) to plot.
         masked_values (list, optional) : field values to ignore.
-                                         Default is [-9999., 0.].
+                                         Default is [-9999., 0., 9999].
         log (bool, optional) : logarithmic transformation of all values.
                                Default is False.
         **kwargs (optional) : matplotlib.PathCollection arguments.
@@ -634,4 +639,360 @@ class MartheField():
         Internal string method.
         """
         return 'MartheField'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MartheFieldSeries():
+    """
+    Wrapper Marthe --> python
+    Manage series of MartheField instances.
+    """
+    def __init__(self, mm, field, outfile= None):
+        """
+        Time series of MartheField instances.
+
+        Parameters
+        -----------
+        mm (MartheModel) : parent Marthe model.
+                           Note: consider providing a parent MartheModel
+                           instance ss far as possile.
+        field (str) : property name.
+                        Can be :
+                            - 'charge'
+                            - '%saturation'
+                            - ...
+        outfile (str, optional): simulated field file
+                       Default is 'chasim.out'.
+
+
+        Examples
+        -----------
+        mm = MartheField('mona.rma')
+        mfs = MartheFieldSeries(mm, field = 'charge')
+        """
+        self.mm = mm
+        self.field = field
+        self.outfile = os.path.join(self.mm.mldir, 'chamsim.out') if outfile is None else outfile
+        self.data = self._extract_fieldseries()
+
+
+
+
+    def _extract_fieldseries(self):
+        """
+        Extract field data as a series of MartheField instance.
+
+        Parameters:
+        ----------
+
+        Returns:
+        --------
+        mf_dic (dict) : dictionary of MartheField.
+                        Format: { istep_0: MartheField_0,
+                                  ...,
+                                  istep_N: Marthefield_N}
+
+        Examples:
+        --------
+        mf_dic = mfs._extract_fieldseries()
+
+        """
+        # ---- Read outfile
+        print('Reading simulated fields ...')
+        all_grids = marthe_utils.read_grid_file(self.outfile)
+
+        # ---- Extract all data for given field
+        dfs = []
+        print(f'Collecting `{self.field}` field records data ...')
+        for i, mg in enumerate(all_grids):
+            if mg.field.casefold() == self.field.casefold():
+                mg_df = pd.DataFrame(mg.to_records())
+                mg_df['istep']= mg.istep
+                dfs.append(mg_df)
+                marthe_utils.progress_bar((i+1)/len(all_grids))
+        df = pd.concat(dfs).set_index('istep')
+
+        # ---- Rebuild MartheField instance for each provided istep
+        print('\nConverting to MartheField instance ...')
+        mf_dic = df.groupby(df.index).apply(
+                        lambda x: MartheField(self.field, x.to_records(index=False), self.mm)
+                             ).to_dict()
+        # ---- Return field series as dictionary (format: {istep: MartheField()})
+        return mf_dic
+
+
+
+
+
+    def get_timeseries(self, x, y, layer, names= None, index = 'date', masked_values = dmv):
+        """
+        Sample field data by x, y, layer coordinates and stack timeseries in a DataFrame.
+        It will perform simple a spatial intersection with field data.
+
+        Parameters:
+        ----------
+        x, y (float/iterable) : xy-coordinate(s) of the required point(s)
+
+        layer (int/iterable) : layer id(s) to intersect data.
+
+        names (str/list of str, optional) : additional names of each required point coordinates.
+                                            If None, standard names are given according to the 
+                                            coordinates. Example: '23i_45j_6k'
+                                            Default is None.
+
+        masked_values (None/list): values to ignore during the sampling process
+                                   Default are [-9999, 0, 9999].
+
+        index (str, optional) : type of index required for the output DataFrame.
+                                Can be:
+                                    - 'date': index is a pd.DatetimeIndex.
+                                    - 'istep': index is a pd.index
+                                    - 'both': index is a pd.MultiIndex(pd.index, pd.DatetimeIndex)
+                                Default is 'date'.
+
+        Returns:
+        --------
+        df (DataFrame): Output timeseries stack in DataFrame.
+
+
+        Examples:
+        --------
+        x, y = [343., 385.3], [223., 217.2]
+        layer = 0
+        names = ['rec1', 'rec2']
+        df = mfs.get_timeseries(x,y,layer,names)
+        """
+
+        _x, _y, _layer = [marthe_utils.make_iterable(arg) for arg in [x,y,layer]]
+        if (len(_layer) == 1) and (len(_x) > 1) :
+            _layer = list(_layer) * len(_x)
+
+
+        if names is not None:
+            _names = marthe_utils.make_iterable(names)
+            err_msg = 'ERROR : arguments `x`, `y` and `names` must have the same length. ' \
+                      f'Given: len(x) = {len(_x)}, len(y) = {len(_y)}, len(names) = {len(_names)}.'
+
+        # -- Fetch field value at xy-coordinates
+        df = pd.DataFrame.from_records(
+              [self.data[istep].sample(_x, _y, _layer)['value']
+                    for istep in self.data.keys()]
+                    )
+        
+        # -- Add column names
+        if names is None:
+            df.columns = [f'{ix}i_{iy}j_{il}k'
+                            for ix,iy,il
+                            in zip( *self.mm.get_ij(_x,_y), _layer)]
+        else:
+            df.columns = marthe_utils.make_iterable(names)
+
+        # -- Convert basic index to MultiIndex
+        df.set_index( pd.MultiIndex.from_tuples(
+                                [(istep, self.mm.mldates[istep])
+                                        for istep in self.data.keys()],
+                                names = ['istep', 'date']
+                                        ),
+                    inplace = True
+            )
+
+        # -- Return Multiindex DataFrame
+        if index == 'date':
+            return df.droplevel('istep')
+        elif index == 'istep':
+            return df.droplevel('date')
+        else:
+            return df
+
+
+
+
+
+    def save_animation(self, filename,  dpf = 0.25, dpi=200, **kwargs):
+        """
+        Build a .gif animation from a series of field data.
+        /!/ Package `imageio` required /!/
+
+        Parameters:
+        ----------
+        filename (str) : required output file name.
+                         Example: 'myfieldanimation.gif' 
+
+        dpf (float) : duration per frame (in second).
+                      Default is 0.25.
+
+        dpi (int) : dots per inch (=image/plot resolution).
+                    Default is 200. 
+
+        **kwargs : MartheField.plot arguments.
+
+        Returns:
+        --------
+        Save .gif animation in filename.
+
+
+        Examples:
+        --------
+        x, y = [343., 385.3], [223., 217.2]
+        layer = 0
+        names = ['rec1', 'rec2']
+        df = mfs.get_timeseries(x,y,layer,names)
+        """
+        # ---- Try to import imageio package
+        try:
+            import imageio
+        except ImportError:
+            print('ERROR : Could not load `imageio` module. ' \
+                  'Try `pip install imageio`.')
+        # ---- Create temporal folder
+        tdir = '_temp_'
+        if os.path.exists(tdir): shutil.rmtree(tdir)
+        os.mkdir(tdir)
+        # -- Save animation 
+        with imageio.get_writer(filename, mode='I', duration = dpf) as writer:
+            # -- iterate over tiem step
+            for istep, mf in self.data.items():
+                # -- Plot MartheField
+                ax = mf.plot(**kwargs)
+                # -- Add time reference (top left)
+                plt.text(0.01, 0.95,
+                         f'istep : {istep}\ndate : {self.mm.mldates[istep]}',
+                         fontsize = 8, transform=ax.transAxes)
+                # -- Save plot as image
+                digits = len(str(len(self.data)))
+                png = os.path.join(tdir, '{}.png'.format(str(istep).zfill(digits)))
+                ax.get_figure().savefig(png, dpi=dpi)
+                # -- Read image
+                image = imageio.imread(png)
+                writer.append_data(image)
+        # ---- Delete temporal folder
+        shutil.rmtree(tdir)
+        # -- Close all plots
+        plt.close('all')
+        # -- Success message
+        print(f'`{self.field}` animation written in {filename}.')
+
+
+
+
+
+    def to_shapefile(self, filename = None, layer=0, inest=None, masked_values = dmv, log = False, epsg=None, prj=None):
+        """
+        Save field series in shapefile.
+
+        Parameters:
+        ----------
+        filename (str, optional) : shapefile name to write.
+                                   If None, filename = 'field_layer.shp'.
+                                   Default is None.
+
+        layer (int, optional) : layer numerical id to export.
+                                Note : a unique layer id is allowed
+                                Default is 0.
+        inest (int, optional) : nested grid numerical id to export.
+                                If None, all nested grid are considered.
+                                Default is None.
+        masked_values (list, optional) : field values to ignore.
+                                         Default is [-9999., 0., 9999].
+        log (bool, optional) : logarithmic transformation of all values.
+                               Default is False.
+        epsg (int, optional) : Geodetic Parameter Dataset.
+                               Default is None.
+        prj (str, optional) : cartographic projection and coordinates
+                              Default is None.
+
+        Returns:
+        --------
+        Save vectorial geometries and records in filename.
+
+        Examples:
+        --------
+        mfs.to_shapefile(layer=3)
+        """
+        
+        # -- Build filename if not provided
+        if filename is None:
+            filename = f'{self.field}_{layer}.shp'
+
+        # -- Get first istep field
+        mf0 = list(self.data.values())[0]
+
+        # ---- Perform a bunch of assertions on `layer` and `inest` arguments
+        err_msg = f"`layer` must be an integer between 0 and {mf0.maxlayer -1}."
+        assert isinstance(layer, int), err_msg
+        assert 0 <= layer < mf0.maxlayer, err_msg
+
+        # ---- Fetch pyshp parts (polygons) for istep field
+        parts = []
+        for mg in mf0.to_grids(layer=layer, inest=inest):
+            parts.extend(mg.to_pyshp())
+
+        # ---- Prepare masked_value deletion
+        mv = [] if masked_values is None else masked_values
+
+        # ---- Fetch data for all isteps
+        dfs = []
+        for istep, mf in self.data.items():
+            data = mf.get_data(layer=layer, inest=inest)
+            df = pd.DataFrame.from_records(data).assign(parts=parts)
+            # -- Manage masked vales
+            df  = df[~df['value'].isin(mv)]
+            # -- Change column name according to istep
+            digits = len(str(len(self.data)))
+            colname = '{}_{}'.format(self.field, str(istep).zfill(digits))
+            df.rename(columns={'value': colname}, inplace=True)
+            dfs.append(df)
+
+        # -- Concatenate drop duplicated layer,inest,i,j,x,y columns
+        _df = pd.concat(dfs, axis=1)
+        df = _df.loc[:,~_df.columns.duplicated()]
+
+        # ---- Fetch subset parts (goemetries)
+        parts = df.pop('parts')
+
+        # ---- Log transform if required
+        if log:
+            mask = df.columns.str.startswith(self.field)
+            df.loc[:,mask] = df.loc[:,mask].apply(
+                                lambda col: col.transform('log10'))
+            df =  df.loc[:,mask].add_prefix('log_')
+
+        # ---- Convert reccaray to shafile
+        shp_utils.recarray2shp(df.to_records(index=False), np.array(parts),
+                               shpname=filename, epsg=epsg, prj=prj)
+
+
+
+
+
+
+    def __str__(self):
+        """
+        Internal string method.
+        """
+        return 'MartheFieldSeries'
+
+
+
+
+
+
+
+
 
