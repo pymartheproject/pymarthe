@@ -718,21 +718,27 @@ class MartheFieldSeries():
         all_grids = marthe_utils.read_grid_file(self.outfile)
 
         # ---- Extract all data for given field
-        dfs = []
         print(f'Collecting `{self.field}` field records data ...')
-        for i, mg in enumerate(all_grids):
-            if mg.field.casefold() == self.field.casefold():
-                mg_df = pd.DataFrame(mg.to_records())
-                mg_df['istep']= mg.istep
-                dfs.append(mg_df)
-                marthe_utils.progress_bar((i+1)/len(all_grids))
-        df = pd.concat(dfs).set_index('istep')
+        _isteps, _arrs =  np.column_stack(
+                                [[mg.istep, mg.array.ravel()] 
+                                    for mg in all_grids
+                                        if mg.field.casefold() == self.field.casefold()])
+        arr =  np.concatenate(_arrs)
+        n = int(len(arr)/len(_isteps))
+        isteps = np.concatenate(
+                            [np.tile(np.array(istep), n)
+                                    for istep in _isteps]
+                                        )
 
         # ---- Rebuild MartheField instance for each provided istep
-        print('\nConverting to MartheField instance ...')
-        mf_dic = df.groupby(df.index).apply(
-                        lambda x: MartheField(self.field, x.to_records(index=False), self.mm)
-                             ).to_dict()
+        print('Converting to MartheField instance ...')
+        mf_dic = {}
+        for istep in set(_isteps):
+            mf = deepcopy(self.mm.imask)
+            mf.field = self.field
+            mf.data['value'] = arr[isteps==istep]
+            mf_dic[istep] = mf
+
         # ---- Return field series as dictionary (format: {istep: MartheField()})
         return mf_dic
 
@@ -740,7 +746,7 @@ class MartheFieldSeries():
 
 
 
-    def get_timeseries(self, x, y, layer, names= None, index = 'date', masked_values = dmv):
+    def get_timeseries(self, x, y, layer, names= None, index = 'date', masked_values = dmv[::2]):
         """
         Sample field data by x, y, layer coordinates and stack timeseries in a DataFrame.
         It will perform simple a spatial intersection with field data.
@@ -804,13 +810,12 @@ class MartheFieldSeries():
             df.columns = marthe_utils.make_iterable(names)
 
         # -- Convert basic index to MultiIndex
-        df.set_index( pd.MultiIndex.from_tuples(
-                                [(istep, self.mm.mldates[istep])
-                                        for istep in self.data.keys()],
-                                names = ['istep', 'date']
-                                        ),
-                    inplace = True
-            )
+        df = df.set_index( pd.MultiIndex.from_tuples(
+                                [(istep, self.mm.mldates[istep]) for istep in self.data.keys()],
+                                names = ['istep', 'date'])
+                          ).replace(
+                        marthe_utils.make_iterable(masked_values),
+                        np.nan       )
 
         # -- Return Multiindex DataFrame
         if index == 'date':
@@ -886,7 +891,7 @@ class MartheFieldSeries():
         # -- Close all plots
         plt.close('all')
         # -- Success message
-        print(f'`{self.field}` animation written in {filename}.')
+        print(f'{self.field} animation written in {filename}.')
 
 
 

@@ -79,10 +79,12 @@ class MartheModel():
         if isinstance(spatial_index, str):
             from rtree.index import Index
             self.spatial_index = Index(spatial_index)
+            self.sifile = spatial_index
         else:
             if spatial_index:
                 self.build_spatial_idx()
             else:
+                self.sifile = None
                 self.spatial_index = None
 
         # ---- Set spatial reference (used for compatibility with pyemu geostat utils)
@@ -194,6 +196,7 @@ class MartheModel():
             marthe_utils.progress_bar((i+1)/len(bounds))
             si.insert(i, bd)
         # ---- Store spatial index
+        self.sifile = sifile
         self.spatial_index = si
 
 
@@ -301,7 +304,7 @@ class MartheModel():
         """
         # -- Build MartheModel from configuration file
         hdic, pdics, _ = pest_utils.read_config(configfile)
-        mm = cls(hdic['Model full path'])
+        mm = cls(hdic['Model full path'], eval(hdic['Model spatial index']))
 
         # -- Iterate over parameter dictionaries
         for pdic in pdics:

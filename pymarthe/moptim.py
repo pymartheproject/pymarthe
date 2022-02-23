@@ -728,6 +728,7 @@ class MartheOptim():
         headers = ['***']
         headers.append('Model name: {}'.format(self.mm.mlname))
         headers.append('Model full path: {}'.format(os.path.join(self.mm.rma_path)))
+        headers.append('Model spatial index: {}'.format(self.mm.sifile))
         headers.append('Number of parameters: {}'.format(len(self.get_param_df())))
         headers.append('Number of parameters blocks: {}'.format(len(self.param)))
         headers.append('Number of observation data types: {}'.format(self.get_ndatatypes()))
