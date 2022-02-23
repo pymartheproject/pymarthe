@@ -24,13 +24,20 @@ class MartheModel():
     """
     Wrapper MARTHE --> Python
     """
-    def __init__(self, rma_path):
+    def __init__(self, rma_path, spatial_index = False):
         """
         Parameters
         ----------
         rma_path (str): path to the Marthe .rma file from which
                         the model name and working directory
                         will be identified.
+
+        spatial_index (bool/str) : model spatial index management.
+                                   If True, a spatial index will be created.
+                                   If False, spatial index set to None.
+                                   If string, spatial index set from external file.
+                                   Default is False.
+
 
         Examples
         --------
@@ -69,7 +76,14 @@ class MartheModel():
         self.geometry = {g : None for g in ['sepon', 'topog', 'hsubs']}
 
         # ---- Build model spatial index
-        self.spatial_index = None
+        if isinstance(spatial_index, str):
+            from rtree.index import Index
+            self.spatial_index = Index(spatial_index)
+        else:
+            if spatial_index:
+                self.build_spatial_idx()
+            else:
+                self.spatial_index = None
 
         # ---- Set spatial reference (used for compatibility with pyemu geostat utils)
         self.spatial_reference = SpatialReference(self)
@@ -141,7 +155,7 @@ class MartheModel():
 
 
 
-    def build_spatial_idx(self):
+    def build_spatial_idx(self, sifile = None):
         """
         Function to build a spatial index on field data.
 
@@ -159,13 +173,14 @@ class MartheModel():
 
         """
         # ---- Import spatial index from Rtree module
-        from rtree import index
-        # ---- Print the actual
+        from rtree.index import Index
         # ---- Initialize spatial index
-        si = index.Index()
+        if sifile is None:
+            sifile = os.path.join(self.mldir, f'{self.mlname}_si')
+        si = Index(sifile)
         # ---- Fetch model cell as polygons
         polygons = []
-        for mg in self.imask.to_grids(layer=0):
+        for mg in self.imask.to_grids():
             polygons.extend([p[0] for p in mg.to_pyshp()])
         # ---- Build bounds
         bounds = []
