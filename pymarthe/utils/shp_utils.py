@@ -12,6 +12,108 @@ import shapefile
 srefhttp = "https://spatialreference.org"
 
 
+
+def read_shapefile(shpname):
+    """
+    Read a shapefile into a Pandas dataframe with 
+    a 'coords' column holding the geometry information.
+
+
+    Parameters
+    ----------
+    shpname (str) : path to the points shapefile.
+
+    Returns:
+    --------
+    df (DataFrame) : table with all fields + coords columns.
+    
+    Examples:
+    --------
+    points = read_shapefile('mypoints.shp')
+    
+    """
+    # -- Read shapefile
+    sf = shapefile.Reader(shpname)
+    fields = [x[0] for x in sf.fields][1:]
+    # -- Parse out the records and shapes
+    records = sf.records()
+    shps = [s.points for s in sf.shapes()]
+
+    # -- Build DataFrame
+    df = pd.DataFrame(columns=fields, data=records)
+    df = df.assign(coords=shps)
+
+    return df
+
+
+
+
+def point_in_polygon(x, y, polygon):
+    """
+    Use the ray casting algorithm to determine if a point is 
+    within a polygon. Enables very fast intersection calculations.
+
+    Parameters
+    ----------
+    x (1D-array): array of x-points
+    y (1D-array) : array of y-points
+    polygon (list of tuple): vertices of the polygon.
+                             Format: [(x0, y0),....(xn, yn)].
+                             Note: polygon can be open or closed.
+
+    Returns
+    -------
+    mask (1D-array) : boolean mask.
+                      True -> point within the polygon.
+                      False -> point not in the polygon
+
+    Examples:
+    --------
+    x, y = np.arrange(345, 355), np.arrange(523, 533)
+    polygon = [(234,456), (278,567), ..., ()]
+    mask = point_in_polygon(x, y, polygon)
+
+    """
+    # -- Get first/last vertice
+    x0, y0 = polygon[0]
+    xt, yt = polygon[-1]
+
+    # -- Close polygon if required
+    if (x0, y0) != (xt, yt):
+        polygon.append((x0, y0))
+
+    # -- Reshape x,y arrays (1D -> 2D) if required
+    xc = x.reshape((-1,1)) if x.ndim == 1 else x
+    yc = y.reshape((-1,1)) if y.ndim == 1 else y
+
+    # -- Start ray casting algorithm
+    ray_count = np.zeros(xc.shape, dtype=int)
+    num = len(polygon)
+    j = num - 1
+    for i in range(num):
+
+        tmp = polygon[i][0] + (polygon[j][0] - polygon[i][0]) * (
+            yc - polygon[i][1]
+        ) / (polygon[j][1] - polygon[i][1])
+
+        comp = np.where(
+            ((polygon[i][1] > yc) ^ (polygon[j][1] > yc)) & (xc < tmp)
+        )
+
+        j = i
+        if len(comp[0]) > 0:
+            ray_count[comp[0], comp[1]] += 1
+
+    # -- Build mask
+    mask = np.ones(xc.shape, dtype=bool)
+    mask[ray_count % 2 == 0] = False
+
+    # -- Return 1D-array mask
+    return mask.ravel()
+
+
+
+
 def shp2points(shpname, stack=True):
     """
     Extract xy-coordinates from a point shapefile.
@@ -40,6 +142,7 @@ def shp2points(shpname, stack=True):
         return points
     else:
         return np.column_stack(points)
+
 
 
 
