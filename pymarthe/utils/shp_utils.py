@@ -6,6 +6,7 @@ Contains geospatial export utils
 """
 
 import numpy as np
+import pandas as pd
 import shutil
 import shapefile
 

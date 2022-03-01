@@ -16,7 +16,7 @@ import numpy as np
 #sys.path.append(dev_ws)
 from pymarthe import MartheModel
 from pymarthe.utils import marthe_utils, shp_utils, pest_utils
-from pymarthe.mfield import MartheField
+from pymarthe.mfield import MartheField, MartheFieldSeries
 from pymarthe.mpump import MarthePump
 from pymarthe.msoil import MartheSoil
 from pymarthe.moptim import MartheOptim
@@ -249,17 +249,16 @@ transformation and other collections arguments to perform a prettier plot.
 # -- Basic plot (single layer)
 mf.plot(layer=6, log=True)
 plt.show()
-
+ 
 
 # -- Custom plot (single layer)
-plt.rc('font', family='serif', size=11)
-fig, ax = plt.subplots(figsize=(12,8))
-ax = mf.plot(ax=ax, layer=6, log=True, 
-             edgecolor='black', lw=0.3,
-             cmap='jet', zorder=10)
-ax.set_title('MONA - Permeability (layer = 6)', fontsize = 16, fontweight="bold")
-ax.set_xlim(300,490)
-ax.set_ylim(205,380)
+plt.rc('font', family='serif', size=8)
+fig, ax = plt.subplots(figsize=(10,6))
+extent = (300,205,490,380)
+ax = mf.plot(ax=ax, layer=6, log=True,
+             extent= extent, edgecolor='black', 
+             lw=0.3, cmap='jet', zorder=10)
+ax.set_title('MONA - Permeability (layer = 6)', fontsize = 12, fontweight="bold")
 ax.grid('lightgrey', lw=0.5, zorder=50)
 fig.delaxes(fig.axes[1])
 cb = fig.colorbar(ax.collections[0], shrink=0.9)
@@ -288,6 +287,92 @@ plt.show()
 # -- Write data as Marthe grid file (Don't do it if you want to keep original data)
 # mf.write_data()
 # mf.write_data('mynewpermhfile.permh')
+
+
+# --------------------------------------------------------
+# ---- MartheFieldSeries
+
+'''
+While running a MARTHE model, if provided in the .pastp file, some fields will be simulated and saved
+(currently in the 'chamsim.out' file). For post-processing purpose, the MartheFieldSeries class can
+be called to manipulate these series of simulated fields. The MartheFieldSeries constructor will read
+the simulated fields and collect all MartheGrid for a given field. 
+Let's try to load simulated heads from the MONA model.
+'''
+chasim = os.path.join('monav3_pm', 'chasim_cal_histo.out')
+mfs = MartheFieldSeries(mm=mm, field = 'charge', simfile=chasim)
+
+'''
+The MartheFieldSeries object store data all data in a dictionary with format:
+{istep_0 : MartheField_0, ..., istep_N : MartheField_N}
+'''
+mfs.data
+
+'''
+Simulated time series of given point(s) (x-y-layer) can be fetch with the .get_tseries() method.
+Additional `names` iterable can be added to reference each point. The `index` argument allows 
+to manage the required index of the output DataFrame, can be 'date', 'istep', 'both'.
+'''
+# -- Read points from a shapefile
+shpname = os.path.join('monav3_pm', 'gis', 'sim_points.shp')
+shp_df = shp_utils.read_shapefile(shpname)
+
+# -- Extract coordinates
+x, y = zip(*shp_df.coords.explode())
+
+# -- Get time series
+df = mfs.get_tseries(x,y, layer=5)
+print(df)
+
+'''
+If `names` arguments are not provided, generic names are created according to points row, column, layer
+with format: f'{row}i_{col}j_{layer}k'. Let's try again providing points names and a different index.
+'''
+df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'istep')
+print(df)
+df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'date')
+print(df)
+df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'both')
+print(df)
+
+'''
+One of the main advantage of the DataFrame output is the pandas plot support to visualize field time series.
+Let's make a example
+'''
+df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'])
+plt.rc('font', family='serif', size=7)
+df[['rec_8','rec_9','rec_10']].plot(figsize = (8,4), title = 'Simulated heads',
+                                    lw = 0.8, xlabel ='', ylabel ='Hydraulic heads [m]')
+plt.show()
+
+
+'''
+Another post-processing tool of MartheFieldSeries named .save_animation() allows to save .gif animation
+to see the evolution of field values in a given layer. The user can manage the frame rate and the resolution
+of the animation with the following arguments:
+- `dpf` : duration per frame 
+- `dpi` : dot per inch
+The .save_animation() method support of kwargs from MartheField.plot() method (cmap, vmin, vmax, extent ..).
+This method have a additional dependency to `imageio` python package.
+It may be quite slow for model with large number of cells, layers and time steps.
+'''
+gif = os.path.join('monav3_pm', 'export', 'heads5_animation.gif')
+mfs.save_animation(gif, dpf = 0.2, dpi=200, 
+                        layer=5, vmin=-50, vmax=150,
+                        extent=(300,210,490,380), cmap = 'jet')
+
+
+'''
+MartheFieldSeries allows the vectorial exports of a simulated fiel in shapefile format for a given layer.
+To do so, use the .to_shapefile() method.
+It's will save non masked cell of a given layer with basic informations like layer, inest, i, j, 
+x, y but also the values of each simulated field (1 per column).
+Note: column names can be truncated if field name is too long.
+'''
+
+filename = os.path.join('monav3_pm', 'export', 'heads_09.shp')
+mfs.to_shapefile(filename, layer=9)
+
 
 
 # --------------------------------------------------------

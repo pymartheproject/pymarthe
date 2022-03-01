@@ -104,7 +104,7 @@ class MartheField():
             # -- Subset by layer for value != 0 or 9999
             q1 = f'layer=={ilay} & value not in @nd'
             df = pd.DataFrame(self.data[idx]).query(q1)
-            dfs.append(df)
+            dfs.append(df.drop_duplicates())
         # ---- Return intersection as recarray
         return pd.concat(dfs).to_records(index=False)
 
@@ -457,7 +457,9 @@ class MartheField():
 
 
 
-    def to_shapefile(self, filename = None, layer=0, inest=None, masked_values = dmv, log = False, epsg=None, prj=None):
+    def to_shapefile(self,  filename = None, layer=0, inest=None,
+                            masked_values = dmv, log = False,
+                            epsg=None, prj=None):
         """
         Write field data as shapefile by layer.
 
@@ -534,7 +536,9 @@ class MartheField():
 
 
 
-    def plot(self, ax=None, layer=0, inest=None, vmin=None, vmax=None, log = False, masked_values = dmv, **kwargs):
+    def plot(self,  ax=None, layer=0, inest=None, vmin=None,
+                    vmax=None, log = False, extent = None,
+                    masked_values = dmv, **kwargs):
         """
         Plot data by layer
 
@@ -554,6 +558,11 @@ class MartheField():
                                          Default is [-9999., 0., 9999].
         log (bool, optional) : logarithmic transformation of all values.
                                Default is False.
+        extent (tuple/list, optional): xy-limits of the plot window.
+                                       Format: (xmin, ymin, xmax, ymax).
+                                       If None, window correspond to the
+                                       entire model domain.
+                                       Default is None.
         **kwargs (optional) : matplotlib.PathCollection arguments.
                               (ex: cmap, lw, ls, edgecolor, ...)
 
@@ -611,8 +620,12 @@ class MartheField():
         collection.set_clim(vmin=vmin,vmax=vmax)
 
         # ---- Set default plot extension
-        ax.set_xlim(min(xmin), max(xmax))
-        ax.set_ylim(min(ymin), max(ymax))
+        if extent is not None:
+            ax.set_xlim(*extent[::2])
+            ax.set_ylim(*extent[1::2])
+        else:
+            ax.set_xlim(min(xmin), max(xmax))
+            ax.set_ylim(min(ymin), max(ymax))
 
         # ---- Add collection kwargs
         collection.set(**kwargs)
@@ -663,7 +676,7 @@ class MartheFieldSeries():
     Wrapper Marthe --> python
     Manage series of MartheField instances.
     """
-    def __init__(self, mm, field, outfile= None):
+    def __init__(self, mm, field, simfile= None):
         """
         Time series of MartheField instances.
 
@@ -677,7 +690,7 @@ class MartheFieldSeries():
                             - 'charge'
                             - '%saturation'
                             - ...
-        outfile (str, optional): simulated field file
+        simfile (str, optional): simulated field file
                        Default is 'chasim.out'.
 
 
@@ -688,7 +701,7 @@ class MartheFieldSeries():
         """
         self.mm = mm
         self.field = field
-        self.outfile = os.path.join(self.mm.mldir, 'chamsim.out') if outfile is None else outfile
+        self.simfile = os.path.join(self.mm.mldir, 'chamsim.out') if simfile is None else simfile
         self.data = self._extract_fieldseries()
 
 
@@ -713,27 +726,23 @@ class MartheFieldSeries():
         mf_dic = mfs._extract_fieldseries()
 
         """
-        # ---- Read outfile
+        # ---- Read simfile
         print('Reading simulated fields ...')
-        all_grids = marthe_utils.read_grid_file(self.outfile)
+        all_grids = marthe_utils.read_grid_file(self.simfile)
 
-        # ---- Extract all data for given field
+        # ---- Extract all data for given field (vectorized form for better performance)
         print(f'Collecting `{self.field}` field records data ...')
-        _isteps, _arrs =  np.column_stack(
-                                [[mg.istep, mg.array.ravel()] 
-                                    for mg in all_grids
-                                        if mg.field.casefold() == self.field.casefold()])
-        arr =  np.concatenate(_arrs)
-        n = int(len(arr)/len(_isteps))
-        isteps = np.concatenate(
-                            [np.tile(np.array(istep), n)
-                                    for istep in _isteps]
-                                        )
+        isteps, arr =  np.column_stack(
+                                [ [ np.tile(np.array(mg.istep), len(mg.array.ravel())),
+                                    mg.array.ravel()] 
+                                        for mg in all_grids
+                                            if mg.field.casefold() == self.field.casefold()] )
 
         # ---- Rebuild MartheField instance for each provided istep
+        # (perform deepcopy from imask then change field and value for better performance)
         print('Converting to MartheField instance ...')
         mf_dic = {}
-        for istep in set(_isteps):
+        for istep in set(isteps.astype(int)):
             mf = deepcopy(self.mm.imask)
             mf.field = self.field
             mf.data['value'] = arr[isteps==istep]
@@ -746,7 +755,7 @@ class MartheFieldSeries():
 
 
 
-    def get_timeseries(self, x, y, layer, names= None, index = 'date', masked_values = dmv[::2]):
+    def get_tseries(self, x, y, layer, names= None, index = 'date', masked_values = dmv[::2]):
         """
         Sample field data by x, y, layer coordinates and stack timeseries in a DataFrame.
         It will perform simple a spatial intersection with field data.
@@ -782,7 +791,7 @@ class MartheFieldSeries():
         x, y = [343., 385.3], [223., 217.2]
         layer = 0
         names = ['rec1', 'rec2']
-        df = mfs.get_timeseries(x,y,layer,names)
+        df = mfs.get_tseries(x,y,layer,names)
         """
 
         _x, _y, _layer = [marthe_utils.make_iterable(arg) for arg in [x,y,layer]]
@@ -851,13 +860,10 @@ class MartheFieldSeries():
         --------
         Save .gif animation in filename.
 
-
         Examples:
         --------
-        x, y = [343., 385.3], [223., 217.2]
-        layer = 0
-        names = ['rec1', 'rec2']
-        df = mfs.get_timeseries(x,y,layer,names)
+        mfs.save_animation('chargeout.gif', dpf = 0.2, dpi=200, layer=5, cmap='jet')
+
         """
         # ---- Try to import imageio package
         try:
@@ -869,16 +875,26 @@ class MartheFieldSeries():
         tdir = '_temp_'
         if os.path.exists(tdir): shutil.rmtree(tdir)
         os.mkdir(tdir)
-        # -- Save animation 
+        # -- Get min/max value to fix colorbar (vectorize form for better efficiency)
+        mv = kwargs.get('masked_values', dmv[::2])
+        values = np.array([ mf.data['value'][ ~np.isin(mf.data['value'], mv) ]
+                                                    for mf in self.data.values()] )
+        kwargs['vmin'] = kwargs.get('vmin', values.min())
+        kwargs['vmax'] = kwargs.get('vmax', values.max())
+        # -- Save animation
+        print(f'Building animation of simulated `{self.field}`:')
         with imageio.get_writer(filename, mode='I', duration = dpf) as writer:
             # -- iterate over tiem step
-            for istep, mf in self.data.items():
+            for i, istep in enumerate(self.data.keys()):
                 # -- Plot MartheField
-                ax = mf.plot(**kwargs)
+                ax = self.data[istep].plot(**kwargs)
                 # -- Add time reference (top left)
-                plt.text(0.01, 0.95,
-                         f'istep : {istep}\ndate : {self.mm.mldates[istep]}',
-                         fontsize = 8, transform=ax.transAxes)
+                ilay = kwargs.get('layer', 0)
+                text =  f'layer : {ilay}\n'     \
+                        f'istep : {istep}\n'    \
+                        f'date : {self.mm.mldates[istep]}'
+                plt.text(0.01, 0.94, text,
+                         fontsize = 7.5, transform=ax.transAxes)
                 # -- Save plot as image
                 digits = len(str(len(self.data)))
                 png = os.path.join(tdir, '{}.png'.format(str(istep).zfill(digits)))
@@ -886,12 +902,14 @@ class MartheFieldSeries():
                 # -- Read image
                 image = imageio.imread(png)
                 writer.append_data(image)
+                # -- Plot progress bar
+                marthe_utils.progress_bar((i+1)/len(self.data))
         # ---- Delete temporal folder
         shutil.rmtree(tdir)
         # -- Close all plots
         plt.close('all')
         # -- Success message
-        print(f'{self.field} animation written in {filename}.')
+        print(f'\nAnimation written in {filename}.')
 
 
 
