@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt
 mona_ws = os.path.join('monav3_pm', 'mona.rma')
 mm = MartheModel(mona_ws)
 
+
 '''
 Let's begin with some of additional attributes of this brand new 1.0 version of pymarthe
 '''
@@ -78,7 +79,6 @@ properties. For now the only supported properties are:
         - 't_demi_percol'
         - 'ru_max'
         - ...
-
 
 When initiating a MartheModel instance, the basic 'permh' property is always loaded.
 To load another property, use the .load_prop() method.
