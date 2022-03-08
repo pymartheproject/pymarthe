@@ -62,18 +62,8 @@ class MartheModel():
         self.nnest, self.layers_infos = marthe_utils.get_layers_infos(self.mlfiles['layer'], base = 0)
         self.nlay = self.layers_infos.layer.max() + 1
 
-        # ---- Set number of simulated timestep
-        self.nstep = len(self.mldates)
-
-        # ---- Initialize property dictionary with permeability data
-        self.prop = {}
-        self.load_prop('permh')
-
         # ---- Store model grid infos from permh field
         self.imask = self.build_imask()
-
-        # ---- Load geometry
-        self.geometry = {g : None for g in ['sepon', 'topog', 'hsubs']}
 
         # ---- Build model spatial index
         if isinstance(spatial_index, str):
@@ -86,6 +76,16 @@ class MartheModel():
             else:
                 self.sifile = None
                 self.spatial_index = None
+
+        # ---- Set number of simulated timestep
+        self.nstep = len(self.mldates)
+
+        # ---- Initialize property dictionary with permeability data
+        self.prop = {}
+        self.load_prop('permh')
+
+        # ---- Load geometry
+        self.geometry = {g : None for g in ['sepon', 'topog', 'hsubs']}
 
         # ---- Set spatial reference (used for compatibility with pyemu geostat utils)
         self.spatial_reference = SpatialReference(self)
@@ -195,7 +195,8 @@ class MartheModel():
         for i, bd in enumerate(bounds):
             marthe_utils.progress_bar((i+1)/len(bounds))
             si.insert(i, bd)
-        # ---- Store spatial index
+        # ---- Stock and Store spatial index
+        si.flush()
         self.sifile = sifile
         self.spatial_index = si
 

@@ -739,12 +739,14 @@ class MartheFieldSeries():
                                             if mg.field.casefold() == self.field.casefold()] )
 
         # ---- Rebuild MartheField instance for each provided istep
-        # (perform deepcopy from imask then change field and value for better performance)
+        # (changing value, field from imask then rebuild initial imask for better performance)
         print('Converting to MartheField instance ...')
+        unique_isteps = set(isteps.astype(int))
+        digits = len(str(len(unique_isteps)))
         mf_dic = {}
-        for istep in set(isteps.astype(int)):
+        for istep in unique_isteps:
             mf = deepcopy(self.mm.imask)
-            mf.field = self.field
+            mf.field = '{}_{}'.format(self.field, str(istep).zfill(digits))
             mf.data['value'] = arr[isteps==istep]
             mf_dic[istep] = mf
 
@@ -977,9 +979,7 @@ class MartheFieldSeries():
             # -- Manage masked vales
             df  = df[~df['value'].isin(mv)]
             # -- Change column name according to istep
-            digits = len(str(len(self.data)))
-            colname = '{}_{}'.format(self.field, str(istep).zfill(digits))
-            df.rename(columns={'value': colname}, inplace=True)
+            df.rename(columns={'value': mf.field}, inplace=True)
             dfs.append(df)
 
         # -- Concatenate drop duplicated layer,inest,i,j,x,y columns
