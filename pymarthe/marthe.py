@@ -6,6 +6,7 @@ Designed for structured and nested grid.
 import os, sys
 import subprocess as sp
 from shutil import which
+from copy import deepcopy
 import queue 
 import threading
 import numpy as np
@@ -376,28 +377,31 @@ class MartheModel():
 
 
 
-    def get_outcrop(self):
+    def get_outcrop(self, as_2darray=False):
         """
         Function to get outcropping layer number
-        (integer) as 2D-array.
-        Not available for nested model.
+        (integer) as MartheField instance or 2D-array.
 
         Parameters:
         ----------
-        self : MartheModel instance
+        as_2darray (bool) : return 2D-array of outcroping layer.
+                            Only available for non nested model.
+                            Default is False
 
         Returns:
         --------
-        outcrop (2D-array) : outcropping layer numbers.
+        outcrop (MartheField/array) : outcropping layer numbers.
 
         Examples:
         --------
         mm = MartheModel('mymodel.rma')
         outcrop_arr = mm.get_outcrop()
         """
-        if self.nnest == 0:
+        if as_2darray:
+            err_msg = "ERROR : cannot return a 2D-array for nested model."
+            assert self.nnest == 0, err_msg
             # ---- Set list of arrays with layer number on active cell
-            layers = [ilay * imask for ilay, imask in enumerate(self.imask.as_3darray(), start=1)]
+            layers = [ilay * imask for ilay, imask in enumerate(self.imask.as_3darray())]
             # ---- Transform 0 to NaN
             nanlayers = []
             for layer in layers:
@@ -407,11 +411,28 @@ class MartheModel():
             # ---- Get minimum layer number excluding NaNs
             outcrop = np.fmin.reduce(nanlayers)
             # # ---- Back transform inactive zone to 0
-            outcrop[np.isnan(outcrop)] = 0
-            # ---- Return outcrop layer as array
+            outcrop[np.isnan(outcrop)] = -9999
+            # ---- Return outcrop layers as 2D-array
             return outcrop.astype(int)
+
         else:
-            print("'.get_outcrop() method not available for nested model yet.'")
+            # ---- Fetch DataFrame data from imask (as deepcopy)
+            rec = deepcopy(self.imask.data)
+            df = pd.DataFrame.from_records(rec)
+            # ---- Replace default masked values by NaN and mask it
+            df['value'].replace(self.imask.dmv, np.nan, inplace=True)
+            mask = df['value'].notnull()
+            # ---- Raplace imask boolean value by the layer id
+            df.loc[mask,'value'] = df.loc[mask,'layer']
+            # ---- Set a unique id for each cell
+            ncell = len(rec[rec['layer'] == 0])
+            df.index = np.tile(np.arange(0, ncell), self.nlay)
+            # ---- Group cells by id and perform minimum avoiding NaN values
+            df['value'] = df.groupby(df.index)['value'].apply(list).apply(np.fmin.reduce)
+            # ---- Set Nan values to -9999 (not 0) and convert back to recarray
+            rec = df.fillna(-9999).to_records(index=False)
+            # ---- Return outcrop layers as MartheField instance
+            return MartheField('outcrop', rec , self)
 
 
 
