@@ -157,10 +157,10 @@ class MartheField():
             inests = marthe_utils.make_iterable(inest)
         # ---- Manage masked_values
         mv = marthe_utils.make_iterable(masked_values)
-        # ---- Transform records to Dataframe for query purpose
-        df = pd.DataFrame.from_records(self.data)
-        # ---- Get mask
-        mask = (df['layer'].isin(layers)) & (df['inest'].isin(inests)) & (~df['value'].isin(mv))
+        # ---- Apply required mask
+        mask   = np.logical_and.reduce([np.isin(self.data['layer'], layers),
+                                        np.isin(self.data['inest'], inests),
+                                        ~np.isin(self.data['value'], mv)])
         # ---- Return as mask if required
         if as_mask:
             return mask
@@ -169,20 +169,20 @@ class MartheField():
             arrays = []
             # -- Subset by layer(s)
             for l in layers:
-                df_s = df.loc[df['layer'] == l]
+                ldata = self.data[self.data['layer'] == l]
                 # ---- Subset by nested
                 for n in inests:
-                    df_ss = df_s.loc[df_s['inest'] == n]
+                    ndata = ldata[ldata['inest'] == n]
                     # -- Fetch nrow, ncol of the current grid
-                    nrow = df_ss['i'].max() + 1
-                    ncol = df_ss['j'].max() + 1
+                    nrow = np.max(ndata['i']) + 1
+                    ncol = np.max(ndata['j']) + 1
                     # -- Rebuild array by reshaping with nrow, ncol
-                    arrays.append(df_ss['value'].to_numpy().reshape(nrow,ncol))
+                    arrays.append(ndata['value'].reshape(nrow,ncol))
             # -- Returning array
             return np.array(arrays)
         # -- Returning as recarray
         else:
-            return df.loc[mask].to_records(index=False)
+            return self.data[mask]
 
 
 
@@ -232,9 +232,7 @@ class MartheField():
         # ---- Manage numeric input
         if _num:
             mask = self.get_data(layer=layer, inest=inest, as_mask=True)
-            df = pd.DataFrame(self.data)
-            df.loc[mask, 'value'] = data
-            self.data = df.to_records(index=False)
+            self.data['value'][mask] = data
 
         # ---- Manage recarray input
         if _rec:
@@ -303,9 +301,11 @@ class MartheField():
 
         """
         # ---- Get recarray data from consecutive MartheGrid instance (mg) extract from field property file
-        dfs = [pd.DataFrame(mg.to_records()) for mg in marthe_utils.read_grid_file(filename)]
+        rec = np.lib.recfunctions.stack_arrays(
+                [mg.to_records() for mg in marthe_utils.read_grid_file(filename)],
+                        autoconvert=True, usemask=False)
         # ---- Stack all recarrays as once
-        return pd.concat(dfs).to_records(index=False)
+        return rec
 
 
     def _3d2rec(self, arr3d):
