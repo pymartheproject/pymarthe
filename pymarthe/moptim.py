@@ -124,8 +124,6 @@ class MartheOptim():
 
 
 
-
-
     def get_nobs(self, locnme = None, null_weight = True):
         """
         Function to fetch number of observation
@@ -147,14 +145,16 @@ class MartheOptim():
         """
         # ---- Subset by locnme if required
         _ln = list(self.obs.keys()) if locnme is None else marthe_utils.make_iterable(locnme)
-        # ---- Build query
-        q = "locnme in @_ln"
-        # ---- Ignore null weight observation if required
-        if not null_weight:
-            q = ' & '.join([q, "weight != 0"])
+        # ---- Start counting locnames
+        nobs = 0
+        # ---- Iterate over all MartheObs instance
+        for mo in self.obs.values():
+            nw_cond = True if null_weight else mo.weight != 0
+            if (mo.locnme in _ln) & (nw_cond):
+                nobs += len(mo.obs_df)
         # ---- Return
-        nobs = len(self.get_obs_df().query(q))
         return nobs
+
 
 
     def get_nlocs(self, datatype = None):
@@ -174,13 +174,15 @@ class MartheOptim():
         --------
         print(f"There are {moptim.get_nlocs()} observations.")
         """
-        obs_df = self.get_obs_df()
         # ---- Subset by locnme if required
-        _dt = obs_df['datatype'].unique() if datatype is None else marthe_utils.make_iterable(datatype)
-        # ---- Build query
-        q = "datatype in @_dt"
-        # ---- Return
-        nlocs = len(obs_df.query(q)['locnme'].unique())
+        _dt = [mo.datatype for mo in self.obs.values()] if datatype is None else marthe_utils.make_iterable(datatype)
+        # ---- Start counting locnames
+        nlocs = 0
+        # ---- Iterate over all MartheObs instance
+        for mo in self.obs.values():
+            if mo.datatype in _dt:
+                nlocs += 1
+        # ---- Return number of locnames with required datatype
         return nlocs
 
 
@@ -202,8 +204,8 @@ class MartheOptim():
         ndt = moptim.get_ndatatypes()
         print(f"There are {ndt} observation data types")
         """
-        ndt = len(self.get_obs_df()['datatype'].unique())
-        return ndt
+        dt = [mo.datatype for mo in mopt.obs.values()]
+        return len(set(dt))
 
 
 
@@ -338,6 +340,10 @@ class MartheOptim():
             # -- Remove existing set of observation
             self.remove_obs(locnme)
 
+        # ---- Check validity and uncity of locnme
+        if check_loc:
+            self.check_loc(locnme)
+
         # ---- Build MartheObs instance from data input
         insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))
         mobs = MartheObs(iloc = self.get_nlocs(),
@@ -348,10 +354,6 @@ class MartheOptim():
                          insfile = insfile,
                          datatype = datatype,
                          **kwargs)
-
-        # ---- Check validity and uncity of locnme
-        if check_loc:
-            self.check_loc(locnme)
 
         # ---- Build MartheObs instance
         self.obs[locnme] = mobs
@@ -456,19 +458,15 @@ class MartheOptim():
         # -- Check transformations validity
         pest_utils.check_trans(trans)
 
-        # ---- Fetch all observation in large DataFrame
-        obs_df = self.get_obs_df()
         # ---- Get datatype, locnme required as iterable
-        _dt = obs_df['datatype'].unique() if datatype is None else marthe_utils.make_iterable(datatype)
+        _dt = set([mo.datatype for mo in self.obs.values()]) if datatype is None else marthe_utils.make_iterable(datatype)
         _ln = self.obs.keys() if locnme is None else marthe_utils.make_iterable(locnme)
 
         # ---- Set transformation to all required data
-        locnmes = obs_df.query('datatype in @_dt & locnme in @_ln')['locnme'].unique()
-        for ln in locnmes:
-            self.obs[ln].trans = trans
-            self.obs[ln].obs_df['trans'] = trans
-
-
+        for mo in self.obs.values():
+            if (mo.datatype in _dt) & (mo.locnme in _ln):
+                self.obs[mo.locnme].trans = trans
+                self.obs[mo.locnme].obs_df['trans'] = trans
 
 
 
@@ -505,18 +503,16 @@ class MartheOptim():
         pest_utils.check_trans(trans)
         pest_utils.check_trans(btrans)
 
-        # ---- Fetch all parameters in large DataFrame
-        param_df = self.get_param_df()
         # ---- Get parameter names and groups as iterable
         _pn = self.param.keys() if parname is None else marthe_utils.make_iterable(parname)
-        _pg = param_df['pargp'].unique() if pargp is None else marthe_utils.make_iterable(pargp)
+        _pg = set([mp.pargp for mp in self.param.values()]) if pargp is None else marthe_utils.make_iterable(pargp)
 
         # ---- Set transformation to all required data
-        for pn in _pn:
-            if (self.param[pn].parname == pn) & (self.param[pn].pargp in _pg):
-                self.param[pn].trans, self.param[pn].btrans = trans, btrans
-                self.param[pn].param_df[['trans', 'btrans']] = [trans, btrans]
-
+        for mp in self.param.values():
+            if (mp.parname in _pn) & (mp.pargp in _pg):
+                self.param[mp.parname].trans  = trans
+                self.param[mp.parname].btrans = btrans
+                self.param[mp.parname].param_df[['trans', 'btrans']] = [trans, btrans]
 
 
 
@@ -651,11 +647,11 @@ class MartheOptim():
         for datatype in default_dic.keys():
             # -- Get number of observation sets for a given data type
             dt_df = obs_df.query(f"datatype == '{datatype}'")
-            m = len(dt_df['locnme'].unique())
+            m = self.get_nlocs(datatype=datatype)
             # ---- Iterate over locnmes
             for locnme in dt_df['locnme'].unique():
                 # -- Get number of observations for a given set of observation
-                n = len(dt_df.query('locnme == @locnme'))
+                n = self.get_nobs(locnme=locnme)
                 # -- Compute weights
                 w = pest_utils.compute_weight(lambda_dic[datatype], lambda_n, m, n, sigma_dic[datatype])
                 # -- Set computed weights
