@@ -146,8 +146,6 @@ def shp2points(shpname, stack=True):
 
 
 
-
-
 def get_parts(xcc, ycc, dx, dy):
     """
     Return list of polygons parts from points

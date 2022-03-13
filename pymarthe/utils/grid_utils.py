@@ -191,7 +191,6 @@ class MartheGrid():
         """
         Convert grid to list of polygons
         with vertices coordinates.
-        Wrapper to shp_utils.get_parts().
 
         Parameters: 
         -----------
@@ -199,12 +198,12 @@ class MartheGrid():
 
         Return:
         -----------
-        polygons (list) = polygons parts with 
-                          xy-vertices coordinates.
+        pyshp_parts (list) = polygons parts with 
+                             xy-vertices coordinates.
 
         Example
         -----------
-        polygons = mg.to_polygons()
+        parts = mg.to_pyshp()
         """
         # ---- Get grid polygons
         pyshp_parts = shp_utils.get_parts(self.xcc, self.ycc, self.dx, self.dy)

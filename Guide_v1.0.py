@@ -140,11 +140,14 @@ All single Marthe grid data in this file are stored in a numpy recarray with
 usefull informations: 'layer', 'inest', 'i', 'j', 'x', 'y', 'value'.
 
 '''
+mm = MartheModel(mona_ws, spatial_index = True)
+
 # -- Build MartheField instance externaly
 mf = MartheField(field = 'permh', data = mm.mlfiles['permh'], mm=mm)
 
 # -- Fetch MartheField instance from a parent MartheModel instance property
 mf = mm.prop['permh']
+
 
 '''
 MartheField instance has a very flexible getters/setters (subseting arguments can
@@ -238,6 +241,26 @@ print(mg.layer)
 # -- Reset changes
 mm.load_prop('permh')
 mf = mm.prop['permh']
+
+'''
+The MartheField instance can perform zonal statistics based on single part polygon areas 
+on several layers. To do so, make sure to use the appropriate .zonal_stats()
+method. It will return a row MultiIndex DataFrame (based on provided zones and layers)
+with all required statistics.
+'''
+
+# -- Fetch polygons in shapefile
+shpname = os.path.join(mm.mldir, 'gis', 'zones.shp')
+shp_df = shp_utils.read_shapefile(shpname)
+# -- Set required statistics
+stats = ['mean','max','min','median','count']
+# -- Perform zonal statistics method
+zstats_df = mf.zonal_stats(stats=stats,
+                           polygons=shp_df['coords'],
+                           names=shp_df['zname'],
+                           trans='log10')
+print(zstats_df)
+
 
 '''
 The MartheField instance has a internal .plot() method to see gridded property values.

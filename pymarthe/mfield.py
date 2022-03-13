@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
 
 
-from .utils import marthe_utils, shp_utils
+from .utils import marthe_utils, shp_utils, pest_utils
 from .utils.grid_utils import MartheGrid
 
 encoding = 'latin-1'
@@ -60,7 +60,49 @@ class MartheField():
 
 
 
-    def sample(self, x, y, layer, masked_values=None):
+    def get_xyvertices(self, stack=False):
+        """
+        Function to fetch x and y vertices of the modelgrid.
+
+        Parameters:
+        ----------
+        stack (bool) : stack output array
+                       Format : np.array([vx1, vy1],
+                                          [vx2, vy2],
+                                                ...    )
+                       Default is False.
+
+        Returns:
+        --------
+        if stack is False:
+            vx, vy (array) : xy-vertices.
+        if stack is True:
+            vxy (array) : stacked xy-vertices
+
+        Examples:
+        --------
+        vx, vy = mf.get_xyvertices()
+        
+        """
+        # ---- Initialize xy vertices list
+        xvertices, yvertices = [], []
+        # ---- Iterate over MartheGrid on first layer only
+        for mg in self.to_grids(layer=0):
+            # -- Get vertices for whole structured grid (1D) 
+            xvs, yvs = map(np.ravel, np.meshgrid(mg.xvertices, mg.yvertices))
+            # -- Store it in main lists
+            xvertices.extend(xvs)
+            yvertices.extend(yvs)
+        # ---- Return
+        if stack:
+            return np.column_stack([xvertices, yvertices])
+        else:
+            return np.array(xvertices), np.array(yvertices)
+
+
+
+
+    def sample(self, x, y, layer, masked_values=None, as_mask=False):
         """
         Sample field data by x, y, layer coordinates.
         It will perform simple a spatial intersection with field data.
@@ -69,7 +111,10 @@ class MartheField():
         ----------
         x, y (float/iterable) : xy-coordinate(s) of the required point(s)
         layer (int/iterable) : layer id(s) to intersect data.
-        masked_values (None/list): values to ignore during the sampling process 
+        masked_values (None/list): values to ignore during the sampling process
+                                   Default is None.
+        as_mask (bool): return only data boolean mask.
+                        Default is False.
 
         Returns:
         --------
@@ -94,19 +139,26 @@ class MartheField():
             self.mm.build_spatial_idx()
 
         # -- Manage masked values
-        nd = [] if masked_values is None else marthe_utils.make_iterable(masked_values)
+        mv = [] if masked_values is None else marthe_utils.make_iterable(masked_values)
 
-        # ---- Perform intersection on spatial index
-        dfs = []
-        for ix, iy, ilay in zip(_x, _y, _layer):
-            # -- Sorted output index   
-            idx = sorted(self.mm.spatial_index.intersection((ix,iy)))
-            # -- Subset by layer for value != 0 or 9999
-            q1 = f'layer=={ilay} & value not in @nd'
-            df = pd.DataFrame(self.data[idx]).query(q1)
-            dfs.append(df.drop_duplicates())
-        # ---- Return intersection as recarray
-        return pd.concat(dfs).to_records(index=False)
+        # ---- Perform intersection on spatial index returning cell ids
+        inter_idx = []
+        for ix, iy in zip(_x, _y):
+            # -- Sorted output index 
+            inter_idx.extend(self.mm.spatial_index.intersection((ix,iy)))
+
+        # ---- Build intersection mask
+        inter_mask = np.zeros(len(self.data), dtype=bool)
+        inter_mask[np.unique(inter_idx)] = True
+        # ---- Creating integrated data mask
+        mask = np.logical_and.reduce([inter_mask, 
+                                      np.isin(self.data['layer'], _layer),
+                                      ~np.isin(self.data['value'], mv) ])
+        # ---- Return
+        if as_mask:
+            return mask
+        else:
+            return self.data[mask]
 
 
 
@@ -642,6 +694,82 @@ class MartheField():
 
         # ---- Return axe
         return ax
+
+
+
+
+    def zonal_stats(self, stats, polygons, layer=None, names = None, trans=None):
+        """
+        Perform statistics on zonal areas.
+
+        Parameters:
+        ----------
+        stats (str/list) : statistics functions to perform.
+                           Must be recognize by pandas.DataFrame.agg() method.
+                           Example: stats = ['mean', 'min','max','median','count'].
+
+        polygons (it) : iterable containing single part polygons.
+                        Format: [ [(x0, y0),(x1,y1),(x2,y2)],.., [(x'N,y'N),..], ..]
+                           <=>  [        polygon_0          ,..,    polygon_N      ].
+
+        layer (int/it, optional) : layer id(s) on wich perform zonal statistics.
+                                   If None, all layers are considered.
+                                   Default is None.
+        names (str/it, optional) : names of zones in the output.
+                                   If None, generic names are created with field
+                                   and zone number ('field_z0', 'field_z1',...).
+                                   Default is None.
+
+        Returns:
+        --------
+        zstats_df (DataFrame) : DataFrame with rows MultiIndex ('zone', 'layer').
+
+        Examples:
+        --------
+        stats = ['mean','max','min','median','count']
+        polygons = shp_utils.read_shapefile('mypolygons.shp')['coords']
+        zdf = mf.zonal_stats(stats, polygons, layer=[4,5,6])
+
+        """
+        # ---- Manage multiple inputs
+        _stats = marthe_utils.make_iterable(stats)
+        if layer is None:
+            _layer = np.unique(self.data['layer'])
+        else:
+            _layer = marthe_utils.make_iterable(layer)
+        if names is None:
+            _names = [f'{self.field}_z{i}' for i in range(len(polygons))]
+        else:
+            _names = marthe_utils.make_iterable(names)
+
+        # ---- Check validity of transformation
+        pest_utils.check_trans(trans)
+
+        # ---- Get field vertices
+        vx, vy = self.get_xyvertices()
+
+        # ---- Iterate over all polygons
+        dfs = []
+        for p, name in zip(polygons, _names):
+            # -- Mask vertices in polygon
+            mask = shp_utils.point_in_polygon(vx, vy, p)
+            # ---- Map layer to vertices coord
+            rec = np.lib.recfunctions.stack_arrays(
+                    [self.sample(vx[mask], vy[mask], layer=ilay, masked_values=self.dmv)
+                            for ilay in _layer],
+                                autoconvert=True, usemask=False)
+            # -- Get data as DataFrame
+            df = pd.DataFrame.from_records(rec).drop_duplicates()
+            df['zone'] = name
+            # -- Perform required stats on tranform value
+            if trans is not None:
+                df['value'] = df['value'].transform(trans)
+            stats = df.groupby(['zone', 'layer'])['value'].agg(_stats)
+            dfs.append(stats)
+        # ---- Build zonal stats DataFrame
+        zstats_df = pd.concat(dfs)
+        # ---- Return
+        return zstats_df
 
 
 

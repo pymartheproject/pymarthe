@@ -332,8 +332,6 @@ class MartheModel():
 
 
 
-
-
     def remove_autocal(self):
         """
         Function to make marthe auto calibration silent.
