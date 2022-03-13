@@ -719,6 +719,10 @@ class MartheField():
                                    If None, generic names are created with field
                                    and zone number ('field_z0', 'field_z1',...).
                                    Default is None.
+        trans (str/func, optional): function/function name to transform field values
+                                    before applying statistics.
+                                    If None, field values are not transformed.
+                                    Default is None.
 
         Returns:
         --------
