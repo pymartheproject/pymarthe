@@ -698,7 +698,7 @@ class MartheField():
 
 
 
-    def zonal_stats(self, stats, polygons, layer=None, names = None, trans=None):
+    def zonal_stats(self, stats, polygons, layer=None, names = None, trans='none'):
         """
         Perform statistics on zonal areas.
 
@@ -722,7 +722,7 @@ class MartheField():
         trans (str/func, optional): function/function name to transform field values
                                     before applying statistics.
                                     If None, field values are not transformed.
-                                    Default is None.
+                                    Default is 'none'.
 
         Returns:
         --------
@@ -767,15 +767,13 @@ class MartheField():
             df['zone'] = name
             # -- Perform required stats on tranform value
             if trans is not None:
-                df['value'] = df['value'].transform(trans)
+                df['value'] = pest_utils.transform(df['value'], trans)
             stats = df.groupby(['zone', 'layer'])['value'].agg(_stats)
             dfs.append(stats)
         # ---- Build zonal stats DataFrame
         zstats_df = pd.concat(dfs)
         # ---- Return
         return zstats_df
-
-
 
 
 
