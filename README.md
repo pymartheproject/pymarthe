@@ -1,5 +1,5 @@
 
-<img src="assets/PyMarthe_v1.0_general.png" alt="PyMarthe v1.0" style="width:50;height:20">
+<img src="assets/PyMarthe_v1.0_general.png" alt="PyMarthe v1.0" align="center" width="15" height="10">
 
 
 
@@ -102,7 +102,8 @@ mopt.add_param(parname = 'soil',
 # -- Manage transformations
 mopt.set_obs_trans(trans = 'log', datatype = 'head')
 mopt.set_param_trans(trans = 'lambda x: np.log10(-x + 1)',
-                     btrans = 'lambda x: - np.power(10, x) + 1')
+                     btrans = 'lambda x: - np.power(10, x) + 1',
+                     parname= 'pumping')
 
 # -- Write PEST files
 mopt.write_parfile()
