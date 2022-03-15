@@ -1,6 +1,13 @@
 
-<img src="assets/PyMarthe_v1.0_general.png" alt="PyMarthe v1.0" align="center" width="15" height="10">
 
+<p align="center">
+  <img 
+  src="assets/PyMarthe_v1.0_general.png"
+  alt="PyMarthe v1.0" 
+  width="350"
+  height="265"
+  >
+</p>
 
 
 Introduction
@@ -57,7 +64,15 @@ ax = mf.plot(ax=ax, layer=6, log=True,
 ax.set_title('MONA - Permeability (layer = 6)',
              fontsize = 12, fontweight="bold")
 ```
-<img src="assets/permh_k6.png" alt="plot" style="width:30;height:30">
+
+<p align="center">
+  <img 
+  src="assets/permh_k6.png"
+  alt="PyMarthe v1.0" 
+  width="900"
+  height="500"
+  >
+</p>
 
 
 ## Run MARTHE model
