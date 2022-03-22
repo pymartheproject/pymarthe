@@ -17,13 +17,13 @@ from .utils import marthe_utils, shp_utils, pest_utils
 from .utils.grid_utils import MartheGrid
 
 encoding = 'latin-1'
-dmv = [-9999., 0., 9999] # Default masked values
+dmv = [-9999., 0., 9999] # Default field masked values
 
 class MartheField():
     """
     Wrapper Marthe --> python
     """
-    def __init__(self, field, data, mm=None):
+    def __init__(self, field, data, mm):
         """
         Marthe gridded property instance.
 
@@ -35,14 +35,16 @@ class MartheField():
                             - 'emmca'
                             - 'emmli'
                             - 'kepon'
+                            - ...
         data (object): field data to read/set.
                        Can be:
                         - Marthe property file ('mymodel.permh')
                         - Recarray with layer, inest,... informations
                         - 3D-array
+                        - List of MartheGrid instance
         mm (MartheModel) : parent Marthe model.
                            Note: consider providing a parent MartheModel
-                           instance ss far as possile.
+                           instance ss far as possile
 
         Examples
         -----------
@@ -276,9 +278,15 @@ class MartheField():
         _num = isinstance(data, (int, float))
         _rec = isinstance(data, np.recarray)
         _arr = isinstance(data, np.ndarray)
+        _list = isinstance(data, list)
 
-        # ---- Manage Marthe filename input
+        # ---- Manage Marthe filename as input
         if np.logical_and.reduce([_str, _none]):
+            grids = marthe_utils.read_grid_file(data)
+            self.data =  self._grids2rec(grids)
+
+        # ---- Manage list of MartheGrids as input
+        if np.logical_and.reduce([_list, _none]):
             self.data =  self._grids2rec(data)
 
         # ---- Manage numeric input
@@ -332,7 +340,7 @@ class MartheField():
 
 
 
-    def _grids2rec(self, filename):
+    def _grids2rec(self, grids):
         """
         Read Marthe field property file.
         Wrapper of marthe_utils.read_grid_file().
@@ -354,8 +362,8 @@ class MartheField():
         """
         # ---- Get recarray data from consecutive MartheGrid instance (mg) extract from field property file
         rec = np.lib.recfunctions.stack_arrays(
-                [mg.to_records() for mg in marthe_utils.read_grid_file(filename)],
-                        autoconvert=True, usemask=False)
+                [mg.to_records() for mg in grids],
+                        autoconvert=True, usemask=False, asrecarray=True)
         # ---- Stack all recarrays as once
         return rec
 
@@ -698,7 +706,7 @@ class MartheField():
 
 
 
-    def zonal_stats(self, stats, polygons, layer=None, names = None, trans='none'):
+    def zonal_stats(self, stats, polygons, layer=None, names = None, trans=None):
         """
         Perform statistics on zonal areas.
 
@@ -722,7 +730,7 @@ class MartheField():
         trans (str/func, optional): function/function name to transform field values
                                     before applying statistics.
                                     If None, field values are not transformed.
-                                    Default is 'none'.
+                                    Default is None.
 
         Returns:
         --------
@@ -767,7 +775,7 @@ class MartheField():
             df['zone'] = name
             # -- Perform required stats on tranform value
             if trans is not None:
-                df['value'] = pest_utils.transform(df['value'], trans)
+                df['value'] = df['value'].transform(trans)
             stats = df.groupby(['zone', 'layer'])['value'].agg(_stats)
             dfs.append(stats)
         # ---- Build zonal stats DataFrame
@@ -777,18 +785,94 @@ class MartheField():
 
 
 
+
+
+    def to_vtk(self, filename=None, trans='none', masked_values = dmv, **kwargs):
+        """
+        Build vtk unstructured grid from model geometry and 
+        add current field to cell dataset.
+
+        **kwargs correspond to the arguments of the MartheModel.get_vtk() method.
+        
+        Required python `vtk` package.
+
+        Parameters:
+        -----------
+        filename (str, optional) : vtk file name to write without extension.
+                                   Extension will be inferred.
+                                   If None, filename = field.
+                                   Default is None.
+        trans (str, optional) : transformation to apply to the values.
+                                See pymarthe.utils.pest_utils.transform.
+                                Default is 'none'.
+        masked_values (float/it, optional) : values to mask of the current field data.
+                                             Default are [9999, 0, -9999].
+        vertical_exageration (float, kwargs) : floating point value to scale vertical
+                                               exageration of the vtk points.
+                                               Default is 0.05.
+        hws (str, kwargs) : hanging wall state, flag to define whatever the superior
+                            hanging walls of the model are defined as normal layers
+                            (explivitly) or not (implicitly).
+                            Can be:
+                                - 'implicit'
+                                - 'explicit'
+                            Default is 'implicit'.
+        smooth (bool, kwargs) : boolean flag to enable interpolating vertex elevations
+                                based on shared cell.
+                                Default is False.
+        binary (bool, kwargs) : Enable binary writing, otherwise classic ASCII format 
+                                will be consider.
+                                Default is True.
+                                Note : binary is prefered as paraview can produced bug
+                                       representing NaN values from ASCII (non xml) files.
+        xml (bool, kwargs) : Enable xml based VTK files writing.
+                             Default is False.
+        shared_points (bool, kwargs) : Enable sharing points in grid polyhedron construction.
+                                       Default is False.
+                                       Note : False is prefered as paraview has a bug (8/4/2021)
+                                              where some polyhedron will not properly close when
+                                              using shared points.
+
+
+        Returns:
+        --------
+        vtk (pymarthe.utils.vtk_utils.Vtk) : Vtk class containg unstructured vtk grid
+
+        Example:
+        --------
+        mf = mm.prop['permh']
+        myvtk = mf.to_vtk(filename = mf.field, trans='log10', vertical_exageration=0.02)
+        """
+
+        # -- Manage output file name
+        f = self.field if filename is None else filename
+
+        # -- Manage masked values
+        mv = marthe_utils.make_iterable(masked_values)
+
+        # -- Get Vtk instance
+        vtk = self.mm.get_vtk(**kwargs)
+
+        # -- Add field data to vtk
+        vtk.add_array(self.data['value'],
+                      name=self.field,
+                      trans=trans,
+                      masked_values=mv)
+
+        # -- Write vtk file
+        vtk.write(f)
+
+        # -- Return Vtk instance
+        return vtk
+
+
+
+
     def __str__(self):
         """
         Internal string method.
         """
         return 'MartheField'
-
-
-
-
-
-
-
 
 
 

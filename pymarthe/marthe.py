@@ -719,6 +719,66 @@ class MartheModel():
 
 
 
+    def get_vtk(self, vertical_exageration=0.05, hws = 'implicit',
+                      smooth=False, binary=True,
+                      xml=False, shared_points=False):
+
+        """
+        Build vtk unstructured grid from model geometry.
+        Wrapper of pymarthe.utils.vtk_utils.Vtk class.
+        Required python `vtk` package.
+
+        Parameters:
+        -----------
+        vertical_exageration (float) : floating point value to scale vertical
+                                       exageration of the vtk points.
+                                       Default is 0.05.
+        hws (str) : hanging wall state, flag to define whatever the superior
+                    hanging walls of the model are defined as normal layers
+                    (explivitly) or not (implicitly).
+                    Can be:
+                        - 'implicit'
+                        - 'explicit'
+                    Default is 'implicit'.
+        smooth (bool) : boolean flag to enable interpolating vertex elevations
+                        based on shared cell.
+                        Default is False.
+        binary (bool) : Enable binary writing, otherwise classic ASCII format 
+                        will be consider.
+                        Default is True.
+                        Note : binary is prefered as paraview can produced bug
+                               representing NaN values from ASCII (non xml) files.
+        xml (bool) : Enable xml based VTK files writing.
+                     Default is False.
+        shared_points (bool) : Enable sharing points in grid polyhedron construction.
+                               Default is False.
+                               Note : False is prefered as paraview has a bug (8/4/2021)
+                                      where some polyhedron will not properly close when
+                                      using shared points.
+
+
+        Returns:
+        --------
+        vtk (pymarthe.utils.vtk_utils.Vtk) : Vtk class containg unstructured vtk grid
+
+        Example:
+        --------
+        mm = MartheModel('mymodel.rma', spatial_index='mymodel_si')
+        myvtk = mm.get_vtk(vertical_exageration=0.02,
+                          hws= 'implicit', smooth=True)
+
+        """
+        # -- Dynamic import of vtk module
+        from .utils import vtk_utils
+
+        # -- Initialize Vtk class
+        vtk = vtk_utils.Vtk(self, vertical_exageration, hws,
+                            smooth, binary, xml, shared_points)
+
+        # -- Return vtk instance
+        return vtk
+
+
 
     def __str__(self):
         """
