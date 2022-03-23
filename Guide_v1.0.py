@@ -130,6 +130,53 @@ ticks = np.arange(1, len(np.unique(mm.get_outcrop())) + 1)
 plt.colorbar(ticks=ticks)
 plt.show()
 
+
+'''
+PyMarthe has a Vtk class (pymarthe.utils.vtk_utils.Vtk) base on a MartheModel input
+that can reconstruct model 3D geometry as an unstructured grid. The user can get 
+the Vtk instance by using the .get_vtk() method. This operation required the `itertools`
+and `vtk` packages.  Several usefull arguments can by provided such as:
+    - vertical_exageration: scale of vertical exageration
+    - hws : hanging wall state, flag to define whatever the superior
+                hanging walls of the model are defined as normal layers
+                (explivitly) or not (implicitly).
+    - smooth : enable interpolating vertex elevations
+                    based on shared cell.
+                    Default is False.
+    - binary : Enable binary writing
+    - xml (bool) : Enable xml based VTK files writing.
+    - shared_points :Enable sharing points in grid polyhedron construction.
+Note: This operation can take a while for large model. Some informations and
+      progress bars will be printed to help the user to identify the state
+      of the operation progress.
+'''
+vtk = mm.get_vtk(vertical_exageration=0.02, hws = 'implicit',
+                 smooth=False, binary=True,
+                 xml=False, shared_points=False)
+
+'''
+In order to facilitate visualisation we will use the `pyvista` package.
+'''
+try:
+    import pyvista as pv
+except ImportError as error:
+    print("Could not load `pyvista` package.")
+
+'''
+The user can access the created unstructured grid by using the .vtk_grid attribut.
+Let's plot the actual cell connectivities of the 3D grid.
+'''
+# -- pyvista unstructured grid
+ugrid = pv.UnstructuredGrid(vtk.vtk_grid)
+conn = ugrid.connectivity()
+
+# -- pyvista plot
+from matplotlib.colors import ListedColormap
+cmap = ListedColormap(plt.cm.tab20(np.arange(mm.nlay)))
+_ = conn.plot(cmap=cmap, show_edges=True)
+
+
+
 # --------------------------------------------------------
 # ---- MartheField instance
 
@@ -310,6 +357,23 @@ plt.show()
 # -- Write data as Marthe grid file (Don't do it if you want to keep original data)
 # mf.write_data()
 # mf.write_data('mynewpermhfile.permh')
+
+
+'''
+MartheField instance can be exported to vtk object by using the .to_vtk() method.
+This will use the MartheModel.get_vtk() method to build vtk 3D geometries, add current
+field data for each cell and finally exporting it. Some values can be masked thank's to
+the `masked_values` argument. The user can also apply a transformation to the field data
+before exporting (argument `trans`).
+Note: the filename has to be provided without any extension, the adequate extension
+('.vtu' or '.vtk') will be infered from the `.xml` argument.
+Let's export the based 10 logarithm of 'permh' field to vtk file. 
+'''
+mm.prop['permh'].to_vtk(filename = os.path.join('monav3_pm', 'vtk_permh'),
+                        trans = 'log10',
+                        vertical_exageration=0.02,
+                        hws = 'implicit',
+                        smooth=False, binary=True)
 
 
 # --------------------------------------------------------
