@@ -16,10 +16,14 @@ PyMarthe v1.0
 
 Introduction
 -----------------------------------------------
+<img align="left" width="100" height="110" src="assets/logo_pymarthe.png">
+
+<br></br>
 
 PyMarthe (v1.0) is a python wrapper acting as a "coupling interface" between [MARTHE (v7.5)](https://www.brgm.fr/fr/logiciel/marthe-logiciel-modelisation-ecoulements-souterrains) hydrogeological numerical models (BRGM) and optimization algorithms provided by the [PEST++](https://github.com/usgs/pestpp) facilities. 
 
 
+<br></br>
 
 
 Getting Started
