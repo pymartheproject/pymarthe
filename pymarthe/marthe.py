@@ -78,6 +78,9 @@ class MartheModel():
                 self.sifile = None
                 self.spatial_index = None
 
+        # ---- Set number of cell by layer
+        self.ncpl = int(len(self.imask.data)/self.nlay)
+
         # ---- Set number of simulated timestep
         self.nstep = len(self.mldates)
 
@@ -541,6 +544,7 @@ class MartheModel():
     def get_layer_from_depth(self, x, y, depth, as_list=True):
         """
         Function to infer the layer id at a given xyz coordonates.
+        Note: still experimental.
 
         Parameters:
         ----------
@@ -561,31 +565,62 @@ class MartheModel():
         layers = mm.get_layer_from_depth(x,y,depth=[223.1, 568])
 
         """
-        # ---- Verify that
-        if self.geometry['topog'] is None:
-            self.load_geometry('topog')
+        # ---- Set all grid masked value
+        mv = [9999,8888,0,-9999]
+        # ---- Get topography and substratum altitude as array
+        #      with shape (nlay, ncpl)
+        geom_arrs = []
+        for g in ['topog', 'hsubs']:
+            if self.geometry[g] is None:
+                self.load_geometry(g)
+            # -- Convert to reshaped array
+            mf = self.geometry[g]
+            arr = mf.data['value'].reshape((self.nlay,self.ncpl))
+            # -- Convert masked grid value to nan
+            arr[np.isin(arr, mv)] = np.nan
+            geom_arrs.append(arr)
+
+        _topog, _hsubs = geom_arrs
+
         # ---- Make coordinates iterables
         _x, _y, _d = [marthe_utils.make_iterable(var) for var in [x,y,depth]]
-        # ---- Get topo at x, y points
-        _topo = self.geometry['topog'].sample(x=_x, y=_y, layer=0)['value']
-        # ---- Get copy of layer data
-        df = self.layers_infos.copy(deep=True)
-        # ---- Iterate over xy-topography
-        ilays, layer_nmes = [], []
-        for topo, d in zip(_topo, _d):
-            # -- Compute depth from topo
-            df['depth'] = df['thickness'].cumsum() - topo
-            # -- identify layer id
-            ilay = df.loc[df.depth > d, 'layer'].iloc[0]
-            lay_nme =  df.loc[df.depth > d, 'name'].iloc[0]
-            ilays.append(ilay)
-            layer_nmes.append(lay_nme)
+
+        # -- Initialized output lists
+        altitudes = []
+        target_layers = []
+
+        # -- Iterate over xy points
+        for ix, iy, d in zip(_x,_y,_d):
+            # -- Get mask of current point by layer (same for all layer)
+            cmask = self.imask.sample(ix,iy, layer=0, as_mask=True)[:self.ncpl]
+            # -- Detect if topography correspond to the top altitude
+            alti = _topog[0][cmask][0] if ~np.isnan(_topog[0][cmask]) else None
+            # -- Compute altitude as first not null substratum  - depth 
+            ilay = 0
+            while alti is None:
+                # -- Detect if substratum at this point is defined
+                if ~np.isnan(_hsubs[ilay][cmask]):
+                    alti = _hsubs[ilay][cmask] - d
+                    alti = alti[0]
+                # -- Pass to next layer
+                ilay += 1
+            # -- Store altitude of point
+            altitudes.append(alti)
+            # -- Extract target id layer
+            target = ilay + np.argmin(np.ravel(_hsubs[ilay:,cmask] < alti))
+            target_layers.append(target)
+
         # ---- Return
         if as_list:
-            return ilays
+            return target_layers
         else:
-            return pd.DataFrame({'x': _x, 'y': _y, 'depth':_d,
-                                 'layer': ilays, 'name': layer_nmes})
+            dic = {'x': _x,
+                   'y': _y,
+                   'depth':_d,
+                   'altitude': altitudes,
+                   'layer': target_layers,
+                   'name':  self.layers_infos.loc[target_layers,'name']}
+            return pd.DataFrame.from_dict(dic).reset_index(drop=True)
 
 
 

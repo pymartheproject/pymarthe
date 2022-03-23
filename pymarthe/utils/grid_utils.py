@@ -252,3 +252,44 @@ class MartheGrid():
         """
         return 'MartheGrid'
 
+
+
+
+
+
+
+def gridlist_to_verts(gridlist):
+    """
+    Convert list of MartheGrid instance into vertices.
+
+
+    Parameters:
+    -----------
+    gridlidt (list) : List of structured grid (MartheGrid instance).
+
+    Returns:
+    --------
+    verts, iverts (nd.array,list) : vertices and list of cells which
+                                    vertices comprise the cells
+
+    Examples:
+    -----------
+    verts, iverts = mm.imask.to_grids(layer=0)
+
+    """
+    # -- Initialize vertices dictionary and number of cell
+    vertdict = {}
+    icell = 0
+    # -- Iterate over structured grid (nested support)
+    for mg in gridlist:
+        # -- Iterate over each cell passing through rows and columns
+        for i in range(mg.nrow):
+            for j in range(mg.ncol):
+                # -- Get cell vertices (closed coordinates)
+                cv = mg.get_cell_vertices(i, j, closed=True)
+                vertdict[icell] = cv
+                icell += 1
+    # -- Convert vertice dictionary to verts and iverts
+    verts, iverts = to_cvfd(vertdict, verbose=False)
+    # -- Return
+    return verts, iverts

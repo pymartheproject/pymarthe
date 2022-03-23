@@ -9,8 +9,8 @@ import os
 import numpy as np
 import warnings
 warnings.simplefilter("always", DeprecationWarning)
-import vtk
 from pymarthe.utils import marthe_utils, pest_utils
+
 
 
 def gridlist_to_verts(gridlist):
@@ -363,7 +363,7 @@ def get_top_botm(mm, hws='implicit'):
     """
     # -- Infer/set nlay, ncpl, mv
     nlay = mm.nlay
-    ncpl = int(len(mm.imask.data)/nlay)
+    ncpl = mm.ncpl
     mv = [9999,8888,0,-9999]
 
     # -- Load basic geometry field if not already
@@ -393,6 +393,7 @@ def get_top_botm(mm, hws='implicit'):
         _outcrop = mm.get_outcrop().data['value'].reshape((nlay,ncpl)) # outcrop array
 
         for icell in range(ncpl):
+            marthe_utils.progress_bar((icell+1)/ncpl)
             for ilay in range(nlay):
                 # -- Compute z minimum above substratum
                 ztop = np.fmin.reduce(
@@ -472,6 +473,12 @@ class Vtk:
         myvtk = Vtk(mm, vertical_exageration=0.02, smooth=True)
 
         """
+        # -- Handle vtk package import issues
+        try:
+            import vtk
+        except ImportError as error:
+            print("Could not load `vtk` package.")
+
         # -- Set basic attributs
         self.mm = mm
         self.vertical_exageration = vertical_exageration
@@ -498,11 +505,11 @@ class Vtk:
 
         # -- Advance extraction of top and botm of each layer
         #    according to hanging wall state
-        print('Extracting model top/bottom for each layer ...')
+        print(f'Extracting model {self.hws} top/bottom for each layer ...')
         self.top, self.botm = get_top_botm(self.mm, hws=self.hws)
 
         # -- Build grid geometry
-        print('Building 3D geometry ...')
+        print('\nBuilding 3D geometry ...')
         self.points = []
         self.faces = []
         self._build_grid_geometry()
