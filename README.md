@@ -3,7 +3,7 @@
 PyMarthe v1.0 
 </H1>
 
-"""
+
 <p align="center">
   <img 
   src="assets/PyMarthe_v1.0_general.png"
