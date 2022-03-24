@@ -356,7 +356,7 @@ def to_cvfd(vertdict, nodestart=None, nodestop=None,
 
 
 
-def get_top_botm(mm, hws='implicit'):
+def get_top_botm(mm, hws='explicit'):
     """
     Function to extract altitude of top and bottom
     of each layer of a MartheModel instance
@@ -384,7 +384,7 @@ def get_top_botm(mm, hws='implicit'):
     #    hanging wall : top[i] = hsubs[i-1]
     #                   with top[0] = topog[0]
     if hws == 'explicit':
-        _top = np.vstack((_topog[0], _hsubs[1:]))
+        _top = np.vstack((_topog[0], _hsubs[:-1]))
 
     # -- Infer altitude of each cell top for implicit
     #    hanging wall : top[i] = altitude minimum above hsubs[i]
@@ -432,7 +432,7 @@ class Vtk:
 
     def __init__(self,
                  mm, vertical_exageration=0.05,
-                 hws = 'implicit', smooth=False,
+                 hws = 'explicit', smooth=False,
                  binary=True, xml=False,
                  shared_points=False):
         """
@@ -447,7 +447,7 @@ class Vtk:
                     Can be:
                         - 'implicit'
                         - 'explicit'
-                    Default is 'implicit'.
+                    Default is 'explicit'.
         vertical_exageration (float) : floating point value to scale vertical
                                        exageration of the vtk points.
                                        Default is 0.05.

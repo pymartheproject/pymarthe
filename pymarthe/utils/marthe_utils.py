@@ -185,7 +185,7 @@ def read_zonsoil_prop(martfile):
     # ---- Set usefull regex
     re_init = r"\*{3}\s*Initialisation avant calcul\s*\*{3}\n(.+)\*{5}"
     re_num = r"[-+]?\d*\.?\d+|\d+"
-    re_prop = r"\/(.+)\/ZONE_SOL\s*Z=\s*({0})V=\s*({0});".format(re_num)
+    re_prop = r"\s*\/(.+)\/ZONE_SOL\s*Z=\s*({0})V=\s*(.+);".format(re_num)
 
     # ---- Get initialisation block as string
     block = re.findall(re_init,content, re.DOTALL)[0]
