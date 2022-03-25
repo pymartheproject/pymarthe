@@ -370,15 +370,15 @@ def get_top_botm(mm, hws='explicit'):
     #    and reshape field value as (nlay, ncpl)
     #    (Marthe masked values will be set to nan)
     geom_arrs = []
-    for g, mf in mm.geometry.items():
-        if mf is None:
+    for g in ['topog','hsubs']:
+        if mm.geometry[g] is None:
             mm.load_geometry(g)
-            mf = mm.geometry[g]
+        mf = mm.geometry[g]
         arr = mf.data['value'].reshape((nlay,ncpl))
         arr[np.isin(arr, mv)] = np.nan
         geom_arrs.append(arr)
 
-    _sepon, _topog, _hsubs = geom_arrs
+    _topog, _hsubs = geom_arrs
 
     # -- Infer altitude of each cell top for explicit
     #    hanging wall : top[i] = hsubs[i-1]
@@ -389,9 +389,15 @@ def get_top_botm(mm, hws='explicit'):
     # -- Infer altitude of each cell top for implicit
     #    hanging wall : top[i] = altitude minimum above hsubs[i]
     if hws == 'implicit':
-        _top = np.empty((nlay,ncpl))    # empty top array
+        # -- Load hanging wall geometry
+        if mm.geometry['sepon'] is None:
+            mm.load_geometry('sepon')
+        _sepon = mm.geometry['sepon'].data['value'].reshape((nlay,ncpl))
+        _sepon[np.isin(arr, mv)] = np.nan
+        # -- Load outcrop layer ids
         _outcrop = mm.get_outcrop().data['value'].reshape((nlay,ncpl)) # outcrop array
-
+        _outcrop[np.isin(arr, mv)] = np.nan
+        _top = np.empty((nlay,ncpl))    # empty top array
         for icell in range(ncpl):
             marthe_utils.progress_bar((icell+1)/ncpl)
             for ilay in range(nlay):

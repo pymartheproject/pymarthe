@@ -492,10 +492,17 @@ ms = MartheSoil(mm)
 
 '''
 The actual mova v.3 model does not contain these properties. So, let's try with
-another Marthe Model named 'Lizonne.rma'.
+another Marthe Model named 'Lizonne.rma'. The MartheSoil instance can support 3
+type of soil property data :
+    - 'mart-c'  : constant soil properties in .mart file
+    - 'pastp-c' : constant soil property in .pastp file
+    - 'pastp-t' : transient soil property in .pastp file
+It will recognize the `mode` of implementation automatically.
+
 '''
 lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
-mm = MartheModel(lizonne_ws)
+lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
+mm = MartheModel(lizonne_ws, spatial_index=lizonne_si)
 
 # -- Build MartheSoil instance externaly
 ms = MartheSoil(mm)
@@ -511,7 +518,8 @@ and the value of the given soil property.
 '''
 # ---- Print basic data
 print(ms.data.to_markdown(tablefmt='github', index=False))
-print(f'\nNumber of zone: {ms.nzone}')
+print(f'\nSoil data implementation mode : {ms.mode}')
+print(f'Number of zone: {ms.nzone}')
 print(f'Number of soil properties: {ms.nsoilprop}')
 print(f'Soil properties of the {mm.mlname} model:')
 print('\n'.join([f'\t- {p}' for p in ms.soilprops]))
@@ -528,6 +536,19 @@ Note: soil properties are defined only on the first layer, others are set to 0.
 ms.get_data(soilprop = 'cap_sol_progr', zone=[1,8])
 ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=1)    # Constant value (=0)
 ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=0)
+
+'''
+Even if it's not explicitly written in the .mart or .patp file and store in `ms.data`,
+the user can access the soil data value for specific isteps by use the `force` argument.
+This works by searching the nearest previous istep (`npi`) where soil data were defined,
+that can be if several timesteps are required. 
+Let's extract the property `cap_sol_progr` for the istep 10 to 15 (must be the same as 
+the first timestep because soil properties are constant). 
+'''
+# --- Without forcing
+ms.get_data(soilprop = 'cap_sol_progr', istep = np.arange(10,16), force=False)
+# --- With forcing
+ms.get_data(soilprop = 'cap_sol_progr', istep = np.arange(10,16), force=True)
 
 '''
 Moreover, some wrappers of usefull functionalities of MartheField instance can be 
@@ -556,8 +577,8 @@ method with the required value.
 
 '''
 # ---- Changing data
-ms.set_data('cap_sol_progr', value = 122, zone = [1,2])
-ms.set_data('equ_ruis_perc', value = 17.56, zone = 8)
+ms.set_data('cap_sol_progr', value = 125, zone = [1,2])
+ms.set_data('equ_ruis_perc', value = 17, zone = 8)
 print(ms.data.to_markdown(tablefmt='github', index=False))
 
 '''
