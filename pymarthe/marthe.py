@@ -755,8 +755,8 @@ class MartheModel():
 
 
     def get_vtk(self, vertical_exageration=0.05, hws = 'implicit',
-                      smooth=False, binary=True,
-                      xml=False, shared_points=False):
+                      smooth=False, binary=True, xml=False,
+                      shared_points=False):
 
         """
         Build vtk unstructured grid from model geometry.
@@ -812,6 +812,8 @@ class MartheModel():
 
         # -- Return vtk instance
         return vtk
+
+
 
 
 

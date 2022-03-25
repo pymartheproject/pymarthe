@@ -147,108 +147,229 @@ def get_layers_infos(layfile, base = 1):
     return nnest, layers_infos
 
 
-def read_zonsoil_prop(martfile):
+# def read_zonsoil_prop(martfile):
+#     """
+#     -----------
+#     Description:
+#     -----------
+#     Read soil properties in .mart file. 
+
+#     Parameters: 
+#     -----------
+#     martfile (str): Marthe .mart file path
+
+#     Returns:
+#     -----------
+#     df (DataFrame) : soil data with apply zone ids.
+
+#     Format:
+
+#              property       zone    value
+#     0   cap_sol_progr         54      10.2
+#     1          ru_max        126      41.4  
+
+#     Example
+#     -----------
+#     martfile = 'mymarthemodel.mart'
+#     soil_df = read_zonsoil_prop(martfile)
+
+#     """
+#     # ---- Read .mart file content
+#     with open(martfile, 'r',encoding=encoding) as f:
+#         content = f.read()
+
+#     # ---- Assert that some soil property exist
+#     err_msg = f'No soil properties found in {martfile}.'
+#     assert '/ZONE_SOL' in content, err_msg
+
+#     # ---- Set usefull regex
+#     re_init = r"\*{3}\s*Initialisation avant calcul\s*\*{3}\n(.+)\*{5}"
+#     re_num = r"[-+]?\d*\.?\d+|\d+"
+#     re_prop = r"\s*\/(.+)\/ZONE_SOL\s*Z=\s*({0})V=\s*(.+);".format(re_num)
+
+#     # ---- Get initialisation block as string
+#     block = re.findall(re_init,content, re.DOTALL)[0]
+
+#     # ---- Extract zonal soil properties
+#     dt_dic = {c:dt for c,dt in zip(['soilprop', 'zone', 'value'], [str, int, float])}
+#     df = pd.DataFrame(re.findall(re_prop, block),columns=dt_dic.keys()).astype(dt_dic)
+#     df['soilprop'] = df['soilprop'].str.lower()
+
+#     # ---- Return zonal soil properties data
+#     return df.sort_values('soilprop').reset_index(drop=True)
+
+
+
+        
+
+
+def has_soilprop(text):
     """
-    -----------
     Description:
     -----------
-    Read soil properties in .mart file. 
+    Boolean response of zone soil data in string. 
 
     Parameters: 
     -----------
-    martfile (str): Marthe .mart file path
+    text (str) : string to test.
 
     Returns:
     -----------
-    df (DataFrame) : soil data with apply zone ids.
-
-    Format:
-
-             property       zone    value
-    0   cap_sol_progr         54      10.2
-    1          ru_max        126      41.4  
-
-    Example
-    -----------
-    martfile = 'mymarthemodel.mart'
-    soil_df = read_zonsoil_prop(martfile)
-
-    """
-    # ---- Read .mart file content
-    with open(martfile, 'r',encoding=encoding) as f:
-        content = f.read()
-
-    # ---- Assert that some soil property exist
-    err_msg = f'No soil properties found in {martfile}.'
-    assert '/ZONE_SOL' in content, err_msg
-
-    # ---- Set usefull regex
-    re_init = r"\*{3}\s*Initialisation avant calcul\s*\*{3}\n(.+)\*{5}"
-    re_num = r"[-+]?\d*\.?\d+|\d+"
-    re_prop = r"\s*\/(.+)\/ZONE_SOL\s*Z=\s*({0})V=\s*(.+);".format(re_num)
-
-    # ---- Get initialisation block as string
-    block = re.findall(re_init,content, re.DOTALL)[0]
-
-    # ---- Extract zonal soil properties
-    dt_dic = {c:dt for c,dt in zip(['soilprop', 'zone', 'value'], [str, int, float])}
-    df = pd.DataFrame(re.findall(re_prop, block),columns=dt_dic.keys()).astype(dt_dic)
-    df['soilprop'] = df['soilprop'].str.lower()
-
-    # ---- Return zonal soil properties data
-    return df.sort_values('soilprop').reset_index(drop=True)
-
-
-
-
-def write_zonsoil_prop(soil_df, martfile):
-    """
-
-    Description:
-    -----------
-    Write soil properties in .mart file. 
-
-    Parameters: 
-    -----------
-    soil_df (DataFrame) : soil data with apply zone ids.
-                            Format:
-                                        property       zone    value
-                                0   cap_sol_progr         54      10.2
-                                1          ru_max        126      41.4
-
-    martfile (str): Marthe .mart file path
-
-    Returns:
-    -----------
-    Write property values in .mart file
+    res (bool) : Whatever the text contains soil property data
   
 
     Example
     -----------
-    martfile = 'mymarthemodel.mart'
-    soil_df = read_zonsoil_prop(martfile)
-    soil_df.value = 125
-    write_zonsoil_prop(soil_df, martfile)
+    s = "my string"
+    if has_soilprop(s):
+        print('This string contains soil data.')
+    else:
+        print('This string does not contain soil data')
     """
-    # ---- Fetch actual .mart file content as text
-    with open(martfile, 'r', encoding=encoding) as f:
-        content = f.read()
-    # ---- Set useful regex
-    re_num = r"[-+]?\d*\.?\d+|\d+"
-    # ---- Iterate over each soil DataFrame line
-    for d in soil_df.itertuples():
-        # ---- Regex to match
-        re_match = r"\/{0}\/ZONE_SOL\s*Z=\s*{1}V=\s*({2});".format(
-                                                        d.soilprop.upper(),
-                                                        d.zone, 
-                                                        re_num)
-        # ---- Search pattern
-        match = re.search(re_match, content)
-        # ---- Replace by new value
-        sub = re.sub(match.group(1), str(d.value), match.group(0))
-        # ---- Rewrite .mart file
-        replace_text_in_file(martfile, match.group(0), sub)
+    res = True if '/ZONE_SOL' in text else False
+    return res
 
+
+
+def extract_soildf(text, istep=None):
+    """
+    Description:
+    -----------
+    Extract soil data in text to DataFrame.
+
+    Parameters: 
+    -----------
+    text (str) : string to test.
+    istep (int, optional): insert a additional 'istep' column
+                           at first position.
+                           Default is None.
+
+    Returns:
+    -----------
+    soil_df (DataFrame) : soil data with apply zone ids and value.
+                          Format:
+                          (if istep is None)
+
+                                     property       zone    value
+                            0   cap_sol_progr         54      10.2
+                            1          ru_max        126      41.4
+
+                          (if istep is not None)
+
+                                istep       property       zone    value
+                            0       0  cap_sol_progr         54      10.2
+                            1       0         ru_max        126      41.4
+
+    Example
+    -----------
+    soil_df = extract_soildf(mymartfielcontent, istep=0)
+    """
+    # -- Set useful regex to identify soil data contain by line
+    re_num = r"[-+]?\d*\.?\d+|\d+"
+    re_prop = r"\s*\/(.+)\/ZONE_SOL\s*Z=\s*({0})V=\s*(.+);".format(re_num)
+    # -- Define data type
+    dt_dic = {c:dt for c,dt
+               in zip(['soilprop', 'zone', 'value'],
+                      [str, int, float])}
+    # -- Extract soil data with regex (line-by-line)
+    data = re.findall(re_prop, text)
+    # -- Build soil DataFrame with correct data types
+    soil_df = pd.DataFrame(data, columns=dt_dic.keys()).astype(dt_dic)
+    # -- Sort by lower case soil properties names
+    soil_df['soilprop'] =  soil_df['soilprop'].str.lower()
+    soil_df = soil_df.sort_values('soilprop').reset_index(drop=True)
+    # -- Add istep column if required
+    if not istep is None:
+        soil_df.insert(0, 'istep', istep)
+    # -- Return soil properties DataFrame
+    return soil_df
+
+
+
+
+
+def read_zonsoil_prop(martfile, pastpfile):
+    """
+    Description:
+    -----------
+    Detetct existence and location of zone soil property data
+    and convert it to single DataFrame.
+
+    Parameters: 
+    -----------
+    martfile (str) : path to the .mart file.
+    pastpfile (str) : path to the .pastp file.
+
+    Returns:
+    -----------
+    mode (str) : flag of the zone soil data implementation.
+                 Can be :
+                    - 'mart-c'  (constant soil data in .mart file)
+                    - 'pastp-c' (constant soil data in .pastp file)
+                    - 'pastp-t' (transient soil data in .pastp file)
+    soil_df (DataFrame) : soil data with apply zone ids and property values.
+                          Format:
+                          (if istep is None)
+
+                                     property       zone    value
+                            0   cap_sol_progr         54      10.2
+                            1          ru_max        126      41.4
+
+                          (if istep is not None)
+
+                                istep       property       zone    value
+                            0       0  cap_sol_progr         54      10.2
+                            1       0         ru_max        126      41.4
+
+    Example
+    -----------
+    mode, soil_df = read_zonsoil_prop(martfile, pastpfile)
+
+    """
+    # -- Check if martfile contains soil property(ies)
+    with open(martfile, 'r',encoding=encoding) as f:
+        mart_content = f.read()
+    _mart = True if has_soilprop(mart_content) else False
+
+    # -- Check if pastp contains soil property(ies)
+    with open(pastpfile, 'r', encoding=encoding) as f:
+        pastp_content = f.read()
+    _pastp = True if has_soilprop(pastp_content) else False
+
+    # -- Raise error for none or both soil property implementations
+    err_both = "ERROR : soil properties provided " \
+               f"in both {martfile} and {pastpfile} files."
+    err_none = "ERROR : No soil properties found " \
+               f"in both {martfile} and {pastpfile} files."
+    assert any(x is False for x in [_mart,_pastp]), err_both
+    assert any(x is True  for x in [_mart,_pastp]), err_none
+
+    # -- Manage constante soil properties store in .mart file
+    if _mart:
+        # -- Set soil properties mode
+        mode = 'mart-c'
+        # -- Get constant soil DataFrame
+        soil_df = extract_soildf(mart_content, istep=0)
+
+    # -- Manage constante/transient soil properties store in .pastp file
+    else:
+        # -- Extract pastp text blocks (by timestep)
+        re_block = r";\s*\*{3}\n(.*?)/\*{5}"
+        blocks = re.findall(re_block, pastp_content, re.DOTALL)
+        nstep = len(blocks)
+        # -- Soil properties counter
+        counter = list(map(has_soilprop, blocks)).count(True)
+        # -- Set soil properties mode
+        mode = 'pastp-t' if counter > 1 else 'pastp-c'
+        # -- Extract soil DataFrame for each time step if provided
+        soil_dfs = [extract_soildf(block, istep) 
+                    for istep, block in enumerate(blocks)
+                    if has_soilprop(block)]
+        # -- Concatenate all time step DataFrame
+        soil_df = pd.concat(soil_dfs, ignore_index=True)
+
+    # -- Return implementation mode and soil properties DataFrame
+    return mode, soil_df
 
 
 
