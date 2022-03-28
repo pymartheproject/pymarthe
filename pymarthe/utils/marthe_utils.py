@@ -663,26 +663,29 @@ def get_units_dic(mart_file):
     # ---- Extract string block in .mart file
     block = re.findall(re_block, content, re.DOTALL)[0]
 
-    # ---- Build unit dictionary
-    units_dic = {}
-    for unit_name, line in zip(unit_names, block.splitlines()):
-        # -- Get value as string
-        val_str = line.split('=')[0].strip()
-        # -- Set None if not provided
-        if len(val_str) == 0:
-            v = None
-        # -- Manage time units
-        elif val_str in tu_dic.keys():
-                v = tu_dic[val_str]
-        # -- Manage val_str as value
-        else:
-            # -- Correct bad scientific notation
-            if re.search(r'\d[-+]\d', val_str) is not None:
-                sign = re.search(r'[-+]', val_str).group()
-                val_str = val_str.replace(sign, 'e' + sign)
-            # -- Convert into numeric
-            v = ast.literal_eval(val_str)
-        units_dic[unit_name] = v
+    # ---- Build unit dictionary (add try loop to avoid errors)
+    try:
+        units_dic = {}
+        for unit_name, line in zip(unit_names, block.splitlines()):
+            # -- Get value as string
+            val_str = line.split('=')[0].strip()
+            # -- Set None if not provided
+            if len(val_str) == 0:
+                v = None
+            # -- Manage time units
+            elif val_str in tu_dic.keys():
+                    v = tu_dic[val_str]
+            # -- Manage val_str as value
+            else:
+                # -- Correct bad scientific notation
+                if re.search(r'\d[-+]\d', val_str) is not None:
+                    sign = re.search(r'[-+]', val_str).group()
+                    val_str = val_str.replace(sign, 'e' + sign)
+                # -- Convert into numeric
+                v = ast.literal_eval(val_str)
+            units_dic[unit_name] = v
+    except:
+        units_dic = dict.fromkeys(unit_names)
 
     # ---- Return units
     return units_dic
