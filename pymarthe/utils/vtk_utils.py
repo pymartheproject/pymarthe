@@ -7,6 +7,7 @@ https://github.com/modflowpy/flopy
 
 import os
 import numpy as np
+from copy import deepcopy
 import warnings
 warnings.simplefilter("always", DeprecationWarning)
 from pymarthe.utils import marthe_utils, pest_utils
@@ -374,7 +375,8 @@ def get_top_botm(mm, hws='explicit'):
         if mm.geometry[g] is None:
             mm.load_geometry(g)
         mf = mm.geometry[g]
-        arr = mf.data['value'].reshape((nlay,ncpl))
+        arr_dc = deepcopy(mf.data['value'])
+        arr = arr_dc.reshape((nlay,ncpl))
         arr[np.isin(arr, mv)] = np.nan
         geom_arrs.append(arr)
 
@@ -392,11 +394,12 @@ def get_top_botm(mm, hws='explicit'):
         # -- Load hanging wall geometry
         if mm.geometry['sepon'] is None:
             mm.load_geometry('sepon')
-        _sepon = mm.geometry['sepon'].data['value'].reshape((nlay,ncpl))
-        _sepon[np.isin(arr, mv)] = np.nan
+        arr_dc = deepcopy(mm.geometry['sepon'].data['value'])
+        _sepon = arr_dc.reshape((nlay,ncpl))
+        _sepon[np.isin(_sepon, mv)] = np.nan
         # -- Load outcrop layer ids
         _outcrop = mm.get_outcrop().data['value'].reshape((nlay,ncpl)) # outcrop array
-        _outcrop[np.isin(arr, mv)] = np.nan
+        _outcrop[np.isin(_outcrop,  [9999,-9999])] = np.nan
         _top = np.empty((nlay,ncpl))    # empty top array
         for icell in range(ncpl):
             marthe_utils.progress_bar((icell+1)/ncpl)
@@ -437,7 +440,7 @@ class Vtk:
     """
 
     def __init__(self,
-                 mm, vertical_exageration=0.05,
+                 mm, vertical_exageration=10,
                  hws = 'explicit', smooth=False,
                  binary=True, xml=False,
                  shared_points=False):
