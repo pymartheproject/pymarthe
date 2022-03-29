@@ -204,7 +204,7 @@ class MartheOptim():
         ndt = moptim.get_ndatatypes()
         print(f"There are {ndt} observation data types")
         """
-        dt = [mo.datatype for mo in mopt.obs.values()]
+        dt = [mo.datatype for mo in self.obs.values()]
         return len(set(dt))
 
 
