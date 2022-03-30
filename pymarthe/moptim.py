@@ -344,6 +344,15 @@ class MartheOptim():
         if check_loc:
             self.check_loc(locnme)
 
+        # ---- Avoid observations out of model time window
+        start, end = min(self.mm.mldates), max(self.mm.mldates)
+        if len(df) > len(df.loc[start:end]):
+            # -- Raise warning message
+            warn_msg = 'Warning : some observation data are out of model time window ' \
+                       f'({start} - {end} ). They will not be considered.'
+            warnings.warn(warn_msg, Warning)
+            df = df.loc[start:end]
+
         # ---- Build MartheObs instance from data input
         insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))
         mobs = MartheObs(iloc = self.get_nlocs(),

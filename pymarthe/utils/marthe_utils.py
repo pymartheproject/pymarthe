@@ -147,61 +147,6 @@ def get_layers_infos(layfile, base = 1):
     return nnest, layers_infos
 
 
-# def read_zonsoil_prop(martfile):
-#     """
-#     -----------
-#     Description:
-#     -----------
-#     Read soil properties in .mart file. 
-
-#     Parameters: 
-#     -----------
-#     martfile (str): Marthe .mart file path
-
-#     Returns:
-#     -----------
-#     df (DataFrame) : soil data with apply zone ids.
-
-#     Format:
-
-#              property       zone    value
-#     0   cap_sol_progr         54      10.2
-#     1          ru_max        126      41.4  
-
-#     Example
-#     -----------
-#     martfile = 'mymarthemodel.mart'
-#     soil_df = read_zonsoil_prop(martfile)
-
-#     """
-#     # ---- Read .mart file content
-#     with open(martfile, 'r',encoding=encoding) as f:
-#         content = f.read()
-
-#     # ---- Assert that some soil property exist
-#     err_msg = f'No soil properties found in {martfile}.'
-#     assert '/ZONE_SOL' in content, err_msg
-
-#     # ---- Set usefull regex
-#     re_init = r"\*{3}\s*Initialisation avant calcul\s*\*{3}\n(.+)\*{5}"
-#     re_num = r"[-+]?\d*\.?\d+|\d+"
-#     re_prop = r"\s*\/(.+)\/ZONE_SOL\s*Z=\s*({0})V=\s*(.+);".format(re_num)
-
-#     # ---- Get initialisation block as string
-#     block = re.findall(re_init,content, re.DOTALL)[0]
-
-#     # ---- Extract zonal soil properties
-#     dt_dic = {c:dt for c,dt in zip(['soilprop', 'zone', 'value'], [str, int, float])}
-#     df = pd.DataFrame(re.findall(re_prop, block),columns=dt_dic.keys()).astype(dt_dic)
-#     df['soilprop'] = df['soilprop'].str.lower()
-
-#     # ---- Return zonal soil properties data
-#     return df.sort_values('soilprop').reset_index(drop=True)
-
-
-
-        
-
 
 def has_soilprop(text):
     """

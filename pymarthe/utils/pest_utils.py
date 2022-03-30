@@ -5,7 +5,7 @@ import pandas as pd
 import re, ast
 import pyemu
 
-from pymarthe.utils import ts_utils
+from pymarthe.utils import ts_utils, marthe_utils
 
 ############################################################
 #        Utils for pest preprocessing for Marthe
