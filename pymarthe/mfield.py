@@ -1,5 +1,5 @@
 """
-Contains the MartheField class
+Contains the classes related to field data.
 Designed for handling distributed Marthe properties
 (structured and unstructured grid)
 """
