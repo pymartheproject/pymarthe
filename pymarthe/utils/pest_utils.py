@@ -355,12 +355,14 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
 
     # -- Interpolate values on observations if required
     if not dates_out is None:
-        df['value'] = ts_utils.interpolate(df['value'], dates_out, method = interp_method)
+        df = ts_utils.interpolate(df['value'],
+                                  dates_out,
+                                  method = interp_method).to_frame()
 
     # -- Write simulated data in external file
     write_simfile(dates = df.index,
-                 values = transform(df['value'], trans).values,
-                 simfile = os.path.join(sim_dir, f'{name}.dat'))
+                  values = transform(df['value'], trans).values,
+                  simfile = os.path.join(sim_dir, f'{name}.dat'))
 
 
 

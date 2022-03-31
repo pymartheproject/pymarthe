@@ -63,6 +63,9 @@ class MartheModel():
         self.nnest, self.layers_infos = marthe_utils.get_layers_infos(self.mlfiles['layer'], base = 0)
         self.nlay = self.layers_infos.layer.max() + 1
 
+        # ---- Store hws (Hangling Wall State)
+        self.hws = 'explicit' if len(self.layers_infos.epon_sup.unique()) == 1 else 'implicit'
+
         # ---- Store model grid infos from permh field
         self.imask = self.build_imask()
 
@@ -754,7 +757,7 @@ class MartheModel():
 
 
 
-    def get_vtk(self, vertical_exageration=0.05, hws = 'implicit',
+    def get_vtk(self, vertical_exageration=0.05, hws = None,
                       smooth=False, binary=True, xml=False,
                       shared_points=False):
 
@@ -774,7 +777,8 @@ class MartheModel():
                     Can be:
                         - 'implicit'
                         - 'explicit'
-                    Default is 'implicit'.
+                    If None, self.hws will be use.
+                    Default is None.
         smooth (bool) : boolean flag to enable interpolating vertex elevations
                         based on shared cell.
                         Default is False.
@@ -807,6 +811,7 @@ class MartheModel():
         from .utils import vtk_utils
 
         # -- Initialize Vtk class
+        hws = self.hws if hws is None else hws
         vtk = vtk_utils.Vtk(self, vertical_exageration, hws,
                             smooth, binary, xml, shared_points)
 

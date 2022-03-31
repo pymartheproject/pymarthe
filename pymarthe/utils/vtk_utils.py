@@ -195,11 +195,10 @@ def segment_face(ivert, ivlist1, ivlist2, vertices):
     """
 
     # -- Go through ivlist1 and find faces that have ivert
-    faces_to_check = []
-    for ipos in range(len(ivlist1) - 1):
-        face = (ivlist1[ipos], ivlist1[ipos + 1])
-        if ivert in face:
-            faces_to_check.append(face)
+    faces_to_check = [(ivlist1[ipos], ivlist1[ipos + 1]) 
+                            for ipos in range(len(ivlist1) - 1)
+                                if ivert in (ivlist1[ipos], ivlist1[ipos + 1])]
+
 
     # -- Go through ivlist2 and find points to check
     points_to_check = []
@@ -441,7 +440,7 @@ class Vtk:
 
     def __init__(self,
                  mm, vertical_exageration=10,
-                 hws = 'explicit', smooth=False,
+                 hws = None, smooth=False,
                  binary=True, xml=False,
                  shared_points=False):
         """
@@ -456,7 +455,8 @@ class Vtk:
                     Can be:
                         - 'implicit'
                         - 'explicit'
-                    Default is 'explicit'.
+                    If None, mm.hws will be use.
+                    Default is None.
         vertical_exageration (float) : floating point value to scale vertical
                                        exageration of the vtk points.
                                        Default is 0.05.
@@ -491,7 +491,7 @@ class Vtk:
         # -- Set basic attributs
         self.mm = mm
         self.vertical_exageration = vertical_exageration
-        self.hws = hws
+        self.hws = self.mm.hws if hws is None else hws
         self.smooth = smooth
         self.binary = binary
         self.xml = xml
