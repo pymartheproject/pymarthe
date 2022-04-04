@@ -25,7 +25,7 @@ class MartheModel():
     """
     Wrapper MARTHE --> Python
     """
-    def __init__(self, rma_path, spatial_index = False):
+    def __init__(self, rma_path, spatial_index = False, modelgrid= False):
         """
         Parameters
         ----------
@@ -33,16 +33,42 @@ class MartheModel():
                         the model name and working directory
                         will be identified.
 
-        spatial_index (bool/str) : model spatial index management.
-                                   If True, a spatial index will be created.
-                                   If False, spatial index set to None.
-                                   If string, spatial index set from external file.
-                                   Default is False.
+        spatial_index (bool/str/dict) : model spatial index.
+                                        Allows sample and intersect process from xy coordinates.
+                                        Each cell will be inserted in a rtree Index instance with
+                                        related cell data (id, layer, inest, ...). 
+                                        Can be :
+                                            - True  (bool)    : generate generic spatial index (mlname_si.idx/.dat).
+                                            - False (bool)    : disable spatial index creation.
+                                            - name  (string)  : path to an existing spatial index to read.
+                                            - dic   (dict)    : generate spatial index with custom name 
+                                                                Format : {'name':'mymodelsi'}
+                                        Default is False.
+
+        modelgrid (bool): cell by cell DataFrame containing model grid informations.
+                          Format:
+
+                                        node    layer   inest   i     j     xcc     ycc     dx      dy  vertices  active
+                                node
+                                0        int      int     int int   int   float   float  float   float      list     int
+                                1        int      int     int int   int   float   float  float   float      list     int
+                                .        ...      ...     ... ...   ...    ...     ...    ...      ...      ...      ...
+                                .        ...      ...     ... ...   ...    ...     ...    ...      ...      ...      ...
+                                nnode    int      int     int int   int   float   float  float   float      list     int
+
+                          Can be:
+                                - True : Build a `.modelgrid` DataFrame from imask (slow)
+                                   or from the spatial index if provided (fast).
+                                - False : set modelgrid to None.
+
+                          Default is False.
 
 
         Examples
         --------
-        mm = MartheModel('/Users/john/zone/model/mymodel.rma')
+        mm = MartheModel(rma_path = 'model/mymodel.rma',
+                         spatial_index = {'name':'mymodel_si'},
+                         modelgrid=True)
 
         """
         # ---- Get model working directory and rma file
@@ -69,18 +95,6 @@ class MartheModel():
         # ---- Store model grid infos from permh field
         self.imask = self.build_imask()
 
-        # ---- Build model spatial index
-        if isinstance(spatial_index, str):
-            from rtree.index import Index
-            self.spatial_index = Index(spatial_index)
-            self.sifile = spatial_index
-        else:
-            if spatial_index:
-                self.build_spatial_idx()
-            else:
-                self.sifile = None
-                self.spatial_index = None
-
         # ---- Set number of cell by layer
         self.ncpl = int(len(self.imask.data)/self.nlay)
 
@@ -96,6 +110,155 @@ class MartheModel():
 
         # ---- Set spatial reference (used for compatibility with pyemu geostat utils)
         self.spatial_reference = SpatialReference(self)
+
+        # ---- Manage spatial index instance
+        if isinstance(spatial_index, str):
+            self.si_state = 1       # activate spatial index
+            from rtree.index import Index
+            self.spatial_index = Index(spatial_index)
+            self.sifile = spatial_index
+        elif isinstance(spatial_index, dict):
+            self.build_spatial_index(spatial_index['name'])
+        elif spatial_index is True:
+            self.build_spatial_index()
+        elif spatial_index is False:
+            self.si_state = 0       # desactivate spatial index
+            self.sifile = None
+            self.spatial_index = None
+
+        # ---- Manage modelgrid DataFrame
+        if modelgrid:
+            self.build_modelgrid()
+        else:
+            self.modelgrid = None
+
+
+
+    def __iter__(self):
+        """
+        Generate cell spatial information for spatial indexing.
+        Each cell will contain following informations:
+            - 'node' : cell unique id
+            - 'layer': layer id
+            - 'inest': nested grid id
+            - 'i'    : row number
+            - 'j'    : column number
+            - 'xcc'  : x-coordinate of the cell centroid
+            - 'ycc'  : y-coordinate of the cell centroid
+            - 'dx'   : cell width
+            - 'dy'   : cell height
+            - 'area' : cell area
+            - 'vertices': cell vertices
+            - 'ative': cell activity (0=inactive, 1=active)
+        """
+        # -- Set nodes properties
+        nnodes = self.ncpl * self.nlay
+        node = 0
+        # -- Iterate over all model grids
+        for mg in self.imask.to_grids():
+            # -- Vectorize row, column iteration process
+            ii,jj = np.meshgrid(np.arange(mg.nrow),np.arange(mg.ncol))
+            for i,j in zip(ii.ravel(),jj.ravel()):
+                vertices = mg.get_cell_vertices(i,j)
+                # -- Store infos of current cell
+                obj = ( node, mg.layer, mg.inest, i, j,
+                        mg.xcc[j], mg.ycc[i], mg.dx[j],
+                        mg.dy[i], mg.dx[j] * mg.dy[i] ,
+                        vertices,  int(mg.array[i,j])   )
+                # -- Compute cell bounds
+                if self.si_state:
+                    xmin = mg.xcc[j] - mg.dx[j]/2
+                    xmax = mg.xcc[j] + mg.dx[j]/2
+                    ymin = mg.ycc[i] - mg.dy[i]/2
+                    ymax = mg.ycc[i] + mg.dy[i]/2
+                    bounds = (xmin, ymin, xmax, ymax)
+                # -- Incrementation of unique cell id
+                node += 1
+                # -- User progress bar
+                marthe_utils.progress_bar(node/nnodes)
+                # -- Push cell data
+                if bool(self.si_state):
+                    yield (node, bounds, obj)
+                else:
+                    yield obj
+
+
+
+    def build_spatial_index(self, name=None):
+        """
+        Function to build a spatial index on field data.
+
+        Parameters:
+        ----------
+        self (MartheField) : MartheField instance
+
+        Returns:
+        --------
+        spatial_index (rtree.index.Index)
+
+        Examples:
+        --------
+        si = mm.modelgrid.build_spatial_idx()
+
+        """
+        # -- Activate iterator by setting spatial index to 1
+        self.si_state = 1  # active iterator
+        # -- Import rtree package
+        try:
+            import rtree
+        except:
+            ImportError('Could not import `rtree` package.')
+
+        # -- Manage spatial index properties
+        p = rtree.index.Property()
+        si_name = self.rma_path.replace('.rma', '_si') if name is None else name
+        p.set_filename(si_name)
+        # -- Build rtree spatial index
+        print('Building spatial index ...')
+        si = rtree.index.Index(si_name, self.__iter__(), properties=p)
+        si.flush()
+        self.sifile = si_name
+        self.spatial_index = si
+
+
+
+
+    def build_modelgrid(self):
+        """
+        Build an large pandas.DataFrame and store it in .modelgrid attribute.
+        Each row represent a cell with the following informations (columns):
+            - 'node' : cell unique id
+            - 'layer': layer id
+            - 'inest': nested grid id
+            - 'i'    : row number
+            - 'j'    : column number
+            - 'xcc'  : x-coordinate of the cell centroid
+            - 'ycc'  : y-coordinate of the cell centroid
+            - 'dx'   : cell width
+            - 'dy'   : cell height
+            - 'area' : cell area
+            - 'vertices': cell vertices
+            - 'ative': cell activity (0=inactive, 1=active)
+        """
+        # -- Set columns names
+        cn = ['node','layer','inest','i','j','xcc',
+              'ycc','dx','dy', 'area', 'vertices','active']
+
+        # -- From spatial index (fastest)
+        if bool(self.si_state):
+            print('Building modelgrid from spatial index ...')
+            df  = pd.DataFrame(data = self.spatial_index.intersection(
+                                      self.get_extent(), objects='raw'),
+                               columns =  cn)
+        
+        # -- From internal grids (slowest)
+        else:
+            print('Building modelgrid from internal grids ...')
+            df = pd.DataFrame(data = self.__iter__(), columns =  cn)
+
+        # -- Set sorted DataFrame to .modelgrid attribute
+        self.modelgrid = df.set_index('node', drop=False).sort_index()
+
 
 
 
@@ -161,52 +324,6 @@ class MartheModel():
         imask.data['value'] = (imask.data['value'] != 0).astype(int)
         # ---- Return MartheField instance
         return imask
-
-
-
-    def build_spatial_idx(self, sifile = None):
-        """
-        Function to build a spatial index on field data.
-
-        Parameters:
-        ----------
-        self (MartheField) : MartheField instance
-
-        Returns:
-        --------
-        spatial_index (rtree.index.Index)
-
-        Examples:
-        --------
-        si = mf.build_spatial_idx()
-
-        """
-        # ---- Import spatial index from Rtree module
-        from rtree.index import Index
-        # ---- Initialize spatial index
-        if sifile is None:
-            sifile = os.path.join(self.mldir, f'{self.mlname}_si')
-        si = Index(sifile)
-        # ---- Fetch model cell as polygons
-        polygons = []
-        for mg in self.imask.to_grids():
-            polygons.extend([p[0] for p in mg.to_pyshp()])
-        # ---- Build bounds
-        bounds = []
-        for polygon in polygons:
-            xmin, ymin = map(min,np.column_stack(polygon))
-            xmax, ymax = map(max,np.column_stack(polygon))
-            bounds.append((xmin, ymin, xmax, ymax))
-        # ---- Implement spatial index
-        print('Building spatial index ...')
-        for i, bd in enumerate(bounds):
-            marthe_utils.progress_bar((i+1)/len(bounds))
-            si.insert(i, bd)
-        # ---- Stock and Store spatial index
-        si.flush()
-        self.sifile = sifile
-        self.spatial_index = si
-
 
 
 
@@ -335,6 +452,72 @@ class MartheModel():
         return mm
 
 
+    def get_extent(self):
+        """
+        Return the model domain extension.
+
+        Returns:
+        --------
+        extent (list) : model extension
+                        Format: [xmin, ymin, xmax, ymax]
+
+        Examples:
+        --------
+        mm.modelgrid.get_extent()
+
+        """
+        # -- Extract extent from imask (main grid)
+        if self.spatial_index is None:
+            mg0 = self.mm.imask.to_grids(layer=0)[0]
+            xmin, ymin = mg0.xl, mg0.yl
+            xmax, ymax = mg0.xl+mg0.Lx, mg0.yl+mg0.Ly
+            extent = [xmin, ymin, xmax, ymax]
+        # -- Extract extent from spatial index
+        else:
+            extent = self.spatial_index.bounds
+        # -- Return
+        return extent
+
+
+
+    def get_edges(self, closed=False):
+        """
+        Return the xy-coordinates of model domain edges.
+
+        Parameters:
+        ----------
+        closed (bool) : whatever adding first point in return list
+                        (in order to close polygon).
+
+        Returns:
+        --------
+        edges (list) : list of xy-coordinates (points).
+                       If closed is False:
+                            Format: [edge_lower_left, edge_upper_left,
+                                     edge_upper_right, edge_lower_right]
+                       If closed is False:
+                            Format: [edge_lower_left, edge_upper_left,
+                                     edge_upper_right, edge_lower_right]
+
+        Examples:
+        --------
+        mm.modelgridget_edges(closed=False)
+
+        """
+        # -- Fetch model extension
+        xmin, ymin, xmax, ymax = self.get_extent()
+        # -- Build list of edges coordinates
+        edges = [[xmin, ymin],
+                 [xmin, ymax],
+                 [xmax, ymax],
+                 [xmax, ymin]]
+        # -- Add first point if required (closed polygon)
+        if closed:
+            edges.append([xmin, ymin])
+        # -- Return
+        return edges
+
+
 
 
 
@@ -440,6 +623,208 @@ class MartheModel():
 
 
 
+
+    def query_grid(self, target=None, **kwargs):
+        """
+        High level method to perform queries on model grid.
+
+        Parameters:
+        ----------
+        target (str/it) : requeried grid information to extract.
+                          Can be:
+                            - 'node' : cell unique id
+                            - 'layer': layer id
+                            - 'inest': nested grid id
+                            - 'i'    : row number
+                            - 'j'    : column number
+                            - 'xcc'  : x-coordinate of the cell centroid
+                            - 'ycc'  : y-coordinate of the cell centroi
+                            - 'dx'   : cell width
+                            - 'dy'   : cell height
+                            - 'ative': cell activity (0=inactive, 1=active)
+                          If None, all grid informations will be considered.
+                          Default is None.
+
+        **kwargs : required spatial information to subset grid.
+
+        Returns:
+        --------
+        df (DataFrame) : subset DataFrame.
+
+        Examples:
+        --------
+        # -- Query grid to extract x-y cell resolutions
+        df = mm.query_grid(target=['dx','dy'],
+                           i = [23,45,56],
+                           j = [45,67,89],
+                           layer = [0,5,4],
+                           inest = [0,0,0])
+        
+        """
+        # -- Build modelgrid if not exists
+        if self.modelgrid is None:
+            self.build_modelgrid()
+
+        # -- Make all kwargs values iterable
+        d = {k:marthe_utils.make_iterable(v) for k,v in kwargs.items()}
+
+        # -- Check kwargs names validity
+        nf = [f"'{kw}'" for kw in d.keys() if kw not in self.modelgrid.columns]
+        err_msg = 'ERROR : some query names not found in ' \
+                   'modelgrid : {}.'.format(', '.join(nf))
+        assert len(nf) == 0, err_msg
+
+        # -- Check kwargs values validity
+        err_msg = 'ERROR : all query values must have the same length. ' \
+                  'Given : {}.'.format(', '.join([str(len(v)) for v in d.values()]))
+        assert marthe_utils.unanimous(d), err_msg
+
+        # -- Build high level indexes
+        kidx = list(d.keys())
+        vidx = list(zip(*d.values())) if len(d.keys()) > 1 else list(*d.values())
+
+        # -- Manage target information
+        if target is None:
+            target = [c for c in self.modelgrid.columns if c not in kidx]
+        else:
+            target = marthe_utils.make_iterable(target)
+
+        # -- Check target validity
+        nf = [f"'{t}'" for t in target if t not in self.modelgrid.set_index(kidx).columns]
+        err_msg = 'ERROR : some `target` values not found in ' \
+                   'modelgrid or already use for grid query: {}.'.format(', '.join(nf))
+        assert len(nf) == 0, err_msg
+
+        # -- Query modelgrid DataFrame
+        df = self.modelgrid.set_index(kidx).loc[vidx,target]
+
+        # -- Return subset DataFrame
+        return df
+
+
+
+    def isin_extent(self, x, y):
+        """
+        Boolean response to check if (a) point(s) is in model extension.
+
+        Parameters:
+        ----------
+        x, y (float/iterable) : xy-coordinate(s) of the required point(s)
+
+        Returns:
+        --------
+        res (list) : boolean mask.
+                     True : point in model domain
+                     False: point out of model domain
+
+        Examples:
+        --------
+        mm._isin_extent(x=[256.8,278.1], y=[345.2,349.3])
+
+        """
+        # -- Get model domain extension as polygon
+        ext = self.get_edges(closed=True)
+        # -- Make coords iterable
+        _x,_y = [np.array(marthe_utils.make_iterable(coord)) for coord in [x,y]]
+        res = shp_utils.point_in_polygon(_x, _y, ext)
+        # -- Return boolean response
+        return res
+
+
+
+    def get_node(self, x, y, layer=None, only_active=False):
+        """
+        Function to fetch node id(s) from xy-coordinates.
+
+        Parameters:
+        ----------
+        x, y (float/it) : xy-coordinate(s) of the required point(s)
+        layer (int/it, optional) : layer(s) to intersect.
+                                   Can be an integer (same layer for all
+                                   points) or a sequence of integers for
+                                   each xy-coordinates.
+                                   If None, all layer will be considered.
+                                   Default None.
+        only_active (bool): whatever set unactive cell intersected to np.nan.
+                            Default is None.
+
+        Returns:
+        --------
+        nodes (list) : intersected nodes. 
+
+        Examples:
+        --------
+        x, y = [456788.78, 459388.78], [6789567.2, 6789569.89]
+        nodes = get_nodes(x, y, layer=2, only_active=True)
+        
+        """
+        # -- Manage xy coordinates
+        _x, _y = [marthe_utils.make_iterable(var) for var in [x,y]]
+
+        # -- Check if xy-coordinates are in model extension
+        inext = self.isin_extent(_x, _y)
+        if any(x is False for x in inext):
+            war_msg = 'Some xy-coordinates provided are out of ' \
+                      'the model extension. No node(s) will be ' \
+                      'return for these points.'
+            warnings.warn(war_msg)
+
+        # -- Build spatial index if required
+        if self.spatial_index is None:
+            self.build_spatial_idx()
+
+        # -- Intercept coordinates with grid to extract node ids
+        if layer is None:
+            if only_active:
+                nodes = []
+                for ix, iy in zip(_x, _y):
+                    inodes = []
+                    # -- Intercept spatial index on objects (slower)
+                    for hit in sorted(self.spatial_index.intersection((ix,iy), objects=True)):
+                        # -- Verify whatever the cell is active
+                        if hit.object[-1] == 1:
+                            inodes.append(hit.id)
+                        else:
+                            inodes.append(np.nan)
+                    nodes.append(inodes)
+            else:
+                # -- Intercept spatial index on node id only (faster)
+                nodes = [sorted(self.spatial_index.intersection((ix,iy))) for ix, iy in zip(_x, _y)]
+
+        else:
+            # -- Manage layer input
+            _layer = marthe_utils.make_iterable(layer)
+
+            # ---- Allowed layer to be a simple integer for all xy-coordinates
+            if (len(_layer) == 1) and (len(_x) > 1) :
+                _layer = list(_layer) * len(_x)
+
+            # ---- Assertion on variables length
+            err_msg = "ERROR : x, y and layer must have the same length. " \
+                      f"Given : x = {len(_x)}, y = {len(_y)}, layer ={len(_layer)}."
+            assert len(_x) == len(_y) == len(_layer), err_msg
+
+            nodes = []
+            for ix, iy, ilay in zip(_x, _y, _layer):
+                # -- Intercept spatial index on objects (slower)
+                for hit in sorted(self.spatial_index.intersection((ix,iy), objects=True)):
+                    # -- Verify in intersect required layer
+                    if hit.object[1] == ilay:
+                        if only_active:
+                            # -- Verify whatever the cell is active
+                            if hit.object[-1] == 1:
+                                nodes.append(hit.id)
+                            else:
+                                nodes.append(np.nan)
+                        else:
+                            nodes.append(hit.id)
+        # -- Return nodes
+        return nodes
+
+
+
+
+    @marthe_utils.deprecated
     def get_ij(self, x, y, stack=False):
         """
         Function to extract row(s) and column(s) from provided
@@ -491,7 +876,7 @@ class MartheModel():
 
 
 
-
+    @marthe_utils.deprecated
     def get_xy(self, i, j, stack=False):
         """
         Function to extract x-y cellcenters from provided
@@ -541,6 +926,41 @@ class MartheModel():
         # ---- Return coordinates
         return out
 
+
+
+    def get_xycellcenters(self, stack=False):
+        """
+        Function to get xy-cell centers of the model grid.
+
+        Parameters:
+        ----------
+        stack (bool) : stack output array
+                       Format : np.array([x1, y1],
+                                         [x2, y2],
+                                            ...    )
+                       Default is False.
+
+        Returns:
+        --------
+        if stack is False:
+            xcc, ycc (array) : xy-cell centers.
+                               shape: (ncpl,) (ncpl,)
+        if stack is True:
+            xycc (array) : stacked xy-cell centers
+                           shape: (ncpl,2)
+
+        Examples:
+        --------
+        xcc, ycc = mm.get_xycellcenters()
+        """
+        # -- Get cell centers from imask
+        xcc = self.imask.data['x'][:self.ncpl]
+        ycc = self.imask.data['y'][:self.ncpl]
+        # -- Return
+        if stack:
+            return np.column_stack([xcc, ycc])
+        else:
+            return xcc, ycc
 
 
 

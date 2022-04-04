@@ -31,6 +31,93 @@ import matplotlib.pyplot as plt
 mona_ws = os.path.join('monav3_pm', 'mona.rma')
 mm = MartheModel(mona_ws)
 
+
+'''
+The MartheModel instance provided the creation of a spatial index based on `rtree` 
+package. It will create a unique id for each model cell and store some usefull
+related data about the cell such as:
+    - 'node' : cell unique id
+    - 'layer': layer id
+    - 'inest': nested grid id
+    - 'i'    : row number
+    - 'j'    : column number
+    - 'xcc'  : x-coordinate of the cell centroid
+    - 'ycc'  : y-coordinate of the cell centroid
+    - 'dx'   : cell width
+    - 'dy'   : cell height
+    - 'area' : cell area
+    - 'vertices': cell vertices (closed)
+    - 'ative': cell activity (0=inactive, 1=active)
+The created spatial index will be stored as 2 external files:
+    - .idx : binary file containing cell ids
+    - .dat : text file containing related cell data
+The management of the index creation pass through the argument `spatial_index`.
+It can be 
+    - True      : generate generic spatial index (mlname_si.idx/.dat).
+    - False     : disable spatial index creation.
+    - filename  : path to an existing spatial index to read.
+    - dic       : generate spatial index with custom name 
+                  Format : {'name':'mymodelsi'}
+Build a spatial index can be slow for large Marthe model with several cells,
+layer and nested grid, a progress bar will be shown on the terminal to 
+appreciate the spatial index creation process.
+Let's have a look on the spatial index management from MartheModel class.
+'''
+# -- Load mona.rma with spatial index
+# Default (light process)
+mm = MartheModel(mona_ws, spatial_index = False)
+# Generic spatial index (filename = modelname_si)
+mm = MartheModel(mona_ws, spatial_index = True)
+# Custom filename spatial index
+sifile = {'name': mona_ws.replace('.rma', '_custom_si')}
+mm = MartheModel(mona_ws, spatial_index = sifile)
+# From an existing spatial index
+sifile = mona_ws.replace('.rma', '_si')
+mm = MartheModel(mona_ws, spatial_index = sifile)
+
+'''
+The MartheModel can also store grid cell informations in a large DataFrame
+passing the `modelgrid` argument to True.
+This DataFrame will be stored in `modelgrid` attribute. It can be usefull
+to perform some queries on grid data with the high level integrated method
+named `.query_grid()`. This method allows the user to pass some 'query'
+variables and the target required grid informations to extract (=columns).
+The `.query_grid()` perform some checking on query variables and targets to
+avoid invalid inputs.
+Note: if a spatial index was already provided, the modelgrid DataFrame will
+      be created from it (faster), otherwise it use the `.imask` (slower). 
+Let's load the model with modelgrid.
+'''
+sifile = mona_ws.replace('.rma', '_si')
+mm = MartheModel(mona_ws, spatial_index = sifile, modelgrid=True)
+mm.modelgrid.head()
+
+# -- Invalid query examples
+# Invalid target columns names
+mm.query_grid(node=[45,678,3578], target=['i','j','DX','verts'])
+# Invalid query variable names
+mm.query_grid(NoDeS=[45,678,3578], target=['i','j'])
+# Invalid length of query variables
+mm.query_grid(i = [34,67], j = [45,65], layer=2)
+
+# -- Example of some valid grid queries
+# Get cell vertices from cell nodes
+mm.query_grid(node=[45,678,3578], target='vertices')
+# Get cell xy resolution from row,column,layer 
+mm.query_grid(i=34,j=65,layer=4, target=['dx','dy'])
+# Get all active nodes of the first 2 layers
+mm.query_grid(layer=[0,1], active = [1,1] , target='node')
+# Get superficie of layer 4
+mm.query_grid(layer=4, active = 1)['area'].sum()
+
+
+'''
+The .imask attribute based on permh property correspond to a simple MartheField 
+delimiting aquifer extensions by binary values (0 inactive cell, 1 active cell).
+'''
+mm.imask
+
+
 '''
 Let's begin with some of additional attributes of this brand new 1.0 version of pymarthe
 '''
@@ -61,6 +148,38 @@ mm.layers_infos
 mm.mldates
 
 '''
+The MartheModel instance provide some usefull methods to perform basic processing
+about model extension.
+'''
+# -- Get model extension
+mm.get_extent()
+# -- Get edges of model extension
+mm.get_edges(closed=False)
+# -- Get all cell centroids
+mm.get_xycellcenters(stack=True)
+# -- Check if points are in model extension
+mm.isin_extent(x=[22.4, 328.1], y=[67.8, 269.4])
+
+'''
+Another usefull spatial processing is to extract cell id(s) (=nodes) from pairs of
+xy-coordinates. This sampling process use the spatial index to intersects the grid.
+The high level function `.get_node()` can simplify this process with a battery of 
+checks to avoid bad inputs.
+'''
+# -- Setting some xy-coordinates to extract node id(s)
+x = [323.1,333.4,346.7]
+y = [277.1,289.3,289.5]
+# without layer informations
+mm.get_node(x, y)
+# without layer but active cell only
+mm.get_node(x, y, only_active=True)
+# with same layer for all points
+mm.get_node(x, y, layer=4)
+# with different layer for each points
+mm.get_node(x, y, layer=[0,3,2])
+
+
+'''
 The MartheModel instance has a .prop attribute, it is a dictionary of Marthe model 
 properties. For now the only supported properties are:
     - gridded properties (MartheField() class):
@@ -86,39 +205,14 @@ To load another property, use the .load_prop() method.
 # -- Initial properties
 mm.prop
 
-# -- Load some properties
+# -- Load some distributed properties
 props = ['emmca', 'emmli', 'kepon', 'aqpump']
 for prop in props:
     mm.load_prop(prop)
 
-'''
-To load soil property stored in .mart file (in the initialisation section),
-use the property name 'soil'. If the actual model does not have any soil 
-property (like the mona model), an assertion error is return. 
-'''
-mm.load_prop('soil')
-
 
 # -- Loaded properties
 mm.prop
-
-'''
-The .imask attribute based on permh property correspond to a simple MartheField 
-delimiting aquifer extensions by binary values (0 inactive cell, 1 active cell).
-'''
-mm.imask
-
-'''
-The Marthe model instance has a integrated pair of function to fetch xy or ij 
-coordinates (.get_xy() and .get_ij()).
-'''
-# -- Get xy (cellcenters) of a set of cells
-mm.get_xy(i = 124, j=87)
-mm.get_xy(i=[34, 67, 89], j=[56, 58, 83], stack=True)
-
-# -- Get ij of a set of points (based on imask)
-mm.get_ij(x=343.1, y=284.3) # could be slow (initialize imask spatial index)
-mm.get_ij(x=[323.1,333.4,346.7], y=[277.11,289.3,289.5], stack=True) # must be faster now
 
 
 '''
@@ -252,7 +346,7 @@ mf.get_data(layer=9)['value']
 mf.set_data(88.6, layer=2, inest=0)
 mf.get_data(layer=2)['value']
 
-# ---- Set data with a 3D-array
+# ---- Set data from a 3D-array
 arr3d = mf.as_3darray()
 arr3d[:] = 3
 mf.set_data(arr3d)
@@ -372,7 +466,6 @@ Let's export the based 10 logarithm of 'permh' field to vtk file.
 mm.prop['permh'].to_vtk(filename = os.path.join('monav3_pm', 'vtk_permh'),
                         trans = 'log10',
                         vertical_exageration=0.02,
-                        hws = 'implicit',
                         smooth=False, binary=True)
 
 
@@ -502,7 +595,7 @@ It will recognize the `mode` of implementation automatically.
 '''
 lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
 lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
-mm = MartheModel(lizonne_ws, spatial_index=lizonne_si)
+mm = MartheModel(lizonne_ws, spatial_index= {'name:'lizonne_si})
 
 # -- Build MartheSoil instance externaly
 ms = MartheSoil(mm)

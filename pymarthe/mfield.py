@@ -169,7 +169,6 @@ class MartheField():
 
 
 
-
     def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values= list()):
         """
         Function to select/subset data.

@@ -5,6 +5,7 @@ import pandas as pd
 from pathlib import Path
 import re, ast
 import warnings
+import functools
 
 from pymarthe import *
 from .grid_utils import MartheGrid
@@ -17,11 +18,56 @@ encoding = 'latin-1'
 NO_DATA_VALUES = [-9999., -8888.]
 
 
+
+
+def deprecated(func):
+    """
+    This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used. Addtionnal message 'use funcname
+    instead.' is written if provided.
+    """
+    # -- Build decorator
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        # -- Turn off filter
+        warnings.simplefilter('always', DeprecationWarning)
+        # -- Build warning msg
+        msg = "Function `.{}`() is now deprecated. ".format(func.__name__)
+        # -- Write deprecation warning
+        warnings.warn(msg, category=DeprecationWarning, stacklevel=2)
+          # -- Reset filter
+        warnings.simplefilter('default', DeprecationWarning)
+        return func(*args, **kwargs)
+    return new_func
+
+
+
+
+
+def unanimous(obj):
+    """
+    Check if all elements in object (obj) has same length.
+    """
+    # -- Check if object is iterable 
+    err_msg = 'ERROR : `obj` is not iterable. ' \
+              f'Given : {obj}.'
+    assert isiterable(obj), err_msg
+    # -- Transform dictionary to valid sequence (list, array, tuple, ..)
+    seq = list(obj.values()) if isinstance(obj, dict) else obj
+    # -- Check if items are iterable
+    err_msg = 'ERROR : some item in `obj` are not iterable. ' \
+              f'Given : {obj}.'
+    assert all(isiterable(item) for item in seq), err_msg
+    # -- Map the length of each items and verify the unique length
+    res = True if len(set(map(len, seq))) == 1 else False
+    # -- Return boolean
+    return res
+
+
+
 def get_mlfiles(rma_file):
     """
-    -----------
-    Description:
-    -----------
     Extract all Marthe file paths frop .rma file
 
     Parameters: 
