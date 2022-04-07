@@ -152,9 +152,9 @@ def check_trans(trans, btrans=None, test_on =None):
 
     if btrans is not None:
         assert is_valid_trans(btrans), err_trans + f'Given: {btrans}.'
-        it = pd.Series(np.arange(-1,3)) if test_on is None else pd.Series(test_on)
+        it = pd.Series(np.arange(5)) if test_on is None else pd.Series(test_on)
         test = transform(transform(it, trans), btrans)
-        assert all(x for x in it.values == test.values), err_test
+        assert all(np.isclose(it.values, test.values)), err_test
 
 
 

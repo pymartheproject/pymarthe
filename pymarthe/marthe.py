@@ -4,6 +4,7 @@ Designed for structured and nested grid.
 """
 
 import os, sys
+import warnings
 import subprocess as sp
 from shutil import which
 from copy import deepcopy
@@ -41,8 +42,18 @@ class MartheModel():
                                             - True  (bool)    : generate generic spatial index (mlname_si.idx/.dat).
                                             - False (bool)    : disable spatial index creation.
                                             - name  (string)  : path to an existing spatial index to read.
-                                            - dic   (dict)    : generate spatial index with custom name 
-                                                                Format : {'name':'mymodelsi'}
+                                            - dic   (dict)    : generate custom spatial index.
+                                                                Can contains: 
+                                                                    - 'name' (str)
+                                                                        custom name to external spatial index files
+                                                                    - 'only_active' (bool)
+                                                                        disable the insertion of inactive cells in 
+                                                                        the spatial index. This can be usefull for
+                                                                        fast spatial processings on valid large 
+                                                                        models (especially with nested grids).
+                                                                        Careful, some processes could be affected 
+                                                                        and not working as usal.
+                                                                Format : {'name':'mymodelsi', 'only_active' : True}
                                         Default is False.
 
         modelgrid (bool): cell by cell DataFrame containing model grid informations.
@@ -112,15 +123,21 @@ class MartheModel():
         self.spatial_reference = SpatialReference(self)
 
         # ---- Manage spatial index instance
+        # From existing external file
         if isinstance(spatial_index, str):
             self.si_state = 1       # activate spatial index
             from rtree.index import Index
             self.spatial_index = Index(spatial_index)
             self.sifile = spatial_index
+        # From custom dictionary
         elif isinstance(spatial_index, dict):
-            self.build_spatial_index(spatial_index['name'])
+            name = spatial_index.get('name', f'{self.mlname}_si' )
+            only_active = spatial_index.get('only_active', False)
+            self.build_spatial_index(name, only_active)
+        # From generic
         elif spatial_index is True:
             self.build_spatial_index()
+        # Without 
         elif spatial_index is False:
             self.si_state = 0       # desactivate spatial index
             self.sifile = None
@@ -134,9 +151,11 @@ class MartheModel():
 
 
 
-    def __iter__(self):
+    def __iter__(self, only_active=False):
+
         """
-        Generate cell spatial information for spatial indexing.
+        Generate cell spatial informations for spatial indexing
+        using class generator format.
         Each cell will contain following informations:
             - 'node' : cell unique id
             - 'layer': layer id
@@ -150,47 +169,94 @@ class MartheModel():
             - 'area' : cell area
             - 'vertices': cell vertices
             - 'ative': cell activity (0=inactive, 1=active)
+
+        Parameters:
+        ----------
+        only_active (bool) : enable/disable inactive cell consideration
+
+        Returns:
+        --------
+        it (iterator) : generator of cell spatial data.
+
+        Examples:
+        --------
+        it = mm.__iter__() 
+
         """
-        # -- Set nodes properties
+        # -- Initialize nodes properties
         nnodes = self.ncpl * self.nlay
         node = 0
+
         # -- Iterate over all model grids
         for mg in self.imask.to_grids():
-            # -- Vectorize row, column iteration process
+            # -- Vectorize rows and columns as flat arrays (speed iteration process)
             ii,jj = np.meshgrid(np.arange(mg.nrow),np.arange(mg.ncol))
-            for i,j in zip(ii.ravel(),jj.ravel()):
-                vertices = mg.get_cell_vertices(i,j)
-                # -- Store infos of current cell
-                obj = ( node, mg.layer, mg.inest, i, j,
-                        mg.xcc[j], mg.ycc[i], mg.dx[j],
-                        mg.dy[i], mg.dx[j] * mg.dy[i] ,
-                        vertices,  int(mg.array[i,j])   )
-                # -- Compute cell bounds
-                if self.si_state:
-                    xmin = mg.xcc[j] - mg.dx[j]/2
-                    xmax = mg.xcc[j] + mg.dx[j]/2
-                    ymin = mg.ycc[i] - mg.dy[i]/2
-                    ymax = mg.ycc[i] + mg.dy[i]/2
-                    bounds = (xmin, ymin, xmax, ymax)
-                # -- Incrementation of unique cell id
-                node += 1
-                # -- User progress bar
-                marthe_utils.progress_bar(node/nnodes)
-                # -- Push cell data
-                if bool(self.si_state):
-                    yield (node, bounds, obj)
-                else:
-                    yield obj
+            # -- Disable insertion of inactive cells
+            if only_active:
+                # -- Iterate over all ij pairs of structured grid
+                for i,j in zip(ii.ravel(), jj.ravel()):
+                    # -- For active cell
+                    if int(mg.array[i,j]) == 1:
+                        # Get cell vertices
+                        vertices = mg.get_cell_vertices(i,j)
+                        # Store infos of current cell
+                        obj = ( node, mg.layer, mg.inest, i, j,
+                                mg.xcc[j], mg.ycc[i], mg.dx[j],
+                                mg.dy[i], mg.dx[j] * mg.dy[i] ,
+                                vertices,  int(mg.array[i,j])   )
+                        # Compute cell bounds ((xmin, ymin, xmax, ymax))
+                        if self.si_state:
+                            bounds = (*vertices[0], *vertices[2])
+                        # -- Push cell id/data to iterator
+                        if bool(self.si_state):
+                            yield (node, bounds, obj)
+                        else:
+                            yield obj
+                        # -- Incrementation of cell id
+                        node += 1
+                    # -- For inactive cell
+                    else:
+                        node += 1
+                    # -- Return user progress bar
+                    marthe_utils.progress_bar(node/nnodes)
+
+            # -- Enaable insertion of inactive cells 
+            else:
+
+                # -- Iterate over all ij pairs of structured grid
+                for i,j in zip(ii.ravel(), jj.ravel()):
+                    # Get cell vertices
+                    vertices = mg.get_cell_vertices(i,j)
+                    # Store infos of current cell
+                    obj = ( node, mg.layer, mg.inest, i, j,
+                            mg.xcc[j], mg.ycc[i], mg.dx[j],
+                            mg.dy[i], mg.dx[j] * mg.dy[i] ,
+                            vertices,  int(mg.array[i,j])   )
+                    # -- Compute cell bounds
+                    if self.si_state:
+                        bounds = (*vertices[0], *vertices[2])
+                    # -- Push cell id/data to iterator
+                    if bool(self.si_state):
+                        yield (node, bounds, obj)
+                    else:
+                        yield obj
+                    # -- Return user progress bar
+                    marthe_utils.progress_bar(node/nnodes)
+                    # -- Incrementation of unique cell id
+                    node += 1
 
 
 
-    def build_spatial_index(self, name=None):
+    def build_spatial_index(self, name=None, only_active=False):
         """
         Function to build a spatial index on field data.
 
         Parameters:
         ----------
-        self (MartheField) : MartheField instance
+        name (str) : filename of output spatial index files.
+                     If None, name is .mlname + '_si'.
+                     Default is None.
+        only_active (bool) : enable/disable inactive cell consideration.
 
         Returns:
         --------
@@ -202,7 +268,8 @@ class MartheModel():
 
         """
         # -- Activate iterator by setting spatial index to 1
-        self.si_state = 1  # active iterator
+        self.si_state = 1
+
         # -- Import rtree package
         try:
             import rtree
@@ -214,8 +281,13 @@ class MartheModel():
         si_name = self.rma_path.replace('.rma', '_si') if name is None else name
         p.set_filename(si_name)
         # -- Build rtree spatial index
-        print('Building spatial index ...')
-        si = rtree.index.Index(si_name, self.__iter__(), properties=p)
+        print('\nBuilding spatial index ...')
+        if only_active:
+            warnings.warn('Spatial index will be generated on active cells only.' \
+                ' This can produce some abnormal behaviours on spatial processes.')
+        si = rtree.index.Index(si_name,
+                               self.__iter__(only_active=only_active),
+                               properties=p)
         si.flush()
         self.sifile = si_name
         self.spatial_index = si
@@ -246,7 +318,7 @@ class MartheModel():
 
         # -- From spatial index (fastest)
         if bool(self.si_state):
-            print('Building modelgrid from spatial index ...')
+            print('\nBuilding modelgrid from spatial index ...')
             df  = pd.DataFrame(data = self.spatial_index.intersection(
                                       self.get_extent(), objects='raw'),
                                columns =  cn)
@@ -327,7 +399,7 @@ class MartheModel():
 
 
 
-    def load_prop(self, prop):
+    def load_prop(self, prop, **kwargs):
         """
         Load MartheModel properties by name.
 
@@ -349,6 +421,7 @@ class MartheModel():
                         - 't_demi_percol'
                         - 'rumax'
                         - ...
+        **kwargs : additional arguments of property classes.
 
         Returns:
         --------
@@ -365,14 +438,14 @@ class MartheModel():
 
         # ---- Manage pumping
         elif prop == 'aqpump':
-            self.prop[prop] = MarthePump(self, mode = 'aquifer')
+            self.prop[prop] = MarthePump(self, mode = 'aquifer', **kwargs)
 
         elif prop == 'rivpump':
-            self.prop[prop] = MarthePump(self, mode = 'river')
+            self.prop[prop] = MarthePump(self, mode = 'river', **kwargs)
 
         # ---- Manage soil property
         elif prop == 'soil':
-            self.prop['soil'] = MartheSoil(self)
+            self.prop['soil'] = MartheSoil(self, **kwargs)
 
         # ---- Not supported property
         else:
@@ -650,6 +723,8 @@ class MartheModel():
         Returns:
         --------
         df (DataFrame) : subset DataFrame.
+                         Index : query variable(s).
+                         Columns : target(s) variables. 
 
         Examples:
         --------
@@ -779,11 +854,11 @@ class MartheModel():
                 nodes = []
                 for ix, iy in zip(_x, _y):
                     inodes = []
-                    # -- Intercept spatial index on objects (slower)
-                    for hit in sorted(self.spatial_index.intersection((ix,iy), objects=True)):
+                    # -- Intercept spatial index on objects only (slower)
+                    for hit in sorted(self.spatial_index.intersection((ix,iy), objects='raw')):
                         # -- Verify whatever the cell is active
-                        if hit.object[-1] == 1:
-                            inodes.append(hit.id)
+                        if hit[-1] == 1:
+                            inodes.append(hit[0])
                         else:
                             inodes.append(np.nan)
                     nodes.append(inodes)
@@ -806,21 +881,73 @@ class MartheModel():
 
             nodes = []
             for ix, iy, ilay in zip(_x, _y, _layer):
-                # -- Intercept spatial index on objects (slower)
-                for hit in sorted(self.spatial_index.intersection((ix,iy), objects=True)):
+                # -- Intercept spatial index on objects only (slower)
+                for hit in self.spatial_index.intersection((ix,iy), objects='raw'):
                     # -- Verify in intersect required layer
-                    if hit.object[1] == ilay:
+                    if hit[1] == ilay:
                         if only_active:
                             # -- Verify whatever the cell is active
-                            if hit.object[-1] == 1:
-                                nodes.append(hit.id)
+                            if hit[-1] == 1:
+                                nodes.append(hit[0])
                             else:
                                 nodes.append(np.nan)
                         else:
-                            nodes.append(hit.id)
+                            nodes.append(hit[0])
         # -- Return nodes
         return nodes
 
+
+
+    def all_active(self, node):
+        """
+        Check whatever a node or a serie of node are all active.
+
+        Parameters:
+        ----------
+        node (int/it) : node(s) to test
+
+        Returns:
+        --------
+        res (bool) : boolean response.
+
+        Examples:
+        --------
+        mm.is_active(6794)
+        
+        """
+        # -- Get node as iterable
+        n = marthe_utils.make_iterable(node)
+        # -- Test if imask > 0 for each nodes
+        res = all(x > 0 for x in self.imask.data['value'][n])
+        # -- Return
+        return res
+
+
+
+
+    def any_active(self, node):
+        """
+        Check whatever a node or a serie of node contains at least 1 active.
+
+        Parameters:
+        ----------
+        node (int/it) : node(s) to test
+
+        Returns:
+        --------
+        res (bool) : boolean response.
+
+        Examples:
+        --------
+        mm.is_active(6794)
+        
+        """
+        # -- Get node as iterable
+        n = marthe_utils.make_iterable(node)
+        # -- Test if imask > 0 for each nodes
+        res = any(x > 0 for x in self.imask.data['value'][n])
+        # -- Return
+        return res
 
 
 
@@ -1237,6 +1364,43 @@ class MartheModel():
 
         # -- Return vtk instance
         return vtk
+
+
+
+    def show_run_times(self, logfile=None, tablefmt='fancy'):
+        """
+        Print model run times.
+
+        Parameters:
+        ----------
+        logfile (str) : log filename.
+                        If None, logfile = .mldir + 'bilandeb.txt'
+                        Default is None.
+
+        Returns:
+        --------
+        Print message on console.
+
+        Examples:
+        --------
+        mm.run_model(exe_name = 'Marth_R8')
+        mm.show_run_times()
+
+        """
+        # -- Manage log file name
+        lf = os.path.join(self.mldir, 'bilandeb.txt') if logfile is None else logfile
+
+        # -- Assert log file exists
+        err_msg = f"Could not found {lf} log file. " \
+                   "Make sure to run the model before " \
+                   "calling `.show_run_times()` method."
+        assert os.path.exists(lf), err_msg
+
+        # -- Extract run times per process
+        df = marthe_utils.get_run_times(lf)
+
+        # -- Print on console
+        print(df.to_markdown(tablefmt=tablefmt))
 
 
 

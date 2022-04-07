@@ -8,7 +8,7 @@ import pandas as pd
 import re
 from matplotlib.path import Path
 
-from . import shp_utils
+from . import shp_utils, marthe_utils
 
 
 
@@ -35,13 +35,16 @@ class MartheGrid():
         xl, yl (float) : x/y origin point (lower left corner)
         xcc, ycc (1Darray) : x/y cell centers
         array (2Darray) : gridded values
-        field (str, optional) : field name 
+        field (str, optional) : field name
+        _args (dict) :  original data before removing first
+                        and last lines cells for inest grid
 
         Example:
         -----------
         mygrid = MartheGrid(0, 0, 125, 126, 325., 750., dx, dy, xcc, ycc, array,  field = 'PERMEAB')
 
         """
+        # -- Store original args
         self.field  = '' if field is None else str(field)
         self.istep  = int(istep)
         self.layer  = int(layer)
@@ -113,28 +116,25 @@ class MartheGrid():
         return rec
 
 
+
     def to_string(self, maxlayer=None, maxnest=None):
 
         """
         Convert grid to a single string
         with Marthe Grid file format.
-
         Parameters: 
         -----------
         maxlayer (int) : maximum number of layer.
         maxnest (int) : maximum number of nested grid.
-
         Return:
         -----------
         lines_str (str) : Marthe Grid string format
                           (ready to write)
-
         Example
         -----------
         mygrid = MartheGrid(0, 0, 125, 126, 325., 750., dx, dy, xcc, ycc, array,  field = 'PERMEAB')
         with open('mymarthegrid.prop', 'r') as f:
             f.write(mygrid.to_string())
-
         """
         # ---- Manage nested grid number as str 
         inest = str(self.inest) if self.inest > 0 else ' '
@@ -251,3 +251,8 @@ class MartheGrid():
         Internal string method.
         """
         return 'MartheGrid'
+
+
+
+
+

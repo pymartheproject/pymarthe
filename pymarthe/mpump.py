@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import re, ast
 from .utils import marthe_utils, pest_utils
-
+import warnings
 
 encoding = 'latin-1'
 
@@ -19,7 +19,7 @@ class MarthePump():
 
     """
 
-    def __init__(self, mm, pastp_file = None,  mode = 'aquifer'):
+    def __init__(self, mm, pastp_file = None,  mode = 'aquifer', verbose=True):
         """
         MarthePump class : available for aquifer or river pumping.
 
@@ -49,7 +49,7 @@ class MarthePump():
         self.pastp_file = self.mm.mlfiles['pastp'] if pastp_file is None else pastp_file
 
         # ---- Available/supported variables and qtypes
-        self.vars = ['istep', 'layer', 'i', 'j', 'value', 'boundname']
+        self.vars = ['istep', 'node', 'layer', 'i', 'j', 'value', 'boundname']
         self._vars = self.vars + ['qfilename', 'qtype', 'qrow', 'qcol']
         self.qtypes = ['mail', 'record', 'listm']
 
@@ -57,6 +57,56 @@ class MarthePump():
         self._extract_data(mode)
         # ---- Set property style
         self._proptype = 'list'
+        # ---- Perform some validity check if required (raise warnings)
+        if verbose:
+            self._verbose()
+
+
+
+
+
+    def _verbose(self):
+        """
+        Perform some classic checks about pumping data validity and print
+        bad behaviour as warnings
+            - Search for pumping inactive cell
+            - Search for multiple pumping on same cell 
+
+        """
+        # -- Search for pumping data on inactive cells
+        warn_msg = "Pumping condition applied on inactive cell : "
+        try:
+            for node in self.data['node']:
+                if self.mm.imask.data['value'][node] == 0:
+                    coords = 'Node = {}, Layer = {}, Nested = {}, Row = {}, Column = {} .'.format(
+                                    node,
+                                    self.mm.imask.data['layer'][node],
+                                    self.mm.imask.data['inest'][node],
+                                    self.mm.imask.data['i'][node],
+                                    self.mm.imask.data['j'][node]
+                                )
+                    warnings.warn(warn_msg + coords)
+        except:
+            pass
+
+
+
+        # -- Search for several pumping data on same node
+        warn_msg = "Multiple pumping condition in same cell : "
+        try:
+            agg = self.data.groupby(['istep','node'], as_index=False).size()
+            nodes = agg.loc[agg['size'] > 1, 'node'].unique()
+            for node in nodes:
+                coords = 'Node = {}, Layer = {}, Nested = {}, Row = {}, Column = {} .'.format(
+                                node,
+                                self.mm.imask.data['layer'][node],
+                                self.mm.imask.data['inest'][node],
+                                self.mm.imask.data['i'][node],
+                                self.mm.imask.data['j'][node]
+                            )
+                warnings.warn(warn_msg + coords)
+        except:
+            pass
 
 
 
@@ -80,120 +130,111 @@ class MarthePump():
         mp._extract_data()
 
         """
+        
         # ---- Manage 'aqpump'
         if self.mode == 'aquifer':
-            self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
-            # ---- Convert xy columns to ij
-            if all(loc in self.data.columns for loc in list('xy')):
+            d, _d = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
+
+            # -- Manage xy inputs
+            if all(loc in d.columns for loc in list('xy')):
                 # -- Print message to inform about convertion
                 print('Converting xy pumping data into row(s), column(s) ...')
-                # -- Fetch data as DataFrame
-                _df = self._data.copy(deep=True)
-                # -- Convert xy to ij (could take a while)
-                _df['i'], _df['j'] = self.mm.get_ij(_df['x'], _df['y'])
-                self.data, self._data = _df[self.vars], _df[self._vars]
+                # -- Get all nodes
+                nodes = self.mm.get_node(x=_d.x,y=_d.y,layer=_d.layer)
+                # -- Perform query on modlegrid
+                _d[['node','i','j']] = self.mm.query_grid(node=nodes, target=['i','j']).reset_index()
+                # -- Push to class attribute
+                self.data, self._data = _d[self.vars], _d[self._vars + ['x','y']]
+
+            # -- Manage ij inputs
+            else:
+                # -- Perform query on modelgrid
+                _d['node'] = self.mm.query_grid(i=_d.i, j=_d.j, layer=_d.layer).reset_index()['node']
+                # -- Push to class attribute
+                self.data, self._data = _d[self.vars], _d[self._vars]
+            
+
         # ---- Manage 'rivpump'
-        if self.mode == 'river':
-            # ---- Convert aff/trc data in column, line, plan (layer) format in .pastp file
-            marthe_utils.convert_at2clp_pastp(self.pastp_file, mm = self.mm)
-            self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
+        # elif self.mode == 'river':
+        #     # ---- Convert aff/trc data in column, line, plan (layer) format in .pastp file
+        #     marthe_utils.convert_at2clp_pastp(self.pastp_file, mm = self.mm)
+        #     self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
 
         # ---- Set generic boundnames
-        generic_bdn =  [f'pump_{i}_{j}' for i,j in zip(self.data.i, self.data.j)]
-        self.data['boundname'], self._data['boundname'] = [generic_bdn]*2
+        digits = len(str(self.data.node.max()))
+        bdnmes =  ['{}_{}'.format(
+                        self.prop_name,
+                        str(node).zfill(digits)
+                        )
+                    for node in self.data.node]
+        self.data['boundname'], self._data['boundname'] = [bdnmes]*2
 
 
 
 
-    def _make_iterable(self, var, var_name):
+
+    def get_data(self, istep=None, node=None, layer=None, i=None, j=None, boundname=None, as_mask=False):
         """
-        Function to convert input arguments
-        of a function to iterable.
+        Function to select/subset pumping data.
 
         Parameters:
         ----------
-        var (object) : variable.
-        var_name (str) : variable name.
-
-        Returns:
-        --------
-        it (ietrable) : iterable.
-
-        Examples:
-        --------
-        istep = 3
-        mp._make_variable(istep, 'istep')
-        """
-        # ---- Manage var == None case
-        if var is None:
-            it = np.unique(self.data[var_name])
-        # ---- Manage var != None case
-        else: 
-            it = marthe_utils.make_iterable(var)
-        # ---- Return iterable
-        return it
-
-
-
-
-    def get_data(self, istep=None, layer=None, i=None, j=None, boundname=None, as_mask=False):
-        """
-        Function to select/subset data.
-
-        Parameters:
-        ----------
-        istep (int, optional) : number(s) of timestep required.
-                                If None, all timesteps are considered.
+        istep (int, optional) : required timestep id(s).
+                                If None, all timesteps wil be considered.
                                 Default is None.
-        layer (int, optional) : number(s) of layer required.
-                                If None, all layers are considered.
+        node (int, optional) :  cell id(s).
+                                Must be 0 < node < nnodes.
+                                If None, all cells will be considered.
                                 Default is None.
-        i (int, optional) : number(s) of line required.
-                            If None, all lines are considered.
+        layer (int, optional) : required layer id(s).
+                                If None, all layers will be considered.
+                                Default is None.
+        i (int, optional) : required row id(s).
+                            If None, all rows will be considered.
                             Default is None.
-        j (int, optional) : number(s) of column required.
-                            If None, all columns are considered.
+        j (int, optional) : required column id(s).
+                            If None, all columns will be considered.
                             Default is None.
-        boundname (str, optional) : name(s) required pumping point. 
-                                    If None, all boundnames are considered.
+        boundname (str, optional) : required well name(s).
+                                    If None, all boundnames will be considered.
                                     Default is None.
         as_mask (bool) : returning data as boolean index.
                          Default is False.
 
         Returns:
         --------
-        rec (np.recarray) : selected data as recarray.
+        df (np.recarray) : subset DataFrame
         Note: if all arguments are set to None,
               all data is returned.
 
         Examples:
         --------
-        rec1 = mp.get_data(istep=[3,6,9,14], boundname = ['p1','p2'])
-        rec2 = mp.get_data(layer=2, i=33, j=18)
+        df1 = mp.get_data(istep=[3,6,9,14], boundname = ['p1','p2'])
+        df2 = mp.get_data(layer=2, i=33, j=18)
 
         """
 
-        # ---- Transform records to Dataframe for query purpose
-        df = self.data.copy(deep=True)
-
         # ---- Get columns to perform queries
-        col_query = df.drop('value', axis=1).columns
+        col_query = self.data.drop('value', axis=1).columns
 
-        # ---- Make all arguments iterable
-        its = [self._make_iterable(var, var_name) 
-               for var, var_name
-               in zip([istep,layer,i,j,boundname], col_query)]
+        # ---- Build query (format: q = 'column_0 in [value_0,..] & ...'')
+        q = ' & '.join(
+                ["{} in {}".format(k, list(self.data[k].unique())) 
+                    if v is None else "{} in {}".format(k, marthe_utils.make_iterable(v))
+                    for k, v 
+                    in zip(col_query, [istep,node,layer,i,j,boundname])
+                    ]
+                        )
 
-        # ---- Get query mask
-        conditions = [df[col].isin(it).values for col,it in zip(col_query, its)]
-        mask = np.logical_and.reduce(conditions)
+        # ---- Get index of required values
+        idx = self.data.query(q).index
 
-        # ---- Return query as mask if required
+        # ---- Return as required
         if as_mask:
-            return mask
+            return self.data.index.isin(idx)
         # ---- Return data as recarray
         else:
-            return df.loc[mask]
+            return self.data.loc[idx]
 
 
 
@@ -215,13 +256,16 @@ class MarthePump():
 
 
 
-    def set_data(self, value, istep=None, layer=None, i=None, j=None, boundname=None):
+    def set_data(self, value, istep=None, node=None, layer=None, i=None, j=None, boundname=None):
         """
         Function to set pumping data inplace.
 
         Parameters:
         ----------
         value (int/float) : pumping rate value to set.
+        node (int, optional) :  cell id(s).
+                                Must be 0 < node < nnodes.
+                                If None, all cells will be considered.
         istep (int, optional) : number(s) of timestep required.
                                 If None, all timesteps are considered.
                                 Default is None.
@@ -251,10 +295,10 @@ class MarthePump():
         # ---- Convert existing meta data (recarray) in DataFrame
         df = self._data.copy(deep=True)
         # ---- Get boolean mask of required data
-        mask = self.get_data(istep, layer, i, j, boundname, as_mask=True)
-        # ---- change value 
+        mask = self.get_data(istep, node, layer, i, j, boundname, as_mask=True)
+        # ---- Change values in both data and metadata
         df.loc[mask, 'value'] = value
-        # ---- replace previous data
+        # ---- Replace previous data
         self._data, self.data = df[self._vars], df[self.vars]
 
 
@@ -293,8 +337,7 @@ class MarthePump():
         # ---- Get boolean mask of wanted data
         mask = self.get_data(istep=istep, layer=layer, i=i, j=j, as_mask=True)
         # --- Extract boundname on subset data
-        df = self.data.copy(deep=True)
-        boundnames = df.loc[mask, 'boundname'].unique().tolist()
+        boundnames = self.data.loc[mask, 'boundname'].unique().tolist()
         # ---- Return boundnames as list of string
         return boundnames
 
@@ -392,6 +435,9 @@ class MarthePump():
         # ---- Fetch 'mail' qtype DataFrame
         mail_df = self.split_qtype('mail')[0]
 
+        # ---- Convert back to 1-based
+        mail_df[['layer', 'i', 'j']] = mail_df[['layer', 'i', 'j']].add(1)
+
         # ---- Define mode tag 
         mode_tag = '/DEBIT/' if self.mode == 'aquifer' else '/Q_EXTER_RIVI/'
 
@@ -465,6 +511,9 @@ class MarthePump():
         # ---- Fetch 'record' qtype DataFrame
         rec_df = self.split_qtype('record')[0]
 
+        # ---- Convert back to 1-based
+        rec_df[['layer', 'i', 'j']] = rec_df[['layer', 'i', 'j']].add(1)
+
         # ---- Set usefull regex
         re_block = r";\s*\*{3}\s*\n(.*?)/\*{5}"
         re_num = r"[-+]?\d*\.?\d+|\d+"
@@ -527,13 +576,15 @@ class MarthePump():
         # ---- Fetch 'listm' qtype DataFrame
         listm_df = self.split_qtype('listm')[0]
 
+        # ---- Convert back to 1-based
+        listm_df[['layer', 'i', 'j']] = listm_df[['layer', 'i', 'j']].add(1)
+
         # ---- Write (modified) data
-        for qfilename, df in listm_df.groupby('qfilename'):
-            df.to_csv(qfilename,
-                      sep = '\t',
-                      header = False,
-                      index = False,
-                      columns = ['value','j', 'i','layer'])
+        for qfilename, data in listm_df.groupby('qfilename'):
+            df = pd.read_csv(qfilename, header=None, delim_whitespace=True)
+            for qcol, gb in data.groupby('qcol'):
+                df.iloc[:,int(qcol)] = gb['value'].values
+            df.to_csv(qfilename, sep='\t', header=False, index=False)
 
 
 

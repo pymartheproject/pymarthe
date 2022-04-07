@@ -518,6 +518,7 @@ def read_grid_file(grid_file):
         else:
             # -- Extract 2D-array from string
             arr_list = [np.fromstring(line.strip(), sep='\t', dtype = float)
+
                        for line
                        in str_grid.splitlines()]
             array = np.stack([a[2:-1] for a in arr_list[2:-1]], axis=0)
@@ -529,8 +530,14 @@ def read_grid_file(grid_file):
             # -- Search x/y cell centers and x/y cell resolution
             xcc, dx = arr_list[1][2:], arr_list[-1][2:]
             ycc, dy = np.dstack([l[[1,-1]] for l in arr_list[2:-1]])[0]
-        # -- Store grid arguments
-        layer = int(layer) - 1 # switch to 0-based
+        # -- Switch to 0-based
+        layer = int(layer) - 1
+        # -- Store arguments in tuple
+        # if int(inest) > 0:
+        #     # -- Remove first and last element on i and j data 
+        #     #    corresponding to neighbor cell of the main grids
+        #     args = ( istep, layer, inest, int(nrow)-2, int(ncol)-2, xl, yl,
+        #              dx[1:-1], dy[1:-1], xcc[1:-1],ycc[1:-1], array[1:-1,1:-1], field )
         args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # -- Append MartheGrid instance to the grid list
         grid_list.append(MartheGrid(*args))
@@ -920,6 +927,8 @@ def read_listm_qfile(qfile, istep, fmt):
         # ---- Read qfile as DataFrame (separator = any whitespace)
         df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
                             names=list(dt.keys()), dtype=dt)
+        # ---- Pass t0 0-based
+        df[['j','i','layer']] = df[['j','i','layer']].sub(1)
         # ---- Add istep
         df['istep'] = istep
         df['boundname'] = 'boundname'
@@ -937,6 +946,8 @@ def read_listm_qfile(qfile, istep, fmt):
         # ---- Read qfile as DataFrame (separator = any whitespace)
         df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
                             names=list(dt.keys()), dtype=dt)
+        # ---- Pass t0 0-based
+        df['layer'] = df['layer'].sub(1)
         # ---- Add istep
         df['istep'] = istep
         df['boundname'] = 'boundname'
@@ -1042,7 +1053,9 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
                 if '/MAIL' in line:
                     j,i,k,v = map(ast.literal_eval, re.findall(re_jikv, line)[0])
                     _file, _col = [re.search(r, line) for r in [re_file, re_col]]
-                    qcol = 0 if _col is None else int(_col.group(1)) -1 # convert to 0-based
+                    # -- Convert to 0-based
+                    qcol = 0 if _col is None else int(_col.group(1)) -1
+                    k,i,j = k-1,i-1,j-1
                     if _file is None:
                         bdnme = 'boundname'
                         df = pd.DataFrame([[istep,k,i,j,v,bdnme]],
@@ -1228,4 +1241,54 @@ def write_obsfile(date, value, obsfile):
     df.to_csv(obsfile,  sep = '\t', header = True, index = True)
 
 
+
+
+def get_run_times(logfile = 'bilandeb.txt'):
+    """
+    Extract run times for model processes from log file.
+
+    Parameters:
+    ----------
+    logfile (str) : log filename.
+                    Default 'bilandeb.txt'
+
+    Returns:
+    --------
+    df (DataFrame) : Summary run times
+                     Format :   
+                                    Process    CPU time (s)
+                            0     process_1          time_1
+                            1     process_2          time_2
+                            .           ...             ...
+
+    Examples:
+    --------
+    rtdf = get_run_times(logfile='model/bilandeb.txt')
+    """
+    # -- Extract logs
+    with(open(logfile, 'r', encoding='latin-1')) as f:
+        content = f.read()
+
+    # -- Regex pattern to find in log
+    re_rt = r"Temps CPU\s*(pour|\s*)(.+)=\s*([-+]?\d*\.?\d+|\d+)"
+
+    # -- Search pattern in logs and collect times
+    process, times = [],[]
+    for _, p, t in re.findall(re_rt, content):
+        process.append(p.strip().capitalize())
+        times.append(ast.literal_eval(t))
+
+    # -- Return output DataFrame
+    return pd.DataFrame({'Process':process,'CPU time (s)':times}).set_index('Process')
+
+
+
+
+
+def bordered_array(a, v):
+    """
+    """
+    car = np.c_[np.ones(a.shape[0])*v, a, np.ones(a.shape[0])*v]
+    bar = np.c_[np.ones(car.shape[1])*v, car.T, np.ones(car.shape[1])*v]
+    return bar
 

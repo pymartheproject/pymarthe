@@ -56,8 +56,17 @@ It can be
     - True      : generate generic spatial index (mlname_si.idx/.dat).
     - False     : disable spatial index creation.
     - filename  : path to an existing spatial index to read.
-    - dic       : generate spatial index with custom name 
-                  Format : {'name':'mymodelsi'}
+    - dic       : generate spatial index with custom options.
+The custom form to implement spatial index can contains keys like 
+    - 'name' (str) : 
+            custom name to external spatial index files
+    - 'only_active' (bool)
+            disable the insertion of inactive cells in 
+            the spatial index. This can be usefull for
+            fast spatial processings on valid large 
+            models (especially with nested grids).
+            Careful, some processes could be affected 
+            and not working as usal.
 Build a spatial index can be slow for large Marthe model with several cells,
 layer and nested grid, a progress bar will be shown on the terminal to 
 appreciate the spatial index creation process.
@@ -69,8 +78,9 @@ mm = MartheModel(mona_ws, spatial_index = False)
 # Generic spatial index (filename = modelname_si)
 mm = MartheModel(mona_ws, spatial_index = True)
 # Custom filename spatial index
-sifile = {'name': mona_ws.replace('.rma', '_custom_si')}
-mm = MartheModel(mona_ws, spatial_index = sifile)
+custom_si = {'name': mona_ws.replace('.rma', '_custom_si'),
+             'only_active' : True}
+mm = MartheModel(mona_ws, spatial_index = custom_si)
 # From an existing spatial index
 sifile = mona_ws.replace('.rma', '_si')
 mm = MartheModel(mona_ws, spatial_index = sifile)
@@ -268,6 +278,22 @@ conn = ugrid.connectivity()
 from matplotlib.colors import ListedColormap
 cmap = ListedColormap(plt.cm.tab20(np.arange(mm.nlay)))
 _ = conn.plot(cmap=cmap, show_edges=True)
+
+
+'''
+The MartheModel instance can run the provided model from python with the method
+`.run_model()` with required level of verbosity and silence.
+To do so, make sure to provide the correct path to your Marthe executable as 
+`exe_name`.
+Note : If the Marthe executable path is already in your environement variables
+of your computer, there is no need to provided the full path, the executable
+name is enough.
+'''
+# -- Launch model run
+mm.run_model(exe_name = 'Marth_R8', silent=True, verbose=False)
+# -- Get run times summary
+mm.show_run_times()
+
 
 
 
@@ -595,7 +621,7 @@ It will recognize the `mode` of implementation automatically.
 '''
 lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
 lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
-mm = MartheModel(lizonne_ws, spatial_index= {'name:'lizonne_si})
+mm = MartheModel(lizonne_ws, spatial_index=lizonne_si)
 
 # -- Build MartheSoil instance externaly
 ms = MartheSoil(mm)
@@ -710,9 +736,10 @@ mm.load_prop('aqpump')
 mp = mm.prop['aqpump']
 
 '''
-Pumping data are stored in a recarray with informations on 'istep', 'layer',
-'i', 'j', 'value' and 'boundname' in the `.data` attribute. But there is an 
-hidden argument with all metadata `._data`.
+Pumping data are stored in a DataFrame with informations on 'istep', 'node', layer',
+'i', 'j', 'value' and 'boundname' in the `.data` attribute. But there is also an 
+hidden argument with all metadata `._data`. `boundname` correspond to a generic
+boundname created from the node ids of each well (format: 'aqpump_node).
 '''
 
 # -- User pumping data
@@ -724,7 +751,7 @@ mp._data
 
 '''
 Like the MartheField instance, MarthePump has very flexible getters/setters methods.
-The user can subset data by istep, layer, row (i), column (j) or boundname.
+The user can subset data by istep, node, layer, row (i), column (j) or boundname.
 '''
 
 # -- Get all data
@@ -746,12 +773,12 @@ mp.get_data(istep=3, layer=3, i=102, j=71)
 
 
 # -- Subset by boundname
-mp.get_data(istep=3, boundname = '102_71')
+mp.get_data(istep=3, boundname = 'aqpump_020720')
 
 # -- Switch boundname by another bound names
-switch_dic = {'102_71' : 'pump1', '87_15' : 'pump2' }
+switch_dic = {'aqpump_046949' : 'pump1', 'aqpump_020822' : 'pump2' }
 mp.switch_boundnames(switch_dic)
-mp.get_data(i=102, j=71)
+mp.get_data(i=101, j=70)
 
 '''
 Reminder:
@@ -1065,8 +1092,8 @@ mopt.add_param(parname = '87_15', mobj = mp,
 # -- Valid transform
 mopt.add_param(parname = pwnames[1], mobj = mp,
                  kmi = kmi2, value_col = 'value',
-                 trans = 'lambda x: np.log10(-x + 1)',
-                 btrans = 'lambda x: - np.power(10, x) + 1')
+                 trans =  'lambda x : - np.log10(x + 1)',
+                 btrans = 'lambda x : -1 * (- 10**-x + 1)')
 
 mopt.param[pwnames[1]].param_df.head()
 
