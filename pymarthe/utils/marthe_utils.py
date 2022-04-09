@@ -438,7 +438,7 @@ def make_silent(martfile):
 
 
 
-def read_grid_file(grid_file):
+def read_grid_file(grid_file, keep_adj=False):
 
     """
     Function to read Marthe grid data in file.
@@ -447,6 +447,9 @@ def read_grid_file(grid_file):
     Parameters:
     ----------
     grid_file (str) : Marthe Grid file full path
+    keep_adj (bool) : whatever conserving adjacent cells
+                      for nested grids.
+                      Default is False.
 
     Returns:
     --------
@@ -533,44 +536,22 @@ def read_grid_file(grid_file):
         # -- Switch to 0-based
         layer = int(layer) - 1
         # -- Store arguments in tuple
-        # if int(inest) > 0:
-        #     # -- Remove first and last element on i and j data 
-        #     #    corresponding to neighbor cell of the main grids
-        #     args = ( istep, layer, inest, int(nrow)-2, int(ncol)-2, xl, yl,
-        #              dx[1:-1], dy[1:-1], xcc[1:-1],ycc[1:-1], array[1:-1,1:-1], field )
-        args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
+        if keep_adj:
+            args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
+        else:
+            if int(inest) > 0:
+                # -- Remove first and last element on i and j data 
+                #    corresponding to neighbor cell of the main grids
+                args = ( istep, layer, inest, int(nrow)-2, int(ncol)-2, xl, yl,
+                         dx[1:-1], dy[1:-1], xcc[1:-1],ycc[1:-1], array[1:-1,1:-1], field )
+            else:
+                args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
+        # args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # -- Append MartheGrid instance to the grid list
         grid_list.append(MartheGrid(*args))
 
     # ---- Return all MartheGrid instances and xcc, ycc if required
     return tuple(grid_list)
-
-
-
-
-def write_grid_file(grid_file, grid_list, maxlayer=None, maxnest=None):
-
-    """
-    Function to read Marthe grid data in file.
-    Only structured grids are supported.
-
-    Parameters:
-    ----------
-    grid_file (str) : Marthe Grid file full path
-
-    Returns:
-    --------
-    grid_list (list) : contain one or more
-                        MartheGrid instance
-    
-    Examples:
-    --------
-    grids = read_grid_file('mymodel.permh')
-
-    """
-    with open(grid_file, 'w', encoding = encoding) as f:
-        for mg in grid_list:
-            f.write(mg.to_string(maxlayer, maxnest))
 
 
 
@@ -1256,10 +1237,10 @@ def get_run_times(logfile = 'bilandeb.txt'):
     --------
     df (DataFrame) : Summary run times
                      Format :   
-                                    Process    CPU time (s)
-                            0     process_1          time_1
-                            1     process_2          time_2
-                            .           ...             ...
+                                  Process        CPU time
+                                process_1          time_1
+                                process_2          time_2
+                                      ...             ...
 
     Examples:
     --------
@@ -1275,11 +1256,22 @@ def get_run_times(logfile = 'bilandeb.txt'):
     # -- Search pattern in logs and collect times
     process, times = [],[]
     for _, p, t in re.findall(re_rt, content):
-        process.append(p.strip().capitalize())
-        times.append(ast.literal_eval(t))
+        pro = p.strip().capitalize()
+        t = int(ast.literal_eval(t))
+        h = t // 3600
+        m = t % 3600 // 60
+        s = t % 3600 % 60
+        time = ''
+        if h > 0:
+            time += f'{h:02d}h '
+        elif m > 0 or h > 0:
+            time += f'{m:02d}m '
+        time += f'{s:02d}s'
+        process.append(pro)
+        times.append(time)
 
     # -- Return output DataFrame
-    return pd.DataFrame({'Process':process,'CPU time (s)':times}).set_index('Process')
+    return pd.DataFrame({'Process':process,'CPU time':times}).set_index('Process')
 
 
 
@@ -1287,8 +1279,36 @@ def get_run_times(logfile = 'bilandeb.txt'):
 
 def bordered_array(a, v):
     """
+    Border an array with constant value.
+
+    Parameters:
+    ----------
+    a (ndarray) : ndarray to border.
+                  Format: 
+                  array([[1, 1, 1, 1, 1],
+                         [1, 1, 1, 1, 1],
+                         [1, 1, 1, 1, 1],
+                         [1, 1, 1, 1, 1],
+                         [1, 1, 1, 1, 1]])
+
+    Returns:
+    --------
+    array (ndarray) : bordered array.
+                      Format:
+                      array([[v, v, v, v, v, v, v],
+                             [v, 1, 1, 1, 1, 1, v],
+                             [v, 1, 1, 1, 1, 1, v],
+                             [v, 1, 1, 1, 1, 1, v],
+                             [v, 1, 1, 1, 1, 1, v],
+                             [v, 1, 1, 1, 1, 1, v],
+                             [v, v, v, v, v, v, v]])
+
+    Examples:
+    --------
+    ba = bordered_array(np.ones((5,5)), 0)
     """
     car = np.c_[np.ones(a.shape[0])*v, a, np.ones(a.shape[0])*v]
     bar = np.c_[np.ones(car.shape[1])*v, car.T, np.ones(car.shape[1])*v]
-    return bar
+    return bar.T
+
 

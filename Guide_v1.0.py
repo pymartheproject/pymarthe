@@ -149,13 +149,33 @@ print(f"Model flow unit :\t {str(mm.units['flow'])} m/s")
 print(f"Model distance unit :\t {mm.units['modeldist']} m")
 print(f"Model time unit :\t {mm.units['modeltime']} (=years)")
 
-# -- All the information stored in the .layer file is now also stored in MartheMode
-#    instance as a simple DataFrame
+'''
+All the information stored in the .layer file is now also stored in MartheMode
+instance as a simple DataFrame
+'''
 mm.layers_infos
 
-# -- The calendar dates of timesteps in .pastp file are stored in .mldates attribute
-#    as an DatetimeIndex or TimedeltaIndex
+'''
+The calendar dates of timesteps in .pastp file are stored in .mldates attribute
+as an DatetimeIndex or TimedeltaIndex
+'''
 mm.mldates
+
+'''
+The MartheModel instance store information about refine levels of nested grids in
+the attribute `.rlevels`. This is a basic dictionary with format:
+    rlevels = {inest_0: None,
+               inest_1: refine_level_1, 
+                      ..., 
+               inest_N: refine_level_N}.
+
+Obviously, the main grid (inest = 0) does not contain refined informations 
+(inest_0 = None). The values of rlevels dictionary correspond to the the number of
+division of a parent cell (main grid) for each direction x and y. For example, a
+refine level of 5 means that the adjacent cells of the grid (parent cells) will be
+divided in 5 cells on x-direction and 5 cells on y-direction (25 child cells).
+'''
+mm.rlevels
 
 '''
 The MartheModel instance provide some usefull methods to perform basic processing
@@ -285,15 +305,18 @@ The MartheModel instance can run the provided model from python with the method
 `.run_model()` with required level of verbosity and silence.
 To do so, make sure to provide the correct path to your Marthe executable as 
 `exe_name`.
+After running the model, the user can easily print on screen the execution times
+of all main processes by using the `.show_run_times()` method.
+
 Note : If the Marthe executable path is already in your environement variables
 of your computer, there is no need to provided the full path, the executable
 name is enough.
 '''
 # -- Launch model run
 mm.run_model(exe_name = 'Marth_R8', silent=True, verbose=False)
+
 # -- Get run times summary
 mm.show_run_times()
-
 
 
 

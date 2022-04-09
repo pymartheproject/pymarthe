@@ -493,7 +493,6 @@ class MartheField():
     def write_data(self, filename=None):
         """
         Write field data in Marthe field property file.
-        Wrapper to marthe_utils.write_grid_file().
 
         Parameters:
         ----------
@@ -508,16 +507,27 @@ class MartheField():
         mf.write_data('modified.permh')
 
         """
+        # ---- Manage filename input
         if filename is None:
             path = os.path.join(self.mm.mldir, self.mm.mlname)
             extension = self.field
             f = '{}.{}'.format(path, extension)
         else:
             f = filename
+
+        # ---- Extract refine levels dictionary
+        rl = self.mm.extract_refine_levels()
+
         # ---- Write field data from list of MartheGrid instance
-        marthe_utils.write_grid_file(f, self.to_grids(),
-                                        self.maxlayer,
-                                        self.maxnest )
+        with open(filename, 'w', encoding = marthe_utils.encoding) as f:
+            for mg in self.to_grids():
+                f.write(
+                            mg.to_string(
+                                maxlayer = self.maxlayer,
+                                maxnest = self.maxnest,
+                                rlevel = rl[mg.inest] )
+                                                                        )
+
 
 
 

@@ -100,6 +100,9 @@ class MartheModel():
         self.nnest, self.layers_infos = marthe_utils.get_layers_infos(self.mlfiles['layer'], base = 0)
         self.nlay = self.layers_infos.layer.max() + 1
 
+        # ---- Get refine levels for nested grids
+        self.rlevels = self.extract_refine_levels()
+
         # ---- Store hws (Hangling Wall State)
         self.hws = 'explicit' if len(self.layers_infos.epon_sup.unique()) == 1 else 'implicit'
 
@@ -148,6 +151,7 @@ class MartheModel():
             self.build_modelgrid()
         else:
             self.modelgrid = None
+
 
 
 
@@ -218,7 +222,7 @@ class MartheModel():
                     else:
                         node += 1
                     # -- Return user progress bar
-                    marthe_utils.progress_bar(node/nnodes)
+                    marthe_utils.progress_bar((node+1)/nnodes)
 
             # -- Enaable insertion of inactive cells 
             else:
@@ -241,7 +245,7 @@ class MartheModel():
                     else:
                         yield obj
                     # -- Return user progress bar
-                    marthe_utils.progress_bar(node/nnodes)
+                    marthe_utils.progress_bar((node+1)/nnodes)
                     # -- Incrementation of unique cell id
                     node += 1
 
@@ -1055,6 +1059,41 @@ class MartheModel():
 
 
 
+    def extract_refine_levels(self):
+        """
+        Function to extract refine levels of each nested grid.
+        The main grid (inest=0) must have a refine level 
+        equal to 1 (= division for each x-y direction).
+
+        Parameters:
+        -----------
+
+        Returns:
+        --------
+        rlevels : refine levels from grid file (permh).
+                  Format : {inest_0 : None,
+                            inest_1 : refine_level_1,
+                                   ...
+                            inest_N : refine_level_N}
+
+        Examples:
+        --------
+        rl = mm.extract_refine_levels()
+        """
+        # -- Read 'permh' with adjacent cells (layer 0)
+        mgs = marthe_utils.read_grid_file(
+                    self.mlfiles['permh'],
+                        keep_adj=True)[:self.nnest+1]
+        # -- Compute rlevel (dx_main_grid / dx_nested_grid)
+        rlevels = {mg.inest : int(mg.dx[0]//mg.dx[1])
+                                if mg.inest > 0 else None
+                                    for mg in mgs}
+        # -- Return
+        return rlevels
+
+
+
+
     def get_xycellcenters(self, stack=False):
         """
         Function to get xy-cell centers of the model grid.
@@ -1400,7 +1439,7 @@ class MartheModel():
         df = marthe_utils.get_run_times(lf)
 
         # -- Print on console
-        print(df.to_markdown(tablefmt=tablefmt))
+        print(df.to_markdown(tablefmt=tablefmt, colalign=("left", "right")))
 
 
 

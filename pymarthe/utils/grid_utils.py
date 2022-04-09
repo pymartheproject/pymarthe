@@ -36,8 +36,6 @@ class MartheGrid():
         xcc, ycc (1Darray) : x/y cell centers
         array (2Darray) : gridded values
         field (str, optional) : field name
-        _args (dict) :  original data before removing first
-                        and last lines cells for inest grid
 
         Example:
         -----------
@@ -102,10 +100,10 @@ class MartheGrid():
         """
         # ---- Get 2Darray of layer, inest, row, col, xcc, ycc, 
         rr, cc = np.meshgrid(*[np.arange(0 + base, n + base) for n in [self.nrow,self.ncol]])
-        ij = np.dstack([rr.ravel('F'), cc.ravel('F')])[0]
+        ij = np.column_stack([rr.ravel('F'), cc.ravel('F')])
         xx, yy = np.meshgrid(self.xcc, self.ycc)
-        xy = np.dstack([xx.ravel('F'), yy.ravel('F')])[0]
-        ln = np.dstack([i * np.ones((self.nrow, self.ncol)).ravel() for i in [self.layer, self.inest]])[0]
+        xy = np.column_stack([xx.ravel('F'), yy.ravel('F')])
+        ln = np.column_stack([i * np.ones((self.nrow, self.ncol)).ravel() for i in [self.layer, self.inest]])
 
         # ---- Build recarray from arrays 
         arrays = list( np.column_stack([ln, ij, xy, self.array.ravel()]).T )
@@ -117,7 +115,7 @@ class MartheGrid():
 
 
 
-    def to_string(self, maxlayer=None, maxnest=None):
+    def to_string(self, maxlayer=None, maxnest=None, rlevel=None):
 
         """
         Convert grid to a single string
@@ -126,6 +124,9 @@ class MartheGrid():
         -----------
         maxlayer (int) : maximum number of layer.
         maxnest (int) : maximum number of nested grid.
+        rlevel (int) : refine level to extract adjacent
+                       cells informations.
+
         Return:
         -----------
         lines_str (str) : Marthe Grid string format
@@ -136,6 +137,20 @@ class MartheGrid():
         with open('mymarthegrid.prop', 'r') as f:
             f.write(mygrid.to_string())
         """
+        # ---- Add adjecent cell informations if required
+        if rlevel is None:
+            nrow, ncol, xl, yl = self.nrow, self.ncol, self.xl, self.yl
+            dx, dy, xcc, ycc = self.dx, self.dy, self.xcc, self.ycc
+            array = self.array
+        else:
+            dx = np.r_[ self.dx[0]*rlevel, self.dx, self.dx[-1]*rlevel]
+            dy = np.r_[ self.dy[0]*rlevel, self.dy, self.dy[-1]*rlevel]
+            xcc = np.r_[ self.xcc[0] - (dx[1] + dx[0])/2, self.xcc, self.ycc[-1] + (dx[-2] + dx[-1])/2]
+            ycc = np.r_[ self.ycc[0] + (dy[1] + dy[0])/2, self.ycc, self.ycc[-1] - (dy[-2] + dy[-1])/2] # reversed direction
+            xl, yl = xcc.min() - (dx[0]/2), ycc.min() - (dy[0]/2)
+            array = marthe_utils.bordered_array(self.array, -9999)
+            nrow, ncol = array.shape
+
         # ---- Manage nested grid number as str 
         inest = str(self.inest) if self.inest > 0 else ' '
         maxl = '0' if maxlayer is None else str(maxlayer)
@@ -158,10 +173,10 @@ class MartheGrid():
         lines.append('Nest_grid={}'.format(str(self.inest)))
         lines.append('Max_NestG={}'.format(maxn))
         lines.append('[Structure]')
-        lines.append('X_Left_Corner={}'.format(str(self.xl)))
-        lines.append('Y_Lower_Corner={}'.format(str(self.yl)))
-        lines.append('Ncolumn={}'.format(str(self.ncol)))
-        lines.append('Nrows={}'.format(str(self.nrow)))
+        lines.append('X_Left_Corner={}'.format(xl))
+        lines.append('Y_Lower_Corner={}'.format(yl))
+        lines.append('Ncolumn={}'.format(ncol))
+        lines.append('Nrows={}'.format(nrow))
         lines.append('[Data_Descript]')
         lines.append('! Line 1       :   0   ,     0          , <   1 , 2 , 3 , Ncolumn   >')
         lines.append('! Line 2       :   0   ,     0          , < X_Center_of_all_Columns >')
@@ -172,25 +187,25 @@ class MartheGrid():
         # ---- Append uniform data
         if self.isuniform:
             lines.append('[Constant_Data]')
-            lines.append('Uniform_Value={}'.format(self.array.mean()))
+            lines.append('Uniform_Value={}'.format(array[~np.isin(array,[-9999,0,8888,9999])].mean()))
             lines.append('[Columns_x_and_dx]')
-            lines.append('\t'.join([str(i+1) for i in range(self.ncol)]))
-            lines.append('\t'.join([str(i) for i in self.xcc]))
-            lines.append('\t'.join([str(i) for i in self.dx]))
+            lines.append('\t'.join([str(i+1) for i in range(ncol)]))
+            lines.append('\t'.join([str(i) for i in xcc]))
+            lines.append('\t'.join([str(i) for i in dx]))
             lines.append('[Columns_y_and_dy]')
-            lines.append('\t'.join([str(i+1) for i in range(self.nrow)]))
-            lines.append('\t'.join([str(i) for i in self.ycc]))
-            lines.append('\t'.join([str(i) for i in self.yx]))
+            lines.append('\t'.join([str(i+1) for i in range(nrow)]))
+            lines.append('\t'.join([str(i) for i in ycc]))
+            lines.append('\t'.join([str(i) for i in dy]))
         # ---- Append non uniform data
         else:
             lines.append('[Data]')
-            lines.append('\t'.join(['0','0'] + [str(i+1) for i in range(self.ncol)]))
-            lines.append('\t'.join(['0','0'] + [str(i) for i in self.xcc]))
-            for i in range(self.nrow):
-                line_data = [str(i+1), self.ycc[i], *[str(v) for v in self.array[i,:]], self.dy[i]]
+            lines.append('\t'.join(['0','0'] + [str(i+1) for i in range(ncol)]))
+            lines.append('\t'.join(['0','0'] + [str(i) for i in xcc]))
+            for i in range(nrow):
+                line_data = [i+1, ycc[i], *array[i,:], dy[i]]
                 line_str = list(map(str,line_data))
                 lines.append('\t'.join(line_str))
-            lines.append('\t'.join(['0','0'] + [str(i) for i in self.dx]))
+            lines.append('\t'.join(['0','0'] + [str(i) for i in dx]))
         # ---- Append end grid tag
         lines.append('[End_Grid]')
         # ---- Return all joined elements
