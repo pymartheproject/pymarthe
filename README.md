@@ -1,5 +1,18 @@
 
-<H1 align="center"> 
+
+
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+[![GitHub watchers](https://badgen.net/github/watchers/Naereen/Strapdown.js/)](https://GitHub.com/Naereen/StrapDown.js/watchers/)
+[![GitHub contributors](https://img.shields.io/github/contributors/Naereen/badges.svg)](https://GitHub.com/Naereen/badges/graphs/contributors/)
+[![GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com)
+[![Open Source? Yes!](https://badgen.net/badge/Open%20Source%20%3F/Yes%21/blue?icon=github)](https://github.com/Naereen/badges/)
+[![Visits Badge](https://badges.pufler.dev/visits/puf17640/git-badges)](https://badges.pufler.dev)
+[![Updated Badge](https://badges.pufler.dev/updated/puf17640/git-badges)](https://badges.pufler.dev)
+[![Awesome Badges](https://img.shields.io/badge/badges-awesome-green.svg)](https://github.com/Naereen/badges)
+
+
+
+<H1 style="background-color:lightgrey;" align="center"> 
 PyMarthe v1.0 
 </H1>
 
@@ -48,10 +61,10 @@ hprops = ['permh', 'emmca', 'emmli', 'kepon']
 for hprop in hprops:
     mm.load_prop(hprop)
 
-# -- Extract field data (by filtering)
+# -- Extract field data (filtering)
 mm.prop['permh'].get_data(layer=[4,5,6])
 
-# -- Extract field data (by sampling)
+# -- Extract field data (sampling)
 mm.prop['permh'].sample(x = [323.1,333.4],
                         y = [277.11,289.3],
                         layer = 4)
@@ -75,8 +88,8 @@ ax.set_title('MONA - Permeability (layer = 6)',
   <img 
   src="assets/permh_k6.png"
   alt="PyMarthe v1.0" 
-  width="900"
-  height="500"
+  width="910"
+  height="505"
   >
 </p>
 
