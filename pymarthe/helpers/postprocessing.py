@@ -2,8 +2,9 @@
 Contains some helper functions for Marthe model postprocessing
 
 """
-
+import os, sys
 import numpy as np
+import pandas as pd
 from copy import deepcopy
 from pymarthe.mfield import MartheField, MartheFieldSeries
 

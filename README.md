@@ -1,6 +1,4 @@
 
-
-
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 [![GitHub watchers](https://badgen.net/github/watchers/Naereen/Strapdown.js/)](https://GitHub.com/Naereen/StrapDown.js/watchers/)
 [![GitHub contributors](https://img.shields.io/github/contributors/Naereen/badges.svg)](https://GitHub.com/Naereen/badges/graphs/contributors/)
@@ -12,7 +10,7 @@
 
 
 
-<H1 style="background-color:lightgrey;" align="center"> 
+<H1 align="center"> 
 PyMarthe v1.0 
 </H1>
 
