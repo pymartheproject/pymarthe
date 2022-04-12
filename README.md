@@ -1,13 +1,12 @@
 
-[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
-[![GitHub watchers](https://badgen.net/github/watchers/Naereen/Strapdown.js/)](https://GitHub.com/Naereen/StrapDown.js/watchers/)
-[![GitHub contributors](https://img.shields.io/github/contributors/Naereen/badges.svg)](https://GitHub.com/Naereen/badges/graphs/contributors/)
 [![GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com)
+![GitHub watchers](https://img.shields.io/github/watchers/badges/shields.svg?style=social&logo=github&label=Watch)
+![Visitors](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fapryet%2Fadeqwat%2F&label=Visitors&labelColor=%23697689&countColor=%232ccce4&style=plastic)
+![GitHub repo file count](https://img.shields.io/github/directory-file-count/apryet/adeqwat)
+![GitHub contributors](https://img.shields.io/github/contributors/apryet/adeqwat?style=plastic)
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 [![Open Source? Yes!](https://badgen.net/badge/Open%20Source%20%3F/Yes%21/blue?icon=github)](https://github.com/Naereen/badges/)
-[![Visits Badge](https://badges.pufler.dev/visits/puf17640/git-badges)](https://badges.pufler.dev)
-[![Updated Badge](https://badges.pufler.dev/updated/puf17640/git-badges)](https://badges.pufler.dev)
 [![Awesome Badges](https://img.shields.io/badge/badges-awesome-green.svg)](https://github.com/Naereen/badges)
-
 
 
 <H1 align="center"> 
