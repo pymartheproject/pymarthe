@@ -99,7 +99,7 @@ class MartheSoil():
         force (bool, optional) : force getting soil property data for all required timesteps
                                  even if there are not provided explicitly in Marthe.
                                  For a not provided required time step the nearest previous
-                                 istep (nip) containing soil data will be considered.
+                                 istep (npi) containing soil data will be considered.
                                  Note: can be slow if the model contains a lot of timesteps.
                                  Default is False.
         as_style (str, optional) : required output type.

@@ -69,7 +69,7 @@ class MarthePump():
         """
         Perform some classic checks about pumping data validity and print
         bad behaviour as warnings
-            - Search for pumping inactive cell
+            - Search for pumpings in inactive cells ()
             - Search for multiple pumping on same cell 
 
         """
@@ -135,30 +135,30 @@ class MarthePump():
         if self.mode == 'aquifer':
             d, _d = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
 
-            # -- Manage xy inputs
-            if all(loc in d.columns for loc in list('xy')):
-                # -- Print message to inform about convertion
-                print('Converting xy pumping data into row(s), column(s) ...')
-                # -- Get all nodes
-                nodes = self.mm.get_node(x=_d.x,y=_d.y,layer=_d.layer)
-                # -- Perform query on modlegrid
-                _d[['node','i','j']] = self.mm.query_grid(node=nodes, target=['i','j']).reset_index()
-                # -- Push to class attribute
-                self.data, self._data = _d[self.vars], _d[self._vars + ['x','y']]
-
-            # -- Manage ij inputs
-            else:
-                # -- Perform query on modelgrid
-                _d['node'] = self.mm.query_grid(i=_d.i, j=_d.j, layer=_d.layer).reset_index()['node']
-                # -- Push to class attribute
-                self.data, self._data = _d[self.vars], _d[self._vars]
-            
-
         # ---- Manage 'rivpump'
-        # elif self.mode == 'river':
-        #     # ---- Convert aff/trc data in column, line, plan (layer) format in .pastp file
-        #     marthe_utils.convert_at2clp_pastp(self.pastp_file, mm = self.mm)
-        #     self.data, self._data = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
+        elif self.mode == 'river':
+            # ---- Convert aff/trc data in column, line, plan (layer) format in .pastp file
+            marthe_utils.convert_at2clp(self.pastp_file, mm = self.mm)
+            d, _d = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
+
+        # -- Manage xy inputs
+        if all(loc in d.columns for loc in list('xy')):
+            # -- Print message to inform about convertion
+            print('Converting xy pumping data into row(s), column(s) ...')
+            # -- Get all nodes
+            nodes = self.mm.get_node(x=_d.x,y=_d.y,layer=_d.layer)
+            # -- Perform query on modlegrid
+            _d[['node','i','j']] = self.mm.query_grid(node=nodes, target=['i','j']).reset_index()
+            # -- Push to class attribute
+            self.data, self._data = _d[self.vars], _d[self._vars + ['x','y']]
+
+        # -- Manage ij inputs
+        else:
+            # -- Perform query on modelgrid
+            _d['node'] = self.mm.query_grid(i=_d.i, j=_d.j, layer=_d.layer).reset_index()['node']
+            # -- Push to class attribute
+            self.data, self._data = _d[self.vars], _d[self._vars]
+
 
         # ---- Set generic boundnames
         digits = len(str(self.data.node.max()))
@@ -173,7 +173,7 @@ class MarthePump():
 
 
 
-    def get_data(self, istep=None, node=None, layer=None, i=None, j=None, boundname=None, as_mask=False):
+    def get_data(self, istep=None, node=None, layer=None, i=None, j=None, boundname=None, force=False , as_mask=False):
         """
         Function to select/subset pumping data.
 
@@ -198,6 +198,11 @@ class MarthePump():
         boundname (str, optional) : required well name(s).
                                     If None, all boundnames will be considered.
                                     Default is None.
+        force (bool, optional) : force getting pumping data for all required timesteps
+                                 even if there are not provided explicitly in the pastp file.
+                                 For a not provided required time step the nearest previous
+                                 istep (npi) containing pumping data will be considered.
+                                 Note: can be slow if the model contains a lot of timesteps.
         as_mask (bool) : returning data as boolean index.
                          Default is False.
 
@@ -213,28 +218,59 @@ class MarthePump():
         df2 = mp.get_data(layer=2, i=33, j=18)
 
         """
-
         # ---- Get columns to perform queries
         col_query = self.data.drop('value', axis=1).columns
 
         # ---- Build query (format: q = 'column_0 in [value_0,..] & ...'')
         q = ' & '.join(
                 ["{} in {}".format(k, list(self.data[k].unique())) 
-                    if v is None else "{} in {}".format(k, marthe_utils.make_iterable(v))
+                    if v is None else "{} in {}".format(k, list(marthe_utils.make_iterable(v)))
                     for k, v 
                     in zip(col_query, [istep,node,layer,i,j,boundname])
                     ]
                         )
 
-        # ---- Get index of required values
-        idx = self.data.query(q).index
+        # ---- Force all provided isteps (slow)
+        if force:
+            # -- Subset (without timestep)
+            dfs = []
+            df_ss = self.data.query(q[q.index('node'):])
+            for istep in marthe_utils.make_iterable(istep):
+                df = df_ss.loc[df_ss.istep == istep]
+                # -- If istep not provided in pastp file
+                if df.empty:
+                    nip = df_ss.loc[df_ss.istep < istep, 'istep'].max()   # nip = nearest previous istep
+                    np_df = df_ss[df_ss.istep == nip]
+                    np_df['istep'] = istep
+                    dfs.append(np_df)
+                else:
+                    dfs.append(df)
+            # -- Finally concatenate all forced DataFrames
+            df = pd.concat(dfs, ignore_index=True)
+            # -- Set mask to None for fording process
+            if as_mask:
+                warn_msg = 'Getting data process with `as_mask = True` will not return any usable `mask`.'
+                warnings.warn(warn_msg)
+            mask = None
+
+        # ---- Subset pastp provided isteps only (fast)
+        else:
+            # -- Get index of required values
+            idx = self.data.query(q).index
+            # -- Get data boolean mask
+            mask = self.data.index.isin(idx)
+            # -- Get subset data
+            df = self.data.loc[idx]
 
         # ---- Return as required
         if as_mask:
-            return self.data.index.isin(idx)
-        # ---- Return data as recarray
+            return mask
+        # ---- Return subset data
         else:
-            return self.data.loc[idx]
+            return df
+
+
+
 
 
 

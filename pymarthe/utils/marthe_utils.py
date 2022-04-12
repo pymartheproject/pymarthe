@@ -902,7 +902,7 @@ def make_iterable(var):
 def read_listm_qfile(qfile, istep, fmt):
     """
     """
-    if (len(fmt) == 0) | (fmt == 'Somm_Mail|C_L_P|Keep_9999'): 
+    if (len(fmt) == 0) | ('Somm_Mail|C_L_P|Keep_9999' in fmt): 
         # ---- Set data types
         dt = {'value':'f8','j':'i4','i':'i4','layer':'i4'}
         # ---- Read qfile as DataFrame (separator = any whitespace)
@@ -921,7 +921,7 @@ def read_listm_qfile(qfile, istep, fmt):
         _cols = cols + metacols 
         return df[cols], df[_cols]
 
-    if fmt == 'X_Y_C|Somm_Mail|Keep_9999':
+    if 'X_Y_C|Somm_Mail|Keep_9999' in fmt:
         # ---- Set data types
         dt = {'x':'f8','y':'f8','layer':'i4', 'value':'f8'}
         # ---- Read qfile as DataFrame (separator = any whitespace)
@@ -939,6 +939,27 @@ def read_listm_qfile(qfile, istep, fmt):
         cols = ['istep', 'layer', 'x', 'y', 'value', 'boundname']
         _cols = cols + metacols 
         return df[cols], df[_cols]
+
+    if  'X_Y_V|Somm_Mail|Keep_9999' in fmt:
+        # ---- Set data types
+        dt = {'x':'f8','y':'f8', 'value':'f8'}
+        # ---- Read qfile as DataFrame (separator = any whitespace)
+        df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
+                            names=list(dt.keys()), dtype=dt)
+        # ---- Add layer info (=0)
+        df['layer'] = 0
+        # ---- Add istep
+        df['istep'] = istep
+        df['boundname'] = 'boundname'
+        # ---- Manage metadata
+        metacols = ['qfilename', 'qtype', 'qrow', 'qcol']
+        df[metacols] = np.array([qfile, 'listm', df.index, 2], dtype=object)
+        # ---- Return data
+        cols = ['istep', 'layer', 'x', 'y', 'value', 'boundname']
+        _cols = cols + metacols 
+        return df[cols], df[_cols]
+
+
 
 
 
@@ -1060,7 +1081,7 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
 
 
 
-def convert_at2clp_pastp(pastpfile, mm):
+def convert_at2clp(pastpfile, mm):
     """
     Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
     and rewrite it in pastp file
@@ -1076,7 +1097,7 @@ def convert_at2clp_pastp(pastpfile, mm):
 
     Examples:
     --------
-    convert_at2clp_pastp(pastpfile, mm)
+    convert_at2clp(pastpfile, mm)
     
     """
     # ---- Set regular expression of numeric string (int and float)

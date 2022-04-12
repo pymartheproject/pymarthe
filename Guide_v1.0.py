@@ -644,10 +644,10 @@ It will recognize the `mode` of implementation automatically.
 '''
 lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
 lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
-mm = MartheModel(lizonne_ws, spatial_index=lizonne_si)
+liz_mm = MartheModel(lizonne_ws, spatial_index=lizonne_si)
 
 # -- Build MartheSoil instance externaly
-ms = MartheSoil(mm)
+ms = MartheSoil(liz_mm)
 
 # -- Fetch soil property instance from main model
 mm.load_prop('soil')
@@ -680,10 +680,10 @@ ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=1)    # C
 ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=0)
 
 '''
-Even if it's not explicitly written in the .mart or .patp file and store in `ms.data`,
+Even if it's not explicitly written in the .mart or .pastp file and store in `ms.data`,
 the user can access the soil data value for specific isteps by use the `force` argument.
 This works by searching the nearest previous istep (`npi`) where soil data were defined,
-that can be if several timesteps are required. 
+that can be quite slow if several timesteps are required. 
 Let's extract the property `cap_sol_progr` for the istep 10 to 15 (must be the same as 
 the first timestep because soil properties are constant). 
 '''
@@ -763,6 +763,7 @@ Pumping data are stored in a DataFrame with informations on 'istep', 'node', lay
 'i', 'j', 'value' and 'boundname' in the `.data` attribute. But there is also an 
 hidden argument with all metadata `._data`. `boundname` correspond to a generic
 boundname created from the node ids of each well (format: 'aqpump_node).
+Let's try 
 '''
 
 # -- User pumping data
@@ -794,9 +795,27 @@ mp.get_data(istep=3, layer=3, i=102)
 mp.get_data(istep=3, layer=3, j=71)
 mp.get_data(istep=3, layer=3, i=102, j=71)
 
-
 # -- Subset by boundname
 mp.get_data(istep=3, boundname = 'aqpump_020720')
+
+
+'''
+Note:
+As same as the MartheSoil instance, even if it's not explicitly written in the pastp file
+and store in `mp.data`, the user can access the pumping data value for specific isteps by
+use the `force` argument.
+This works by searching the nearest previous istep (`npi`) where pumping data were defined,
+that can be quite slow if several timesteps are required.
+Let's try to get pumping data of not explicitly provided isteps (10 to 15, for example)
+on Lizonne model for well generic name 'aqpump_07346'.
+'''
+liz_mm.load_prop('aqpump')
+liz_mp = liz_mm.prop['aqpump']
+# -- Return empty DataFrame 
+liz_mp.get_data(istep= np.arange(10,16), boundname='aqpump_07346')
+# -- Force output on required time steps 
+liz_mp.get_data(istep= np.arange(10,16), boundname='aqpump_07346', force=True)
+
 
 # -- Switch boundname by another bound names
 switch_dic = {'aqpump_046949' : 'pump1', 'aqpump_020822' : 'pump2' }
