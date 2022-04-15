@@ -59,8 +59,8 @@ class MartheGrid():
         self.xcc    = xcc.astype(float)
         self.ycc    = ycc.astype(float)
         self.array  = array.astype(float)
-        self.xvertices = np.append(np.array(self.xl), self.xl + np.cumsum(self.dy))
-        self.yvertices = np.append(np.array(self.yl), self.yl + np.cumsum(self.dx))
+        self.xvertices = np.append(np.array(self.xl), self.xl + np.cumsum(self.dx))
+        self.yvertices = np.append(np.array(self.yl), self.yl + np.cumsum(self.dy))
         self.isnested = True if inest != 0 else False
         self.isregular = True if all(len(np.unique(a)) == 1 for a in [dx,dy]) else False
         self.isuniform = True if len(np.unique(array)) == 1 else False
@@ -69,10 +69,10 @@ class MartheGrid():
     def get_cell_vertices(self, i, j, closed=False):
         """
         """
-        x0 = self.xvertices[i]
-        x1 = self.xvertices[i+1]
-        y0 = self.yvertices[j]
-        y1 = self.yvertices[j+1]
+        x0 = self.xvertices[j]
+        x1 = self.xvertices[j+1]
+        y0 = self.yvertices[i]
+        y1 = self.yvertices[i+1]
         vertices = [[x0,y0],[x0,y1],[x1,y1],[x1,y0]]
         if closed:
             vertices.append([x0,y0])

@@ -124,7 +124,7 @@ def hydrodyn_calc(pastpfile, istep, external=False, new_pastpfile=None):
                                     - 'all' : activate for all timesteps
                                     - 'none': desactivate for all timesteps
                                     - 'start:end:step' : string sequence
-                                    - [0,1,2,..] : any interger iterables
+                                    - [0,1,2,..] : any integer iterables
 
     external (bool, optional) : whatever create a external file with required
                                 hydrodynamic computation periodicity.
