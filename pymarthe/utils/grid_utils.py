@@ -100,9 +100,9 @@ class MartheGrid():
         """
         # ---- Get 2Darray of layer, inest, row, col, xcc, ycc, 
         rr, cc = np.meshgrid(*[np.arange(0 + base, n + base) for n in [self.nrow,self.ncol]])
-        ij = np.column_stack([rr.ravel('F'), cc.ravel('F')])
+        ij = np.column_stack([rr.ravel(), cc.ravel()])
         xx, yy = np.meshgrid(self.xcc, self.ycc)
-        xy = np.column_stack([xx.ravel('F'), yy.ravel('F')])
+        xy = np.column_stack([xx.ravel(), yy.ravel()])
         ln = np.column_stack([i * np.ones((self.nrow, self.ncol)).ravel() for i in [self.layer, self.inest]])
 
         # ---- Build recarray from arrays 

@@ -193,21 +193,22 @@ class MartheModel():
 
         # -- Iterate over all model grids
         for mg in self.imask.to_grids():
-            # -- Vectorize rows and columns as flat arrays (speed iteration process)
+            # -- Vectorize data as flat 1D-arrays (speed up iteration process)
             ii,jj = np.meshgrid(np.arange(mg.nrow),np.arange(mg.ncol))
+            xx, yy = np.meshgrid(mg.xcc, mg.ycc)
+            dxx, dyy = np.meshgrid(mg.dx, mg.dy)
+            it = list(map(np.ravel, [ii,jj,xx,yy,dxx,dyy,mg.array]))
             # -- Disable insertion of inactive cells
             if only_active:
-                # -- Iterate over all ij pairs of structured grid
-                for i,j in zip(ii.ravel(), jj.ravel()):
+                # -- Iterate over structured grid data
+                for i,j,xc,yc,dx,dy,v in zip(*it):
                     # -- For active cell
-                    if int(mg.array[i,j]) == 1:
+                    if v == 1:
                         # Get cell vertices
                         vertices = mg.get_cell_vertices(i,j)
                         # Store infos of current cell
                         obj = ( node, mg.layer, mg.inest, i, j,
-                                mg.xcc[j], mg.ycc[i], mg.dx[j],
-                                mg.dy[i], mg.dx[j] * mg.dy[i] ,
-                                vertices,  int(mg.array[i,j])   )
+                                xc, yc, dx, dy, dx*dy, vertices, int(v))
                         # Compute cell bounds ((xmin, ymin, xmax, ymax))
                         if self.si_state:
                             bounds = (*vertices[0], *vertices[2])
@@ -227,15 +228,13 @@ class MartheModel():
             # -- Enaable insertion of inactive cells 
             else:
 
-                # -- Iterate over all ij pairs of structured grid
-                for i,j in zip(ii.ravel(), jj.ravel()):
+                # -- Iterate over structured grid data
+                for i,j,xc,yc,dx,dy,v in zip(*it):
                     # Get cell vertices
                     vertices = mg.get_cell_vertices(i,j)
                     # Store infos of current cell
                     obj = ( node, mg.layer, mg.inest, i, j,
-                            mg.xcc[j], mg.ycc[i], mg.dx[j],
-                            mg.dy[i], mg.dx[j] * mg.dy[i] ,
-                            vertices,  int(mg.array[i,j])   )
+                            xc, yc, dx, dy, dx*dy, vertices, int(v))
                     # -- Compute cell bounds
                     if self.si_state:
                         bounds = (*vertices[0], *vertices[2])
