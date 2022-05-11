@@ -13,7 +13,7 @@ from datetime import datetime
 
 from pymarthe.marthe import MartheModel
 from pymarthe.mobs import MartheObs
-from pymarthe.mparam import MartheListParam
+from pymarthe.mparam import MartheListParam, MartheGridParam
 from .utils import marthe_utils, pest_utils
 
 
@@ -78,12 +78,14 @@ class MartheOptim():
 
 
 
-    def get_obs_df(self):
+    def get_obs_df(self, transformed=False):
         """
         Get all observations information in a large DataFrame.
 
         Parameters:
         ----------
+        transformed (bool, optional) : whatever apply transformation on output DataFrame.
+                                       Default is False.
 
         Returns:
         --------
@@ -91,22 +93,25 @@ class MartheOptim():
 
         Examples:
         --------
-        moptim.get_obs_df()
+        moptim.get_obs_df(transformed=True)
         """
         if len(self.obs) > 0:
-            return pd.concat([mo.obs_df for mo in self.obs.values()])
+            return pd.concat([mo.get_obs_df(transformed)for mo in self.obs.values()])
         else:
             return pd.DataFrame(columns = base_obs)
 
 
 
 
-    def get_param_df(self):
+    def get_param_df(self, transformed=False):
         """
         Get all parameters informations in a large DataFrame.
 
         Parameters:
         ----------
+        transformed (bool, optional) : whatever apply transformation(s) on
+                                       parameter data sets.
+                                       Default is False.
 
         Returns:
         --------
@@ -114,10 +119,10 @@ class MartheOptim():
 
         Examples:
         --------
-        moptim.get_param_df()
+        moptim.get_param_df(transformed=True)
         """
         if len(self.param) > 0:
-            return pd.concat([mp.param_df for mp in self.param.values()])
+            return pd.concat([mp.get_param_df(transformed) for mp in self.param.values()])
         else:
             return pd.DataFrame(columns = base_param)
 
@@ -334,7 +339,7 @@ class MartheOptim():
         # ---- Avoid adding same locnme multiple times
         if locnme in self.obs.keys():
             # -- Raise warning message
-            warn_msg = f'Warning : locnme `{locnme}` already added. ' \
+            warn_msg = f'WARNING : locnme `{locnme}` already added. ' \
                        'It will be overwrited.'
             warnings.warn(warn_msg, Warning)
             # -- Remove existing set of observation
@@ -348,7 +353,7 @@ class MartheOptim():
         start, end = min(self.mm.mldates), max(self.mm.mldates)
         if len(df) > len(df.loc[start:end]):
             # -- Raise warning message
-            warn_msg = 'Warning : some observation data are out of model time window ' \
+            warn_msg = 'WARNING : some observation data are out of model time window ' \
                        f'({start} - {end} ). They will not be considered.'
             warnings.warn(warn_msg, Warning)
             df = df.loc[start:end]
@@ -521,12 +526,13 @@ class MartheOptim():
             if (mp.parname in _pn) & (mp.pargp in _pg):
                 self.param[mp.parname].trans  = trans
                 self.param[mp.parname].btrans = btrans
-                self.param[mp.parname].param_df[['trans', 'btrans']] = [trans, btrans]
+                if mp.type == 'list':
+                    self.param[mp.parname].param_df[['trans', 'btrans']] = [trans, btrans]
 
 
 
 
-    def write_ins(self, locnme=None):
+    def write_insfile(self, locnme=None):
         """
         Write formatted instruction file (pest).
         Wrapper of pest_utils.write_insfile().
@@ -547,14 +553,21 @@ class MartheOptim():
         --------
         moptim.write_insfile(locnme = 'myobs', ins_dir = 'ins')
         """
-        # ---- Manage multiple locnme writing
-        locnmes = list(self.obs.keys()) if locnme is None else marthe_utils.make_iterable(locnme)
+        # ---- Manage multiple locnme input
+        if locnme is None:
+            locnmes = self.obs.keys()
+        else:
+            locnmes = marthe_utils.make_iterable(locnme)
+            # -- Check locnames validity
+            not_found = [ln for ln in locnmes if ln not in self.obs.keys()]
+            err_msg = "ERROR : Some provided `locname` not added yet: {}.".format(', '.join(not_found))
+            assert len(not_found) == 0, err_msg
+
         # ---- Iterate over locnmes
         for locnme in locnmes:
             self.obs[locnme].write_insfile()
 
-
-
+            
 
 
     def add_fluc(self, locnme=None, tag= '', on = 'mean'):
@@ -618,7 +631,6 @@ class MartheOptim():
         """
         Compute weigths for all observations.
 
-        -----------
         Parameters
         -----------
         - lambda_dic (dict) : tuning factor dictionary
@@ -629,11 +641,11 @@ class MartheOptim():
                              Format: {datatype0 : sigma_0, ... datatypeN : sigma_N}
                              If None, all variaces are set to 1.
                              Default is None
-        -----------
+
         Returns
         -----------
         Set weights in self.mobs_df['weight'] column.
-        -----------
+
         Examples
         -----------
         mm.mobs.compute_weights(lambda_dic)
@@ -673,48 +685,179 @@ class MartheOptim():
 
     def add_param(self, parname, mobj, **kwargs):
         """
-        *** UNDER DEVELOPMENT ***
+        Add a parameter a set of parameters.
+
+        Parameters can be either:
+
+            - distributed ('grid'): based on `izone` object which represent a pointer
+                                    to a Marthefield instance where field values 
+                                    are gathered in zones like:
+                                    - izone < 0  ==> zone of piecewise constancy
+                                    - izone > 0  ==> zone with pilot points
+                                    - izone = -9999, 0, 9999  ==> inactive zone
+
+            - globals ('list'): based on `kmi` (KeysMultiIndex) which represent the 
+                                referenced DataFrame columns names to be included in
+                                the parametrization.
+                                Note: the built-in fonction pymarthe.utils.pest_utils.get_kmi()
+                                      make the `kmi` generation easier.
+
+        Parameters
+        -----------
+        - parname (str) : name of the set of parameters.
+
+        - mobj (str) : Marthe object to parametrize.
+                       Can be a:
+                            - MartheField instance (grid)
+                            - MartheSoil instance  (list)
+                            - MarthePump instance  (list)
+
+
+        Examples
+        -----------
+        # -- Example on pumping data
+        mm.load_prop('soil')
+        mp = mm.prop['aqpump']
+        kmi_p31 = pest_utils.get_kmi(mp, keys = ['boundname', 'layer', 'istep'], boundname = 'p31')
+        mgp.add_param(parname='p31', mobj=mp,
+                      kmi=kmi_p31, defaultvalue=-1e-3)
+
+        # -- Example on soil data
+        mm.load_prop('soil')
+        ms = mm.prop['soil']
+        kmi_soil = pest_utils.get_kmi(ms, keys=['soilprop', 'zone'], istep=0)
+        mopt.add_param(parname='soil', mobj=ms, kmi=kmi_soil)
+
+        # -- Example on distributed parameter
+        mm.load_prop('permh')
+        mf = mm.prop['permh']
+        pp_data = {1:{1:'gis/pp_l01.shp'}, 2:{1:'gis/pp_l02.shp'}}
+        mopt.add_param(parname='hk', mobj=mf,
+                       izone='mymodel.ipermh',
+                       pp_data=pp_data,
+                       trans='log10',
+                       btrans='lambda x: 10**x')
+
         """
-        if mobj._proptype == 'array':
-            izone = kwargs.pop('izone', None)
-            self._add_map(parname, mobj, izone, spacing, **kwargs)
-            pass
+        # ---- Avoid adding same parameter multiple times
+        if parname in self.param.keys():
+            # -- Raise warning message
+            warn_msg = f'WARNING : parname `{parname}` already added. ' \
+                       'It will be overwrited.'
+            warnings.warn(warn_msg, Warning)
+            # -- Remove existing parameter
+            self.remove_param(parname)
+
+        # ---- Set paths to template and parameter files 
+        tplpath = kwargs.pop('tplpath', self.tpl_dir)
+        parpath = kwargs.pop('parpath', self.par_dir)
+
+        # ---- Manage grid parameters
+        if mobj._proptype == 'grid':
+
+            # -- Build a MartheGridParam instance
+            par = MartheGridParam(parname= parname,
+                                  mobj= mobj,
+                                  tplpath= tplpath,
+                                  parpath= parpath,
+                                  **kwargs)
+
+        # ---- Manage list parameters
         elif mobj._proptype == 'list':
+
+            # -- Get KeysMultiIndex and value column name
             kmi = kwargs.pop('kmi', None)
-            self._add_mlp(parname, mobj, kmi, **kwargs)
+            value_col = kwargs.pop('value_col', 'value')
+
+            # -- Bunch of assertion to avoid invalid inputs
+            err_kmi = 'ERROR : list-like parameter require a KeysMultiIndex (`kmi`) argument. ' \
+                       'See pymarthe.utils.pest_utils.get_kmi() function.'
+            err_value_col = f'ERROR : invalid `value_col` argument. '\
+                          f'Must be a column name of {str(mobj)} object. ' \
+                          f'Given : {value_col}.'
+            assert kmi is not None, err_kmi
+            assert value_col in mobj.data.columns, err_value_col
+
+            # -- Build a MartheListParam instance
+            par = MartheListParam(parname= parname,
+                                  mobj= mobj,
+                                  kmi=kmi,
+                                  value_col=value_col,
+                                  parpath = parpath,
+                                  tplpath = tplpath,
+                                  **kwargs)
+
+        # ---- Store parameter in dictionary
+        self.param[parname] = par
 
 
 
-    def _add_map(self, parname, mobj, izone, **kwargs):
+
+    def write_kriging_factors(self, vgm_range, parname=None, vgm_transform= 'none', save_cov = False ):
         """
+        Compute and write kriging factor files (PEST-like) from exponential variogram
+        ranges for given distributed parameters.
+        Wrapper to MartheGridPAram.write_kfac().
+
+        Parameters
+        -----------
+        vgm_range (float/int/dict/nested dict) : exponential variagram(s) range(s).
+                                                 Can be :
+                                                    - numeric
+                                                    - dictionary 
+                                                        format: {layer_0 : range_0,
+                                                                 ...,
+                                                                 layer_i : range_i }
+                                                    - nested dictionary
+                                                        format: {layer_0 : {zone_0: range_0_0, ..., zone_i: range_0_i},
+                                                                 ...,
+                                                                 layer_i : {zone_0: range_i_0, ..., zone_i: range_i_i} }
+
+        parname (str, optional) : parameter name already added.
+                                  If None, all distributed parameters will be considered.
+                                  Default is None.
+
+        vgm_transform (str, optional) : transformation to apply to the 
+                                        pyemu.utils.geostats.GeoStruct.
+                                        Can be:
+                                            - 'none'
+                                            - 'log'
+                                        Default is 'none'.
+
+        save_cov (bool, optional) : whatever write the covariance matrices as binary files.
+                                    Default is False.
+                                    Note: the covariance matrices files will take the same
+                                          names as kriging factor files with the '.jcb' extension.
+
+        Returns
+        -------
+        Write kriging factor file in parameter path (with '.fac' extension).
+        If save_cov is True, the covariance matrix will be written in
+        parameter path too (with extension '.jcb').
+
+        Examples
+        --------
+        vgm_range= {2: {1:100}, 3: {1:200,2:150}}
+        mopt.write_kriging_factors(vgm_range, parname='hk', vgm_transform= 'log',  save_cov=True)
+
         """
-        return
+        # ---- Manage parname inputs
+        if parname is None:
+            parnames = [p for p in self.param.keys() if p.type == 'grid']
+        else:
+            parnames = marthe_utils.make_iterable(parname)
+            # ---- Bunch of assertions to avoid bad inputs
+            not_found = [pn for pn in parnames if pn not in self.param.keys()]
+            err_msg = " ERROR : Some provided parameter names not added yet : " \
+                      "{}.".format(', '.join([f"'{pn}'" for pn in not_found]))
+            assert len(not_found) == 0, err_msg
+            not_grid = [pn for pn in parnames if not self.param[pn].type == 'grid']
+            err_msg = " ERROR : Some provided parameter are not distributed (grid type) : " \
+                      "{}.".format(', '.join([f"'{pn}'" for pn in not_grid]))
 
-
-
-    def _add_mlp(self, parname, mobj, kmi, **kwargs):
-        """
-        """
-        # -- Bunch of assertion to avoid invalid inputs
-        value_col = kwargs.get('value_col', 'value')
-        err_kmi = 'ERROR : list-like parameter require a KeysMultiIndex (`kmi`) argument. ' \
-                   'See pymarthe.utils.pest_utils.get_kmi() function.'
-        err_value_col = f'ERROR : invalid `value_col` argument. '\
-                      f'Must be a column name of {str(mobj)} object. ' \
-                      f'Given : {value_col}.'
-        assert kmi is not None, err_kmi
-        assert value_col in mobj.data.columns, err_value_col
-        # -- Build MartheListParam instance (mlp)
-        tplfile = kwargs.pop('tplfile', os.path.join(self.tpl_dir, f'{parname}.tpl'))
-        parfile = kwargs.pop('parfile', os.path.join(self.par_dir, f'{parname}.dat'))
-        mlp = MartheListParam(parname= parname,
-                              mobj= mobj,
-                              kmi=kmi,
-                              parfile = parfile,
-                              tplfile = tplfile,
-                              **kwargs)
-
-        self.param[parname] = mlp
+        # ---- Iterate over parmeters to use the internal method .write_kfac()
+        for pn in parnames:
+            self.param[pn].write_kfac(vgm_range, vgm_transform= 'none', save_cov = False )
 
 
 
@@ -722,6 +865,38 @@ class MartheOptim():
 
     def write_config(self, filename=None):
         """
+        Write a standard text (.config) with the essential informations 
+        about current parametrisation. The file is organised in 3 parts:
+
+            - Headers : general paths to Marthe model, spatial index, statistics
+                        about observations and parameters sets, ...
+
+            - Observation sections : blocks of informations about observation data. 
+                                     Each block (=section) is delimited by a:
+                                        - start marker : '[START_OBS]'
+                                        - end marker : '[END_OBS]'
+
+            - Parameter sections : blocks of informations about parameter data.
+                                   Each block (=section) is delimited by a:
+                                        - start marker : '[START_PARAM]'
+                                        - end marker : '[END_PARAM]'
+        
+        Parameters
+        -----------
+        filename (str) : name of the configuration file to write.
+                         If None, filename will be construct from the current 
+                         MartheOptim parametrisation name with the extension
+                         '.config'.
+                         Default is None.
+
+
+        Examples
+        --------
+        mopt.write_tplfile()
+        mopt.write_parfile()
+        mopt.write_kriging_factors(vgm_range=9)
+        mopt.write_config(filename='parametrisation.config')
+        
         """
         # -- Set configuration file name
         dfilename = os.path.join(self.mm.mldir, f'{self.name}.config')
@@ -737,7 +912,7 @@ class MartheOptim():
         headers.append('Number of parameters: {}'.format(len(self.get_param_df())))
         headers.append('Number of parameters blocks: {}'.format(len(self.param)))
         headers.append('Number of observation data types: {}'.format(self.get_ndatatypes()))
-        headers.append('Number of observation sets: {}'.format(self.get_nlocs()))
+        headers.append('Number of observation blocks: {}'.format(self.get_nlocs()))
         headers.append('Number of observations: {}'.format(self.get_nobs()))
         headers.append('Number of not null observations: {}'.format(self.get_nobs(null_weight=False)))
         headers.append('Parameter files directory: {}'.format(self.par_dir))
@@ -767,20 +942,55 @@ class MartheOptim():
 
     def write_parfile(self, parname= None):
         """
+        Write parameter file(s) in parameter folder.
+
+        Parameters
+        ----------
+        parname (str) : required parameter names.
+
+        Examples
+        --------
+        mopt.write_parfile(['soil', 'hk'])
+
         """
         # -- Manage parameter name to write
-        pnmes = self.param.keys() if parname is None else marthe_utils.make_iterable(parname)
+        if parname is None:
+            pnmes = self.param.keys()
+        else:
+            pnmes = marthe_utils.make_iterable(parname)
+            # -- Check parameter names validity
+            not_found = [n for n in pnmes if n not in self.param.keys()]
+            err_msg = "ERROR : Some provided parameters not added yet: {}.".format(', '.join(not_found))
+            assert len(not_found) == 0, err_msg
         # -- Write parameter file for each provided parameter
         for pnme in pnmes:
             self.param[pnme].write_parfile()
 
 
 
-    def write_tpl(self, parname= None):
+    def write_tplfile(self, parname= None):
         """
+        Write template file(s) in template folder.
+
+        Parameters
+        ----------
+        parname (str) : required parameter names.
+
+        Examples
+        --------
+        mopt.write_tplfile(['soil', 'hk'])
+
         """
         # -- Manage parameter name to write
-        pnmes = self.param.keys() if parname is None else marthe_utils.make_iterable(parname)
+        if parname is None:
+            pnmes = self.param.keys()
+        else:
+            pnmes = marthe_utils.make_iterable(parname)
+            # -- Check parameter names validity
+            not_found = [n for n in pnmes if n not in self.param.keys()]
+            err_msg = "ERROR : Some provided parameters not added yet: {}.".format(', '.join(not_found))
+            assert len(not_found) == 0, err_msg
+
         # -- Write parameter file for each provided parameter
         for pnme in pnmes:
             self.param[pnme].write_tplfile()
@@ -788,42 +998,150 @@ class MartheOptim():
 
 
 
-    def build_pst(self, add_reg0 = False, write=False, **kwargs):
+    def collect_pest_files(self, ftypes=['tpl', 'par', 'ins', 'sim']):
         """
-        """
-        # -- Collect io files
-        tpl = [mp.tplfile for mp in self.param.values()]
-        par = [mp.parfile for mp in self.param.values()]
-        ins = [mo.insfile for mo in self.obs.values()]
-        sim = [os.path.join(self.sim_dir, f'{mo.locnme}.dat') for mo in self.obs.values()]
+        Collect pest io files as list(s).
+        
+        Parameters
+        -----------
+        ftypes (str/iterable, optional) : pest file type aliases or list of pest file type aliases.
+                                          The file aliases can be:
+                                            - Template files: 'template', 'tpl_file' , 'tpl'
+                                            - Input files: 'parameter', 'in_file' , 'in' , 'par'
+                                            - Instruction files: 'instruction', 'ins_file', 'ins'
+                                            - Output files: 'simulated', 'out_file', 'out', 'sim'
+                                          If not provided, `ftypes` will collect all pest io files
+                                          required for pyemu.Pst.from_io_files() function.
+                                          Default is ['tpl', 'par', 'ins', 'sim'].
 
+        Returns
+        -------
+        pest_files (list) : required ordered collected pest files.
+
+        Examples
+        --------
+        mopt.collect_pest_files('instruction')
+        mopt.collect_pest_files(['tpl_file', 'in_file'])
+
+        """
+        # ---- Make the required ftypes file iterable
+        fts = marthe_utils.make_iterable(ftypes)
+        # ---- Collect pest files for each required file types
+        pest_files = []
+        for ft in fts:
+            # -- Template file(s)
+            if any(tag == ft for tag in ['template', 'tpl_file' , 'tpl']):
+                files = [os.path.join(self.tpl_dir, f) for f in os.listdir(self.tpl_dir)
+                         if any(k in f for k in self.param.keys()) & f.endswith('.tpl')]
+
+            # -- Input file(s)
+            if any(tag == ft for tag in ['parameter', 'in_file' , 'in' , 'par']):
+                files = [os.path.join(self.par_dir, f) for f in os.listdir(self.par_dir)
+                         if any(k in f for k in self.param.keys()) & f.endswith('.dat')]
+
+            # -- Instruction file(s)
+            if any(tag == ft for tag in ['instruction', 'ins_file', 'ins']):
+                files = [mo.insfile for mo in self.obs.values()]
+
+            # -- Output file(s)
+            if any(tag == ft for tag in ['simulated', 'out_file', 'out', 'sim']):
+                files = [os.path.join(self.sim_dir, f'{mo.locnme}.dat') for mo in self.obs.values()]
+
+            # -- Store collected files
+            pest_files.append(files)
+
+        # ---- Return required pest files
+        if len(fts) == 1:
+            return pest_files[0]
+        else:
+            return pest_files
+
+
+
+
+
+    def build_pst(self, add_reg0= False, write= False, **kwargs):
+        """
+        Generate Pest Control File from the current observation
+        and parameters sets added to MartheOptim instance.
+        
+        Parameters
+        -----------
+        add_reg0 (bool, optional) : whatever adding a 0-order Tikhonov regularization.
+                                    Wrapper to pyemu.helpers.zero_order_tikhonov()
+                                    Default is False.
+
+        write (bool/str, optional) : .pst file writing management.
+                                     If True, the Pest Control File will be written with
+                                     a generic name: 'name_of_MartheOptim_instance.pst'.
+                                     If string, the Pest Control File will be written with
+                                     the user provided name.
+                                     if False, the Pest Control File will not be written.
+                                     Default is False.
+
+        **kwargs, additional internal arguments that refer to the pyemu.Pst:
+                - `control_data` section:
+                    * noptmax
+                    * jcosaveitn
+                    * reisaveitn
+                    * parsaveitn
+                    * ... (see pst.control_data.__dict__['_df'].index for more)
+
+                - `reg_data` section:
+                    * phimlim
+                    * phimaccept
+                    * fracphim
+                    * iregadj
+                    * ... (see pst.reg_data.__dict__.keys() for more)
+
+
+        Returns
+        -------
+        pst (pyemu.pst.Pst) : pyemu Pst instance.
+
+        Examples
+        --------
+        pst = mopt.build_pst(add_reg0=True, write='mycalibration.pst',
+                             noptmax=0, phimlim=1)
+
+        """
         # -- Generate basic pst from io files
-        pst = pyemu.Pst.from_io_files(tpl,par,ins,sim)
+        pst = pyemu.Pst.from_io_files(*self.collect_pest_files())
 
-        # -- Set param data 
-        param_df = self.get_param_df().rename({'trans':'partrans',
-                                               'defaultvalue':'parval1'}, axis=1)
+        # -- Get clean DataFrame of all parameters
+        param_df = self.get_param_df(
+                        transformed=True
+                            ).rename(
+                                {'trans':'partrans',
+                                 'defaultvalue':'parval1'},
+                                axis=1)
         param_df['parnme'] = param_df['parnme'].str.replace('__','_')
         param_df.set_index('parnme', drop = False, inplace = True)
+
+        # -- Disable parameter transformation (already done by pyMarthe)
         param_df['partrans'] = 'none'
+
+        # -- Push to Pst 'parameter_data' section
         pst.parameter_data.loc[param_df.index] = param_df[pst.par_fieldnames]
 
-        # -- Set observation data
-        obs_df = self.get_obs_df()
+        # -- Get clean DataFrame of all parameters
+        obs_df = self.get_obs_df(transformed=True)
+
+        # -- Push to Pst 'observation_data' section
         pst.observation_data.loc[obs_df.index] = obs_df[pst.obs_fieldnames]
 
         # -- Add regularization if required
         if add_reg0:
             pyemu.helpers.zero_order_tikhonov(pst)
 
-        # -- Set kwargs
+        # -- Set kwargs (internal pest parameters)
         for k,v in kwargs.items():
             if k in pst.control_data.__dict__['_df'].index:
                 pst.control_data.__dict__['_df'].loc[k,'value'] = v
             elif k in pst.reg_data.__dict__.keys():
                 pst.reg_data.__dict__[k] = v
 
-        # -- Return or write pst if required
+        # -- Return and write pst if required
         if write == True:
             pst.write(os.path.join(self.mm.mldir, f'{self.name}.pst'))
         elif isinstance(write, str):

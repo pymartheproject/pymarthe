@@ -1,9 +1,26 @@
 '''
-PYMARTHE DEV Version 1.0 Guide
+PYMARTHE Version 1.0 
 
-Get started with new 1.0 guide.
-Give examples of some basic commands.
+USER GUIDE
+
+
+Get started with new 1.0 PyMarthe version.
+Ths script gives several examples of some basics commands.
+The script use 2 existing Marthe models modified for this guide:
+    - MONA
+    - Lizonne
+
 '''
+
+
+'''
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+1|  MODELS ENVIRONMENT SET UP
+
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+'''
+
 
 # ---- Put your dev branch path here
 import os, sys
@@ -22,13 +39,36 @@ from pymarthe.msoil import MartheSoil
 from pymarthe.moptim import MartheOptim
 import matplotlib.pyplot as plt
 
-# 1) --->  MONA MODEL <---
+
+# ---- Set model's relative paths
+mona_ws = os.path.join('monav3_pm', 'mona.rma')
+mona_si = os.path.join('monav3_pm', 'mona_si')
+lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
+lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
+
+
+
+
+'''
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+2|  MODEL BASIC USAGE
+
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+'''
+
+
+
 
 # --------------------------------------------------------
 # ---- MartheModel instance
 
+'''
+The principal class instance of PyMarthe is called MartheModel.
+It allows the user to read/store a Marthe model into a python object.
+'''
+
 # -- Load mona.rma 
-mona_ws = os.path.join('monav3_pm', 'mona.rma')
 mm = MartheModel(mona_ws)
 
 
@@ -56,7 +96,7 @@ It can be
     - True      : generate generic spatial index (mlname_si.idx/.dat).
     - False     : disable spatial index creation.
     - filename  : path to an existing spatial index to read.
-    - dic       : generate spatial index with custom options.
+    - dict      : generate spatial index with custom options.
 The custom form to implement spatial index can contains keys like 
     - 'name' (str) : 
             custom name to external spatial index files
@@ -73,17 +113,16 @@ appreciate the spatial index creation process.
 Let's have a look on the spatial index management from MartheModel class.
 '''
 # -- Load mona.rma with spatial index
-# Default (light process)
+# -- Default (light process)
 mm = MartheModel(mona_ws, spatial_index = False)
-# Generic spatial index (filename = modelname_si)
+# -- Generic spatial index (filename = modelname_si)
 mm = MartheModel(mona_ws, spatial_index = True)
-# Custom filename spatial index
+# -- Custom filename spatial index
 custom_si = {'name': mona_ws.replace('.rma', '_custom_si'),
              'only_active' : True}
 mm = MartheModel(mona_ws, spatial_index = custom_si)
-# From an existing spatial index
-sifile = mona_ws.replace('.rma', '_si')
-mm = MartheModel(mona_ws, spatial_index = sifile)
+# -- From an existing spatial index
+mm = MartheModel(mona_ws, spatial_index = mona_si)
 
 '''
 The MartheModel can also store grid cell informations in a large DataFrame
@@ -94,12 +133,12 @@ named `.query_grid()`. This method allows the user to pass some 'query'
 variables and the target required grid informations to extract (=columns).
 The `.query_grid()` perform some checking on query variables and targets to
 avoid invalid inputs.
-Note: if a spatial index was already provided, the modelgrid DataFrame will
-      be created from it (faster), otherwise it use the `.imask` (slower). 
+Note: The `modelgrid` do not required a spatial index to be created, but 
+      remember taht the grid queries can not perform sampling or intersection
+      processes. 
 Let's load the model with modelgrid.
 '''
-sifile = mona_ws.replace('.rma', '_si')
-mm = MartheModel(mona_ws, spatial_index = sifile, modelgrid=True)
+mm = MartheModel(mona_ws, spatial_index = mona_si, modelgrid=True)
 mm.modelgrid.head()
 
 # -- Invalid query examples
@@ -249,9 +288,7 @@ mm.prop
 The .get_outcrop() method (only available for structured grid) return a 2D-array 
 of the number of the outcropping layers.
 '''
-plt.imshow(mm.get_outcrop(), cmap='tab20')
-ticks = np.arange(1, len(np.unique(mm.get_outcrop())) + 1)
-plt.colorbar(ticks=ticks)
+mm.get_outcrop().plot(cmap='tab20', masked_values=[-9999])
 plt.show()
 
 
@@ -330,8 +367,6 @@ All single Marthe grid data in this file are stored in a numpy recarray with
 usefull informations: 'layer', 'inest', 'i', 'j', 'x', 'y', 'value'.
 
 '''
-mm = MartheModel(mona_ws, spatial_index = True)
-
 # -- Build MartheField instance externaly
 mf = MartheField(field = 'permh', data = mm.mlfiles['permh'], mm=mm)
 
@@ -340,8 +375,8 @@ mf = mm.prop['permh']
 
 
 '''
-MartheField instance has a very flexible getters/setters (subseting arguments can
-be numeric are iterable) to subset and set data easily. The argument `as_array` 
+MartheField instance has a very flexible getters/setters (arguments can
+be numeric or iterables) to subset and set data easily. The argument `as_array` 
 can be set to True to retrieve 3D-array with shape (layer, row, col). 
 For structured model, the .as_array() method can be use. It is a simple wrapper
 of getting a 3D-array on main grid only.
@@ -403,9 +438,9 @@ mf.get_data()
 
 '''
 To get field data at a specific localisation(s) on model domain, the user can
-use the .sample() method. This will initialized a Rtree spatial index in parent
+use the .sample() method. This will use the existing spatial index in parent
 MartheModel instance (could be slow on large model) and request the given
- xy-coordinates spatially.
+xy-coordinates spatially.
 Be careful, this method only return field data on the given input points even if
 there correspond to edges of a more complex geometry like lines or polygons.
 If the model is nested, the intersection will be performed on all cell but only
@@ -437,8 +472,9 @@ The MartheField instance can perform zonal statistics based on single part polyg
 on several layers. To do so, make sure to use the appropriate .zonal_stats()
 method. It will return a row MultiIndex DataFrame (based on provided zones and layers)
 with all required statistics.
+This method is still quite slow due to the use of inside vertices for performing
+the polygon intersection. This will be fix soon.
 '''
-
 # -- Fetch polygons in shapefile
 shpname = os.path.join(mm.mldir, 'gis', 'zones.shp')
 shp_df = shp_utils.read_shapefile(shpname)
@@ -455,7 +491,7 @@ print(zstats_df)
 '''
 The MartheField instance has a internal .plot() method to see gridded property values.
 The user can determine wich layer has to be plotted (1 layer for each plot call).
-He can proivide an existing matplotlib custom axe, a single nested grid, a log
+He can provide an existing matplotlib custom axe, a single nested grid, a log
 transformation and other collections arguments to perform a prettier plot.
 '''
 
@@ -842,6 +878,15 @@ mail_df, record_df, listm_df = mp.split_qtype()
 # mp._write_listm()
 
 
+'''
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+3|  MODEL PARAMETRIZATION
+
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+'''
+
+
 # --------------------------------------------------------
 # ---- MartheOptim/MartheObs instance
 
@@ -855,32 +900,33 @@ MartheModel to link the optimisation process with the model.
 '''
 
 # -- Build a mopt instance
-kwargs = {f'{f}_dir': os.path.join(mm.mldir, f) 
+dirs = {f'{f}_dir': os.path.join(mm.mldir, f) 
           for f in ['par', 'tpl', 'ins', 'sim'] }
-mopt = MartheOptim(mm, name = 'opti_mona', **kwargs)
+mopt = MartheOptim(mm, name = 'opti_mona', **dirs)
 
 print(f"My optimisation is called: {mopt.name}")
 
 '''
-The MartheOptim class is not finish yet. It will allowed the user manage 
-observation and parameter data of the parent Marthe model in order to use
-some PEST program utilities to estimate, calibrate and optimise the model.
-To sum up, it's a python wrapper between Marthe model and PEST. MartheOptim
-contains 2 basics (empty) dictionaries (.obs and .param). 
-For now, only the observations management are available (MartheObs class).
-Let's see how it works.
+The MartheOptim instance is a experimental development that allows the management 
+of observation and parameter data of the parent Marthe model in order to link 
+Marthe model runs with some PEST utilities to estimate, calibrate and optimise models.
+To sum up, it's a python wrapper between Marthe model and PEST. MartheOptim contains 2
+hypothetical boxes represented by basics (empty) dictionaries (.obs and .param).
+The goal of the parametrization process consist on filling those "boxes" by available
+parameters and observations thanks to the tools proposed buy MartheOptim methods.
 '''
 
-# -- Quick look of .obs and .param attributes
+# -- Quick look of .obs and .param attributes ("boxes")
 mopt.obs, mopt.param
 
 
 '''
 To add a set of observation, please use the .add_obs() method. For each observation
-set to add it is necessary to provided at the observation data. Can be:
+set to add it is necessary to provided at the observation data.
+It can be:
     - A observation file (path to the external file containing data)
-    - A DataFrame with `value` column and DatetimeIndex 
-A `datatype` of these observations (ex: 'head','flow', 'soil', ...) can be provide too,
+    - A DataFrame with `value` column and DatetimeIndex
+The `datatype` of these observations (ex: 'head','flow', 'soil', ...) can be provide too,
 the default `datatype` is 'head'.
 Some other arguments can be explicite such as `loc_name` (name of the observation point),
 `check_loc` (verify if this loc_name exist and is unique) and other kwargs such as 
@@ -894,14 +940,14 @@ mopt.add_obs(data = single_obs , datatype='head')
 mopt.obs # View of the added MartheObs instance in .obs
 
 '''
-The MartheOptim instance has a method to take a look of  all added observations
+The MartheOptim instance has a method to take a look of all added observations
 data in a single large table : .get_obs_df(). Even if the user can create his own names 
 for each observation (**kwargs) it is strongly recommended to let MartheOptim build generic
 observations names easily readable for PEST programs. These observation names are build as follow:
 -> 'loc' + localisation name id (3 digits) + 'n' + observation id (adaptative n° of digits)
 This automatic names generation avoid too high number of character (not suported by PEST). 
 '''
-
+mopt.get_obs_df()
 
 '''
 The .add_obs() function provided an warning message if the user try to add a set of 
@@ -909,7 +955,6 @@ observations already added. In this case, the observations data will remove the 
 by overwrite it with the new one. 
 '''
 mopt.add_obs(data = single_obs, datatype='head')
-
 
 # -- Remove 1 added observation
 mopt.remove_obs(locnme = '07065X0002')
@@ -925,13 +970,12 @@ mopt.add_obs(data=invalid_obs1, check_loc=True)
 mopt.add_obs(data=invalid_obs2, check_loc=True)
 
 # -- Override checking locnmes
-ws = os.path.join(mm.mldir, 'obs')
-for dat in os.listdir(ws):
-    obsfile = os.path.join(ws, dat)
+obs_ws = os.path.join(mm.mldir, 'obs')
+for dat in os.listdir(obs_ws):
+    obsfile = os.path.join(obs_ws, dat)
     mopt.add_obs(data = obsfile,  check_loc = False)
 
 mopt.obs
-
 
 
 '''
@@ -1008,9 +1052,8 @@ If the transformation is not valid, a assertion error will be raised.
 mopt.remove_obs(verbose=True)
 
 # ---- Set transformation in .add_obs() constructor
-mopt.add_obs(data = single_obs, datatype='head', trans = 'log10')
-mopt.obs['07065X0002'].obs_df
-
+mopt.add_obs(data = single_obs, datatype='head', trans = 'lambda x: -1*x')
+mopt.obs['07065X0002'].get_obs_df(transformed=True)
 
 # ---- Set transformation using the .set_obs_transform() method on locnme
 mopt.add_fluc()
@@ -1018,33 +1061,28 @@ mopt.set_obs_trans('log10', locnme = '07065X0002fluc')
 mopt.obs['07065X0002fluc'].obs_df
 
 # ---- Set transformation using the .set_obs_transform() method on datatype
-mopt.set_obs_trans('lambda x: np.log10(abs(x))', datatype = 'headfluc')
+mopt.set_obs_trans('none', datatype = 'headfluc')
 mopt.obs['07065X0002fluc'].obs_df
 
 # ---- Try invalid transform
 mopt.set_obs_trans('-log(e)')
 
-# ---- Get transformed DataFrame
-#mopt._apply_transform()
-
 
 '''
 MartheOptim also has a builtin method to write instruction files from added observation.
-Use the .write_ins() method.
+Use the .write_insfile() method.
 '''
-# -- Set instruction files folder
-mopt.ins_dir = os.path.join(mm.mldir,'ins')
-
 # -- Write instruction file by locnme
-mopt.write_ins(locnme = '07065X0002')
-
+mopt.write_insfile(locnme = '07065X0002')
 # -- Write all instruction files
-mopt.write_ins()
+mopt.write_insfile()
+
 
 
 
 # --------------------------------------------------------
-# ---- MartheListParam instance
+# ---- MartheOptim/MartheListParam instance
+
 
 '''
 The MartheOptim instance support the parametrisation of some MartheModel 
@@ -1057,23 +1095,21 @@ argument: this is a pandas MultiIndex object where `keys` are provided by the us
 and correspond to a non-unique set of parameters. These `keys` must be part of the 
 column names of the data of the entity parametrized. For example, for a pumping 
 parametrization, the `keys` must be in `mm.prop['aqpump'].data.columns`. The other 
-main argument to provide is the name of the column which values will be parametrized 
-(`value_col`). 
+main argument to provide is the name of the column which parmeter values are 
+located  (`value_col`).
 Note : To build the `kmi` object, the user can use the pest_utils.get_kmi() facility.
 Let's try to perform pumping parametrization on the mona model.
 '''
 
-mm = MartheModel(mona_ws, spatial_index = mona_ws.replace('.rma', '_si'))
+# ---- Read aquifer pumping data
 mm.load_prop('aqpump')
 mp = mm.prop['aqpump']
 
-
-
 '''
-To begin with, let's sample some pumping wells to parametrize
-(gon generic names)
+To begin with, let's sample some pumping wells (2) to parametrize
+(on generic names)
 '''
-pwnames = [f'pump_{ij}' for ij in  ['113_14', '87_15', '105_15']]
+pwnames = mp.data.boundname[:2]
 
 '''
 Now, we want to parametrize the `value` column (pumping rate) according
@@ -1081,30 +1117,23 @@ to the following keys : `istep`, `layer`, `boundname`.
 Of course, we have to specilize only the  required values of each keys
 (if it's not specilized, all values are considered).
 '''
-kmi = pest_utils.get_kmi( mobj = mp,
-               keys = ['boundname', 'layer', 'istep',],
-               boundname = pwnames, layer = 2)
-print(kmi)
+kmi0 = pest_utils.get_kmi( mobj = mp,
+               keys = ['boundname', 'layer', 'istep'],
+               boundname = pwnames[0], layer = 1)
+print(kmi0)
 
 '''
 To add a list-like set of parameters in the main MartheOptim instance,
 use the .add_param() method. This will create a new MartheListParam 
-instance in the .param dictionary. 
+instance in the .param dictionary.
 '''
-# -- Get kmi for first pumping well
-kmi1 = pest_utils.get_kmi( mobj = mp,
-                keys = ['boundname', 'layer', 'istep',],
-                layer = 2, boundname = pwnames[0])
-
-mopt.add_param(parname = pwnames[0], mobj = mp,
-                 kmi = kmi1, value_col = 'value')
-
+mopt.add_param(parname = pwnames[0], mobj = mp, kmi = kmi0)
 print(mopt.param)
-print(mopt.param[pwnames[0]].param_df)
+mopt.param[pwnames[0]].get_param_df().head()
 
 
 '''
-Some others parameters (kwargs) can be implemented while adding parameters
+Some others arguments (kwargs) can be implemented while adding parameters
 such as `defaultvalue`, `parchglim`, `parlbnd`, `parubnd`, `pargp`, `scale`, ...
 The `defaultvalue` can be provided by the user, otherwise, the prior value load
 in the property class of the model will be implemented.
@@ -1115,46 +1144,44 @@ function expression understood by the python built-in eval() function or
 pandas.Series.transform() method. If the user set a non valid transformation,
 a error will be raised.
 
-Let's try to apply logaritmic transformation to pumping parameter values.
+Let's try to apply logarithmic transformation to pumping parameter values.
 Note that pumping data are always <= 0 so, for a logaritmic transformation
 the user need to apply a correct expression function.
 '''
 
 # -- Get kmi for second pumping well
-kmi2 = pest_utils.get_kmi( mobj = mp,
+kmi1 = pest_utils.get_kmi( mobj = mp,
                 keys = ['boundname', 'layer', 'istep',],
-                layer = 2, boundname = pwnames[1])
-'''
-# -- Unvalid transform
-mopt.add_param(parname = '87_15', mobj = mp,
-                 kmi = kmi2, value_col = 'value',
+                layer = 1, boundname = pwnames[1])
+
+
+# -- Invalid (back-)transformation(s)
+mopt.add_param(parname = pwnames[1], mobj = mp,
+                 kmi = kmi1,
                  trans = '-log10',
                  btrans = '-10**x')
-'''
-# -- Valid transform
+
 mopt.add_param(parname = pwnames[1], mobj = mp,
-                 kmi = kmi2, value_col = 'value',
+                 kmi = kmi1, value_col = 'value',
                  trans =  'lambda x : - np.log10(x + 1)',
                  btrans = 'lambda x : -1 * (- 10**-x + 1)')
 
-mopt.param[pwnames[1]].param_df.head()
+# -- Valid (back-)transformation(s)
+mopt.add_param(parname = pwnames[1], mobj = mp,
+                 kmi = kmi1, value_col = 'value',
+                 trans =  'lambda x : -1*x',
+                 btrans = 'lambda x : -1*x')
 
-# -- Add last pumping with default value 
-kmi3 = pest_utils.get_kmi( mobj = mp,
-                keys = ['boundname', 'layer', 'istep',],
-                layer = 2, boundname = pwnames[2])
-mopt.add_param(parname = pwnames[2], mobj = mp,
-                 kmi = kmi3, value_col = 'value',
-                 defaultvalue = 0, scale = 2)
-
-mopt.param[pwnames[2]].param_df.head()
+mopt.param[pwnames[1]].get_param_df().head()
 
 # -- Set transformation after adding parameters
-mopt.set_param_trans(trans = 'log', btrans= 'exp', parname = pwnames[0])
+mopt.set_param_trans(trans = 'lambda x : -1*x', btrans= 'lambda x : -1*x', parname = pwnames[0])
 mopt.param[pwnames[0]].param_df.head(5)
 
 # -- Remove parameter(s)
-mopt.remove_param(parname = pwnames[0], verbose=True)
+# mopt.remove_param(parname = pwnames[0], verbose=True)
+# mopt.remove_param(verbose=True)
+
 
 '''
 As the observation process, it is possible to get all parameters informations
@@ -1162,6 +1189,161 @@ in a single large table using the .get_param_df() method.
 '''
 mopt.get_param_df()
 
+'''
+Other list-like parameters can be parametrized following the same method
+'''
+
+
+# --------------------------------------------------------
+# ---- MartheOptim/MartheGridParam instance
+
+'''
+The MartheOptim instance can also support the parametrisation of distributed
+properties as field data (MartheField). 
+Unlike the list-like parameters, the parametrization of grid-like properties are 
+based on a `izone` field. This corresponds to a MartheField instance where the 
+values represent numerical zone ids for each active cell.
+Distributed parameters for a given field can be set as 2 diferent types :
+        - 'zpc' : zone of piecewise constancy
+        - 'pp'  : pilot points
+The `izone` values can be: 
+    - izone < 0         : zone of piecewise constancy ('zpc')
+    - izone > 0         : zone with pilot points ('pp')
+    - izone = -9999, 0, 9999 : inactive zone
+Note : the `izone` field has to be a MartheField instance or a related Marthe grid
+       file to read like so. It can be created on the Marthe Graphical Interface 
+       named 'WinMarthe' or directly from scratch from a copy of .imask attribut.
+For 'zpc' zones, the MartheGridParam instance will initialize and create a .zpc_df
+DataFrame with generic names according to the zone and layer id (format: 'parname_l01_z01').
+For 'pp' zones, an extra argument (`.pp_data`) is required to define the localization of all 
+pilot points for a given zone and layer. It corresponds to a nested dictionary with succesive
+keys are the layer ids and zone ids and the values (.ppobj) can be:
+    - list/2D-array : coordinates of each pilot points (format: [[ppx0, ppy0], ...,[ppxN, ppyN]])
+    - str : shapefile containing single geometry parts pilot point (format: gis/pp_l1.shp)
+
+For more information, feel free to have a look on MartheGridParam documentation.
+Let's try to parametrized permeability field ('permh').
+'''
+
+'''
+First of all, let's create a basic izone object (tutorial purpose only).
+Let's imagine that we want to parametrize :
+    - layer 4 with pilot points
+    - layer 13 with 4 diferents zones of piecewise constancy
+    - layer 10 to 12 with single zone of piecewise constancy 
+'''
+
+# -- Load permh property
+permh = mm.prop['permh']
+
+# -- Build (or load) basic izone
+ipermh = MartheField('ipermh', mona_ws.replace('.rma', '.permh'), mm)
+
+for ilay in range(mm.nlay):
+    # -- Set pp zone for layer 4
+    if ilay == 4:
+        ipermh.set_data(1, layer=ilay)
+    # -- Set 4 zpc for layer 13
+    elif ilay == 13:
+        mask = ipermh.get_data(layer=ilay, masked_values=ipermh.dmv, as_mask=True)
+        south, north = ipermh.data['y'] < 276, ipermh.data['y'] > 276
+        west, east = ipermh.data['x'] < 451, ipermh.data['x'] > 451
+        ipermh.data['value'][np.logical_and.reduce([mask,north,west])] = -1
+        ipermh.data['value'][np.logical_and.reduce([mask,north,east])] = -2
+        ipermh.data['value'][np.logical_and.reduce([mask,south,west])] = -3
+        ipermh.data['value'][np.logical_and.reduce([mask,south,east])] = -4
+    # -- Set single zpc for layer 10,11,12
+    elif ilay in [10,11,12]:
+            ipermh.set_data(-1, layer=ilay)
+    # -- Set no wanted to NaN
+    else:
+        ipermh.set_data(np.nan, layer=ilay)
+
+# -- Set pilot point data
+pp_shpfile = shpfile = os.path.join('monav3_pm', 'gis', 'pp_l4.shp')
+pp_data = {4: {1: pp_shpfile} } # layer = 4, zone = 1
+
+# -- Check `izone` creation
+x,y = shp_utils.shp2points(pp_shpfile, stack=False)
+ax = ipermh.plot(layer=4, cmap= 'nipy_spectral_r')
+ax.scatter(x, y, s=3, color='black', label= 'Pilot Points')
+ax.legend()
+ax.set_title(f"Property: '{permh.field}', Layer: 4", fontweight='bold')
+plt.show()
+
+ax = ipermh.plot(layer=13)
+ax.set_title(f"Property: '{permh.field}', Layer: 13", fontweight='bold')
+plt.show()
+
+'''
+If the `izone` instance is satisfying enough, make sure to write it on disk.
+A common practice is to name it exactly as the field grid file which is
+related to adding the 'i' tag in the extension.
+Example: 'mymodel.permh'  --->    'mymodel.ipermh'
+'''
+
+# -- Write ipermh as izone file
+ipermh.write_data(mona_ws.replace('.rma', f'.{ipermh.field}'))
+
+
+'''
+To add a grid-like set of parameters in the main MartheOptim instance,
+use the .add_param() method. This will create a new MartheGridParam 
+instance in the .param dictionary. If no `izone` is provided so a generic
+`izone` will be created from the `.mobj` field with a unique zone of piecewise
+constancy (on active cells only) for each layers.
+As the list-like parmeters discuss above, some others arguments (kwargs) can be 
+implemented while adding parameters such as `defaultvalue`, `parchglim`, `parlbnd`,
+`parubnd`, `pargp`, `scale`, ...
+The `defaultvalue` can be provided by the user, otherwise, the prior values will
+be taken from the current `mobj` field as:
+    - zonal mean field value for 'zpc' zone(s)
+    - field value at spécific coordinates (sampling method) for 'pp' zone(s)
+This is totaly possible to attach a data transform process to the required 
+values to optimized. To do so, the `trans` (transformation) and `btrans`
+(back-transformation) must be provided by the user. It has to be an string 
+function expression understood by the python built-in eval() function or 
+pandas.Series.transform() method. If the user set a non valid transformation,
+a error will be raised.
+Let's add the 'hk' paramter.
+'''
+# -- Without `izone`
+mopt.add_param(parname='hk', mobj=permh)
+# -- With `izone` but without pilot point information
+mopt.add_param(parname='hk', mobj=permh, izone=ipermh)
+# -- With `izone` and pilot point data setting all initial values to 0.001
+mopt.add_param(parname='hk', mobj=permh, izone=ipermh, pp_data=pp_data, defaultvalue=1e-3)
+# -- Adding transformations information
+mopt.add_param(parname='hk', mobj=permh, izone=ipermh, pp_data=pp_data, trans='log10', btrans='lambda x: 10**x')
+
+
+'''
+If `izone` contains pilot point zone(s), it's necessary to compute and store 
+the kriging factors in order to perform ordinary kriging between pilot points
+and be able to set interpolated field values into each required grid cells.
+To do so, the .write_kriging_factors() method can be use. It is a simple wrapper
+to the pyemu.utils.geostats.OrdinaryKrige.calc_factors(). The goal is to write a 
+kriging factor files (PEST-like) given the ranges of exponential variograms 
+(argument `vgm_range`) for each layer and zone of pilot points.
+The factor file will be written in the provided parameter folder and take
+the same name of the parameter file with the '.fac' extension.
+Note : This method can also write the covariance matrices as binary files
+       passing the `save_cov` argument to True. This can be usefull for
+       optimisation or uncertainty analysis for example.
+'''
+# -- Fetch minimum distance between pilot points
+pp = np.array(shp_utils.shp2points(pp_shpfile))
+dist = np.abs(pp[np.newaxis, :, :] - pp[:, np.newaxis, :])
+mdist = dist[dist > 0].min()
+
+# -- Compute kriging factors as 2 * minimum distance between pilot points
+# Invalid range inputs
+mopt.write_kriging_factors(vgm_range={2: {1: 2*mdist}}, parname='hk')
+mopt.write_kriging_factors(vgm_range={4: {2: 2*mdist}}, parname='hk')
+# Valid range input
+mopt.write_kriging_factors(vgm_range={4: {1: 2*mdist}}, parname='hk')
+mopt.write_kriging_factors(vgm_range={4: 2*mdist}, parname='hk')
+mopt.write_kriging_factors(vgm_range=2*mdist, parname='hk')
 
 '''
 To write pest parameter files and template files from the MartheOptim instance
@@ -1170,53 +1352,116 @@ a group or all paramaters). The default value of each parameter will be written
 in a distinct parameter file according to the user transformation.
 '''
 # -- Writing by parname
-mopt.write_parfile(parname= pwnames[1:])
-mopt.write_tpl(parname = pwnames[2])
+mopt.write_parfile(parname= pwnames)
+mopt.write_tplfile(parname = 'hk')
 
 # -- Writing all parameters
 mopt.write_parfile()
-mopt.write_tpl()
+mopt.write_tplfile()
+
+
+
+
+
+
+'''
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+3|  RUNNING PEST
+
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+'''
 
 
 
 # --------------------------------------------------------
-# ---- MartheArrayParam instance
+# ---- Pest Control File (.pst)
 
 '''
-UNDER DEVELOPMENT
+After all the observations and parameters of the model had been added to
+the MartheOptim instance and all pest files already written, the user need
+to create the main pest file : Pest Control File.
+This file contains all the information about the required calibration/optimisation
+and others internal arguments about the used algorithm (pestpp-glma, pestpp-ies,
+pestpp-cmaes, pestpp-opt, ...). A built-in method in MartheOptim can be use to 
+easily generate and write the required '.pst' file. It is a simple wrapper to the
+pyemu.pst.pst_handler.Pst() class. Thus, the .build_pst() method will collect
+all the observation and parameter information already added in MartheOptim and
+push them into a pyEMU pst instance. 
+Passing the `add_reg0` argument to True will add a 0-order Tikhonov regularization
+to the current parametrisation.
+Note : The method always return a Pst instance even if the user choose to write
+       the .pst file directly (`write = True`). Moreover, the generated Pst
+       instance can still be modified before writing it on user disk
+Let's generate a pest control files with:
+    - Tikhonov regularization (order 0)
+    - noptmax = 0
+    - phimlim = 5
+    - phimaccept = 10
+    - fracphim = 0.05
+
 '''
+# -- Build Pst with regularization 
+pst = mopt.build_pst(add_reg0=True, write=True, noptmax=0,
+                     phimlim=5, phimaccept=10, fracphim=0.05)
+# -- Check out the generate pst
+pst.parameter_data.head()
+pst.observation_data.head()
 
 
 
 # --------------------------------------------------------
-# ---- Parametrization configuration (.config file)
+# ---- Forward run (.config)
+
 
 '''
 After peforming all parametrization process, the MartheOptim instance can save the
 parametrization configuration in an external text file `.config`. This file can be
 used during a forward run process by instantialized a MartheModel instance with 
 properties values stored in all the parameters files. 
-Let's give an example.
+The configuration file keep only the essential informations usefull for forward 
+run. The file is organised in 3 parts:
+
+    - Headers : general paths to Marthe model, spatial index, statistics
+                about observations and parameters sets, ...
+
+    - Observation sections : blocks of informations about observation data. 
+                             Each block (=section) is delimited by a:
+                                - start marker : '[START_OBS]'
+                                - end marker : '[END_OBS]'
+
+    - Parameter sections : blocks of informations about parameter data.
+                           Each block (=section) is delimited by a:
+                                - start marker : '[START_PARAM]'
+                                - end marker : '[END_PARAM]'
+let's write and read a config file from the current parametrization.
 '''
 
-# -- Save and Write parametrization configuration of mopt instance
-mopt.write_config()
+# -- Save and Write parametrization configuration
+configfile = os.path.join(mm.mldir,'configuration.config')
+mopt.write_config(configfile)
 
 # -- Quick view of config text file
-configfile = os.path.join(mm.mldir,'opti_mona.config')
-
 with open(configfile, 'r', encoding='latin-1') as f:
     print(f.read())
 
-
+'''
+The main advantage of saving the parameter configuration is this the user
+can load a MartheModel instance from it. In other words, it will load the 
+parametrize properties of a Marthe and set data from parameter files.
+As a example, the user can change some values in a given parameter file
+(it correspond to a normal PEST algorithm behaviour) and check the properties
+values after loading the model with the @classmethod MartheModel.from_config().
+Let's give a example.
+'''
+# -- Let's retrieve a MartheModel instance from generated config file
+mmfrom = MartheModel.from_config(configfile)
 
 '''
-The new MartheModel instance automatically load the parametrize properties
-and set data from parameter files. As a test, the user can change some values
-in a given `parfile` (pest behaviour) and check the properties values after
-loading again the model with .from_config().
+As expected the `mmfrom` model already contains the model properties 
+that had been parametrized earlier.
 '''
+print(mmfrom.prop.keys())
 
-# -- Let's retrieve a MartheModel instance from this config file
-new_mm = MartheModel.from_config(configfile)
+
 

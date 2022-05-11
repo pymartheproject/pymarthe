@@ -68,11 +68,10 @@ class MartheGrid():
 
     def get_cell_vertices(self, i, j, closed=False):
         """
+        DOES NOT WORK PROPERLY!
         """
-        x0 = self.xvertices[j]
-        x1 = self.xvertices[j+1]
-        y0 = self.yvertices[i]
-        y1 = self.yvertices[i+1]
+        x0, x1 = self.xcc[j] - self.dx[j]/2, self.xcc[j] + self.dx[j]/2
+        y0, y1 = self.ycc[i] - self.dy[i]/2, self.ycc[i] + self.dy[i]/2
         vertices = [[x0,y0],[x0,y1],[x1,y1],[x1,y0]]
         if closed:
             vertices.append([x0,y0])
@@ -80,13 +79,24 @@ class MartheGrid():
 
 
 
-    def to_records(self, base = 0):
+    def to_records(self, fmt='light', base = 0):
         """
         Convert grid values to flatten recarray.
 
         Parameters:
         ----------
-        self : MarthePump instance
+        fmt (str) : output format.
+                       Can be:
+                        - 'light' : output columns: 'layer,inest,i,j,x,y,value'
+                        - 'full'  : output columns: 'node,layer,inest,i,j,x,y,dx,dy,vertices,value'
+                        Default is 'light'.
+                        Note: the 'full' format is obviously slower.
+
+        base (int) : n-based array format
+                     Can be :
+                        - 0 (Python)
+                        - 1 (Fortran)
+                     Default is 0.
 
         Returns:
         --------
@@ -95,23 +105,46 @@ class MartheGrid():
 
         Examples:
         --------
-        mp.set_data(value = 3, istep=[3,5])
-        mp.write_data()
+        mg.to_records(fmt='light')
         """
-        # ---- Get 2Darray of layer, inest, row, col, xcc, ycc, 
-        rr, cc = np.meshgrid(*[np.arange(0 + base, n + base) for n in [self.nrow,self.ncol]])
-        ij = np.column_stack([rr.ravel(), cc.ravel()])
-        xx, yy = np.meshgrid(self.xcc, self.ycc)
-        xy = np.column_stack([xx.ravel(), yy.ravel()])
-        ln = np.column_stack([i * np.ones((self.nrow, self.ncol)).ravel() for i in [self.layer, self.inest]])
+        rows, cols = [np.arange(0 + base, n + base) for n in [self.nrow,self.ncol]]
+        ii, jj = np.meshgrid(rows, cols, indexing='ij')
+        xx, yy = np.meshgrid(self.xcc, self.ycc, indexing='xy')
+        ll = self.layer * np.ones((self.nrow, self.ncol))
+        nn = self.inest * np.ones((self.nrow, self.ncol))
+        array = self.array
+        dt = [('layer', '<i8'), ('inest', '<i8'),
+              ('i', '<i8'), ('j', '<i8'),
+              ('x', '<f8'), ('y', '<f8')]
 
-        # ---- Build recarray from arrays 
-        arrays = list( np.column_stack([ln, ij, xy, self.array.ravel()]).T )
-        rec = np.rec.fromarrays(arrays, names= 'layer,inest,i,j,x,y,value',
-                                        formats=[*[int]*4,*[float]*3])
+        # ---- Manage 'light' recarray
+        if fmt == 'light':
+            # -- Collect data infos
+            data = [ll,nn,ii,jj,xx,yy,array]
+            it = list(map(np.ravel, data))
+            dt.append(('value', '<f8'))
+            # -- Build recarray from arrays
+            rec = np.rec.fromarrays(it, dtype=dt)
+            # -- Return rec.array
+            return rec
 
-        # ---- Return recarray
-        return rec
+        # ---- Manage 'full' recarray
+        elif fmt == 'full':
+            # -- Extract cell sizes and area
+            dxx, dyy = np.meshgrid(self.dx, self.dy, indexing= 'xy')
+            area = dxx*dyy
+            # -- Extract vertices
+            vxy = list(map(np.ravel, [xx-dxx/2, xx+dxx/2, yy-dyy/2, yy+dyy/2]))
+            vertices = [ [ [x0,y0],[x0,y1],[x1,y1],[x1,y0] ]
+                                for x0,x1,y0,y1 in zip(*vxy)]
+            # -- Collect data infos
+            data = [ll,nn,ii,jj,xx,yy,dxx,dyy,area,array]
+            it = list(map(np.ravel, data))
+            dt.extend([('dx', '<f8'), ('dy', '<f8'),('area', '<f8'), ('value', '<f8')])
+            df = pd.DataFrame(np.transpose(it), columns=np.dtype(dt).names).astype(dict(dt))
+            df.insert(len(dt) -1, 'vertices', vertices)
+            # -- return rec.array
+            return df.to_records(index=False)
 
 
 

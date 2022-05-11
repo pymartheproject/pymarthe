@@ -127,6 +127,35 @@ class MartheObs():
 
 
 
+    def get_obs_df(self, transformed=False):
+        """
+        Extract a copy of observation data.
+
+        Parameters:
+        ----------
+        transformed (bool, optional) : whatever apply transformation on output DataFrame.
+                                       Default is False.
+
+        Returns:
+        --------
+        obs_df (DataFrame) : standard observation DataFrame.
+
+        Examples:
+        --------
+        mobs.get_obs_df(transformed=True)
+        
+        """
+        # ---- Make a copy of observations ddata
+        obs_df = self.obs_df.copy(deep=True)
+        # ---- Transform values if required
+        if transformed:
+            obs_df['obsval'] = pest_utils.transform(obs_df['obsval'], self.trans)
+        # ---- Return observation DataFrame
+        return obs_df
+
+
+
+
     def write_insfile(self):
         """
         Write formatted instruction file (pest).
@@ -143,7 +172,7 @@ class MartheObs():
 
         Examples:
         --------
-        mmobs.write_ins('ins')
+        mobs.write_ins()
         """
         pest_utils.write_insfile(self.obsnmes, self.insfile)
     

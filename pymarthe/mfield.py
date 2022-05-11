@@ -62,7 +62,7 @@ class MartheField():
         self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
         self.dmv = dmv 
         # ---- Set property style
-        self._proptype = 'array'
+        self._proptype = 'grid'
 
 
 
@@ -109,7 +109,7 @@ class MartheField():
 
 
 
-    def sample(self, x, y, layer, masked_values=None, as_mask=False):
+    def sample(self, x, y, layer, masked_values=None, as_mask=False, as_idx=False):
         """
         Sample field data by x, y, layer coordinates.
         It will perform simple a spatial intersection with field data.
@@ -118,14 +118,19 @@ class MartheField():
         ----------
         x, y (float/iterable) : xy-coordinate(s) of the required point(s)
         layer (int/iterable) : layer id(s) to intersect data.
-        masked_values (None/list): values to ignore during the sampling process
-                                   Default is None.
-        as_mask (bool): return only data boolean mask.
-                        Default is False.
+        masked_values (None/list, optional) : values to ignore during the sampling process
+                                              Default is None.
+        as_mask (bool, optional) : return field boolean mask.
+                                   Does not allow duplicated value (array <= x,y).
+                                   Default is False.
+        as_idx (bool, optional) : return field indexes (=cell ids, =node numbers).
+                                  Allows duplicated values (array >= x,y)
 
         Returns:
         --------
         rec (np.recarray) : data intersected on point(s)
+        mask (np.array [1D]) : field boolean mask (if as_mask = True)
+        idx (np.array [1D]) : cell ids/node number/field indexes (if as_idx = True)
 
         Examples:
         --------
@@ -149,20 +154,20 @@ class MartheField():
         mv = [] if masked_values is None else marthe_utils.make_iterable(masked_values)
 
         # ---- Perform intersection on spatial index returning cell ids
-        inter_idx = []
-        for ix, iy in zip(_x, _y):
-            # -- Sorted output index 
-            inter_idx.extend(self.mm.spatial_index.intersection((ix,iy)))
+        idx = []
+        for ix,iy,ilay in zip(_x, _y, _layer):
+            for hit in self.mm.spatial_index.intersection((ix,iy), objects='raw'):
+                if (hit[1] == ilay) & (hit[-1] not in mv):
+                    idx.append(hit[0])
 
-        # ---- Build intersection mask
-        inter_mask = np.zeros(len(self.data), dtype=bool)
-        inter_mask[np.unique(inter_idx)] = True
-        # ---- Creating integrated data mask
-        mask = np.logical_and.reduce([inter_mask, 
-                                      np.isin(self.data['layer'], _layer),
-                                      ~np.isin(self.data['value'], mv) ])
-        # ---- Return
-        if as_mask:
+        # ---- Convert nodes/indexes to boolean mask
+        mask = np.zeros(len(self.data), dtype=np.bool)
+        mask[idx] = True
+
+        # ---- Return as required
+        if as_idx:
+            return idx
+        elif as_mask:
             return mask
         else:
             return self.data[mask]
@@ -295,7 +300,8 @@ class MartheField():
 
         # ---- Manage numeric input
         if _num:
-            mask = self.get_data(layer=layer, inest=inest, as_mask=True)
+            mask = self.get_data(layer=layer, inest=inest,
+                        masked_values=self.dmv, as_mask=True)
             self.data['value'][mask] = data
 
         # ---- Manage recarray input
@@ -308,6 +314,56 @@ class MartheField():
             err_msg = f"ERROR: `data` array must be 3D. Given shape: {data.shape}."
             assert len(data.shape) == 3, err_msg
             self.data = self._3d2rec(data)
+
+
+
+
+    def set_data_from_parfile(self, parfile, izone, btrans='none'):
+        """
+        Set field data from parameter file inplace.
+
+        Parameters:
+        ----------
+        parfile (str) : path to parameter file to read.
+                        Can be either zpc or pp parameter.
+
+        izone (MartheField) : parameter zone(s) field.
+
+        btrans (str, optional) : string function to back-transform
+                                 field values.
+                                 Default is 'none'.
+
+        Examples:
+        --------
+        parfile = 'par/hk_zpc.dat'
+        mf.set_data_from_parfile(parfile,
+                                 izone,
+                                 btrans='lambda x: 10**x')
+
+        """
+        # ---- Parse grid parameter file
+        ptype, rec = pest_utils.parse_mgp_parfile(parfile, btrans)
+
+        # ---- Manage zone of piecewise constancy (zpc) data
+        if ptype == 'zpc':
+            # -- Iterate over recarray (layer, zone, value)
+            for l,z,v in rec:
+                # -- Mask and set
+                mask = np.logical_and.reduce(
+                            [ self.get_data(layer=l, masked_values=dmv, as_mask=True),
+                              izone.data['value'] == z]
+                              )
+                self.data['value'][mask] = v
+
+        # ---- Manage pilot point (pp) data
+        if ptype == 'pp':
+            # -- Mask and set 
+            l,z,v = rec
+            mask = np.logical_and.reduce(
+                            [ self.get_data(layer=l, masked_values=dmv, as_mask=True),
+                              izone.data['value'] == z]
+                              )
+            self.data['value'][mask] = v
 
 
 

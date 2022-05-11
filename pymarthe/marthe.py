@@ -190,28 +190,23 @@ class MartheModel():
         # -- Initialize nodes properties
         nnodes = self.ncpl * self.nlay
         node = 0
-
         # -- Iterate over all model grids
         for mg in self.imask.to_grids():
             # -- Vectorize data as flat 1D-arrays (speed up iteration process)
-            ii,jj = np.meshgrid(np.arange(mg.nrow),np.arange(mg.ncol))
-            xx, yy = np.meshgrid(mg.xcc, mg.ycc)
-            dxx, dyy = np.meshgrid(mg.dx, mg.dy)
-            it = list(map(np.ravel, [ii,jj,xx,yy,dxx,dyy,mg.array]))
+            records = mg.to_records(fmt='full')
             # -- Disable insertion of inactive cells
             if only_active:
                 # -- Iterate over structured grid data
-                for i,j,xc,yc,dx,dy,v in zip(*it):
+                for r in records:
                     # -- For active cell
-                    if v == 1:
-                        # Get cell vertices
-                        vertices = mg.get_cell_vertices(i,j)
+                    if r.value == 1:
                         # Store infos of current cell
-                        obj = ( node, mg.layer, mg.inest, i, j,
-                                xc, yc, dx, dy, dx*dy, vertices, int(v))
+                        obj = ( node, r.layer, r.inest, r.i, r.j,
+                                r.x, r.y, r.dx, r.dy, r.dx*r.dy,
+                                r.vertices, int(r.value))
                         # Compute cell bounds ((xmin, ymin, xmax, ymax))
                         if self.si_state:
-                            bounds = (*vertices[0], *vertices[2])
+                            bounds = (*r.vertices[0], *r.vertices[2])
                         # -- Push cell id/data to iterator
                         if bool(self.si_state):
                             yield (node, bounds, obj)
@@ -225,19 +220,18 @@ class MartheModel():
                     # -- Return user progress bar
                     marthe_utils.progress_bar((node+1)/nnodes)
 
-            # -- Enaable insertion of inactive cells 
+            # -- Enable insertion of inactive cells 
             else:
 
                 # -- Iterate over structured grid data
-                for i,j,xc,yc,dx,dy,v in zip(*it):
-                    # Get cell vertices
-                    vertices = mg.get_cell_vertices(i,j)
+                for r in records:
                     # Store infos of current cell
-                    obj = ( node, mg.layer, mg.inest, i, j,
-                            xc, yc, dx, dy, dx*dy, vertices, int(v))
+                    obj = ( node, r.layer, r.inest, r.i, r.j,
+                            r.x, r.y, r.dx, r.dy, r.dx*r.dy,
+                            r.vertices, int(r.value))
                     # -- Compute cell bounds
                     if self.si_state:
-                        bounds = (*vertices[0], *vertices[2])
+                        bounds = (*r.vertices[0], *r.vertices[2])
                     # -- Push cell id/data to iterator
                     if bool(self.si_state):
                         yield (node, bounds, obj)
@@ -247,7 +241,6 @@ class MartheModel():
                     marthe_utils.progress_bar((node+1)/nnodes)
                     # -- Incrementation of unique cell id
                     node += 1
-
 
 
     def build_spatial_index(self, name=None, only_active=False):
@@ -315,24 +308,21 @@ class MartheModel():
             - 'vertices': cell vertices
             - 'ative': cell activity (0=inactive, 1=active)
         """
-        # -- Set columns names
-        cn = ['node','layer','inest','i','j','xcc',
-              'ycc','dx','dy', 'area', 'vertices','active']
+        # ---- Get full data for each MartheGrid
+        dfs = []
+        for mg in self.imask.to_grids():
+            df = pd.DataFrame.from_records(mg.to_records(fmt='full'))
+            dfs.append(df)
 
-        # -- From spatial index (fastest)
-        if bool(self.si_state):
-            print('\nBuilding modelgrid from spatial index ...')
-            df  = pd.DataFrame(data = self.spatial_index.intersection(
-                                      self.get_extent(), objects='raw'),
-                               columns =  cn)
-        
-        # -- From internal grids (slowest)
-        else:
-            print('Building modelgrid from internal grids ...')
-            df = pd.DataFrame(data = self.__iter__(), columns =  cn)
+        # ---- Concatenate grid data
+        rename_dic = {'x':'xcc', 'y': 'ycc', 'value':'active'}
+        df = pd.concat(dfs, ignore_index=True).rename(columns=rename_dic)
 
-        # -- Set sorted DataFrame to .modelgrid attribute
-        self.modelgrid = df.set_index('node', drop=False).sort_index()
+        # ---- Insert node numbers at column n°0
+        df.insert(0, 'node', df.index)
+
+        # -- Set DataFrame to .modelgrid attribute
+        self.modelgrid = df.set_index('node', drop=False)
 
 
 
@@ -502,10 +492,30 @@ class MartheModel():
     @classmethod
     def from_config(cls, configfile):
         """
+        Load an existing Marthe model from a configuration file written from 
+        pymarthe.MartheOptim.write_config(). The return MartheModel instance
+        contains all parametrizes properties with values from related parameters
+        files ('grid' and 'list' prameters).
+        Note : for a forward run use, remember to write all the model properties
+               on disk using the .write_prop() method.
+
+
+        Parameters:
+        ----------
+        configfile (str) : parametrization configuration file.
+
+        Returns:
+        --------
+        mm (MartheModel) : MartheModel instance with parametrizes properties.
+
+        Examples:
+        --------
+        mmfrom = MartheModel.from_config('myconfiguration.config')
+
         """
         # -- Build MartheModel from configuration file
         hdic, pdics, _ = pest_utils.read_config(configfile)
-        mm = cls(hdic['Model full path'], eval(hdic['Model spatial index']))
+        mm = cls(hdic['Model full path'], spatial_index=hdic['Model spatial index'])
 
         # -- Iterate over parameter dictionaries
         for pdic in pdics:
@@ -517,15 +527,22 @@ class MartheModel():
             # -- Set list-like properties
             if pdic['type'] == 'list':
                 mm.prop[prop].set_data_from_parfile(parfile = os.path.normpath(pdic['parfile']),
-                                                    keys = pdic['keys'].split('\t'),
+                                                    keys = pdic['keys'].split(','),
                                                     value_col = pdic['value_col'],
                                                     btrans = pdic['btrans'])
             # -- Set list-like properties
-            elif pdic['type'] == 'array':
-                pass
+            elif pdic['type'] == 'grid':
+                # -- Get izone as MartheField instance
+                izone = MartheField(f'i{prop}', os.path.normpath(pdic['izone']), mm)
+                # -- Set all field values (zpc and pp)
+                for pf in  pdic['parfile'].split(','):
+                    mm.prop[prop].set_data_from_parfile(parfile= os.path.normpath(pf),
+                                                        izone= izone,
+                                                        btrans= pdic['btrans'])
 
         # -- Return MartheModel instance
         return mm
+
 
 
     def get_extent(self):
@@ -544,7 +561,7 @@ class MartheModel():
         """
         # -- Extract extent from imask (main grid)
         if self.spatial_index is None:
-            mg0 = self.mm.imask.to_grids(layer=0)[0]
+            mg0 = self.imask.to_grids(layer=0)[0]
             xmin, ymin = mg0.xl, mg0.yl
             xmax, ymax = mg0.xl+mg0.Lx, mg0.yl+mg0.Ly
             extent = [xmin, ymin, xmax, ymax]

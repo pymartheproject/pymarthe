@@ -31,12 +31,112 @@ def SFMT(item):
 
 FFMT = lambda x: "{0:<20.10E} ".format(float(x))
 IFMT = lambda x: "{0:<10d} ".format(int(x))
-FMT_DIC = {"obsnme": SFMT, "obsval": FFMT, "ins_line": SFMT, "date": SFMT, "value": FFMT}
-PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value": FFMT}
-LL_PARAM_DIC = {"parnme": SFMT, "tplnme": SFMT, "defaultvalue": FFMT, 'transformed': FFMT}
+
+FMT_DIC = {"obsnme": SFMT, "obsval": FFMT, "ins_line": SFMT, "date": SFMT,"value": FFMT,
+           "name": SFMT, "parnme": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT,
+           "transformed":FFMT, "tplnme": SFMT,"defaultvalue": FFMT}
+
 
 # ---- Set observation character start and length
 VAL_START, VAL_END = 21, 40
+
+
+
+def write_mgp_parfile(parfile, param_df, trans, ptype='zpc'):
+    """
+    """
+    # ---- Apply required transformation
+    df = param_df.copy(deep=True)
+    df['transformed'] = transform(df['value'], trans)
+    # ---- Manage zpc parameter file
+    if ptype == 'zpc':
+        cols = ['parname', 'transformed']
+    # ---- Manage zpc parameter file (own writer)
+    elif ptype == 'pp':
+        cols = ['parname', 'x', 'y', 'zone', 'transformed']
+    # ---- Write parameyter file with correct formatted columns
+    with open(parfile, 'w', encoding=encoding) as f:
+            f.write(df.to_string( col_space=0, columns=cols,
+                                  formatters=FMT_DIC, justify="left",
+                                  header=False, index=False, index_names=False,
+                                  max_rows = len(df), min_rows = len(df) ) )
+
+
+
+# def read_mgp_parfile(parfile):
+#     """
+#     """
+#     par_df = pd.read_csv(parfile, header=None,
+#                                   delim_whitespace=True,
+#                                   names = ['parname', 'x', 'y', 'zone', 'value'])
+#     return par_df
+
+
+
+def parse_mgp_parfile(parfile, btrans):
+    """
+    """
+    # ---- Get parameter file name and path
+    path, f = os.path.split(parfile)
+
+    # ---- Set regex expression to parse layer and zone
+    re_lz = r"_l(\d+)_z(\d+)"
+
+    # ---- Manage parser according to parameter type
+    if '_zpc' in f:
+        # -- Get parameter type and Dataframe
+        ptype = 'zpc'
+        par_df = pd.read_csv(parfile, header=None,
+                                  delim_whitespace=True,
+                                  names = ['parname', 'value'])
+        # -- Back-transform values
+        par_df['bvalue'] = transform(par_df['value'], btrans)
+        # -- Parse names adding new columns
+        parse_df = par_df.parname.str.extract(re_lz)
+        par_df['layer'] = parse_df.iloc[:,0].astype(int)
+        par_df['zone'] = parse_df.iloc[:,1].astype(int).mul(-1) # zpc zone must be negative
+        # -- Transform to records to iteration process easier
+        rec = par_df[['layer','zone', 'bvalue']].to_records(index=False)
+        # -- Return zpc parsed as recarray
+        return ptype, rec
+
+    if '_pp' in f:
+        # -- Get parameter type and Dataframe
+        ptype = 'pp'
+        par_df = pd.read_csv(parfile, header=None,
+                                  delim_whitespace=True,
+                                  names = ['parname', 'x', 'y', 'zone', 'value'])
+        # -- Parse parameter file name
+        ilay, zone = map(int, re.search(re_lz, f).groups())
+        # -- Passing from factors to real field values (wrapper to pyemu .fac2real())
+        values = pyemu.utils.geostats.fac2real(
+                                pp_file = parfile,
+                                factors_file = parfile.replace('.dat','.fac'),
+                                out_file = None
+                                )[0]
+        # -- Back-transform values
+        bvalues = transform(values, btrans).to_numpy()
+        # -- Return pp parsed as single tuple/record
+        return ptype, (ilay, zone, bvalues)
+
+
+
+
+def write_mgp_tplfile(tplfile, param_df, ptype='zpc'):
+    """
+    """
+    df = param_df.copy(deep=True)
+    df['tplnme'] = '~' + df.parname.str.lower() + '~'
+    if ptype == 'zpc':
+        cols = ['parname', 'tplnme']
+    elif ptype == 'pp':
+        cols = ['parname', 'x', 'y', 'zone', 'tplnme']
+    with open(tplfile, 'w', encoding=encoding) as f:
+        f.write('ptf ~\n')
+        f.write(df.to_string(col_space=0, columns=cols,
+                                   formatters=FMT_DIC, justify="left",
+                                   header=False, index=False, index_names=False,
+                                   max_rows = len(df), min_rows = len(df)))
 
 
 
@@ -48,7 +148,7 @@ def write_mlp_tplfile(tplfile, param_df):
     with open(tplfile, 'w', encoding=encoding) as f:
         f.write('ptf ~\n')
         f.write(df.to_string(col_space=0, columns=['parnme', 'tplnme'],
-                                   formatters=LL_PARAM_DIC, justify="left",
+                                   formatters=FMT_DIC, justify="left",
                                    header=False, index=False, index_names=False,
                                    max_rows = len(df), min_rows = len(df)))
 
@@ -60,19 +160,19 @@ def write_mlp_parfile(parfile, param_df, trans='none'):
     df['transformed'] = transform(param_df['defaultvalue'], trans)
     with open(parfile, 'w', encoding=encoding) as f:
         f.write(df.to_string(col_space=0, columns=['parnme', 'transformed'],
-                             formatters=LL_PARAM_DIC, justify="left",
+                             formatters=FMT_DIC, justify="left",
                              header=False, index=False, index_names=False,
                              max_rows = len(df), min_rows = len(df)))
 
 
 
-def read_mlp_parfile(parfile):
-    """
-    """
-    par_df = pd.read_csv(parfile, header=None,
-                         delim_whitespace=True, names = ['parnme','value'])
-    return par_df
-
+# def read_mlp_parfile(parfile):
+#     """
+#     """
+#     par_df = pd.read_csv(parfile, header=None,
+#                                   delim_whitespace=True,
+#                                   names = ['parnme','value'])
+#     return par_df
 
 
 
@@ -80,7 +180,9 @@ def read_mlp_parfile(parfile):
 def parse_mlp_parfile(parfile, keys, value_col, btrans):
     """
     """
-    par_df = read_mlp_parfile(parfile)
+    par_df = pd.read_csv(parfile, header=None,
+                                  delim_whitespace=True,
+                                  names = ['parnme','value'])
     items = []
     for ipar in par_df.parnme:
         parsed = ipar.split('__')
