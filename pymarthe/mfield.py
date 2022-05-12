@@ -575,7 +575,7 @@ class MartheField():
         rl = self.mm.extract_refine_levels()
 
         # ---- Write field data from list of MartheGrid instance
-        with open(filename, 'w', encoding = marthe_utils.encoding) as f:
+        with open(f, 'w', encoding = marthe_utils.encoding) as f:
             for mg in self.to_grids():
                 f.write(
                             mg.to_string(

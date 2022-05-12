@@ -50,7 +50,7 @@ def spatial_aggregation(mm, x, y, layer, value, agg = 'sum', trans ='none', only
 
     Returns:
     --------
-    res (DataFrame) : aggregate and transformed values.
+    res (DataFrame) : aggregated and transformed values.
                       Format:
                             node          x         y     layer      value
                       0      789   458963.2  698754.1         4     0.0023
