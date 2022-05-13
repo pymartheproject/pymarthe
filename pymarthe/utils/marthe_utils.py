@@ -1333,3 +1333,150 @@ def bordered_array(a, v):
     return bar.T
 
 
+
+
+def read_budget(filename= 'histobil_nap_pastp.prn'):
+    """
+    Global budget reader (.prn).
+    The `io.StringIO` module is required.
+
+    Parameters:
+    ----------
+    filename (str, optional) : budget text file to read.
+                               Can be :
+                                    - aquifer budget by timesteps -->  '~/histobil_nap_pastp.prn' 
+                                    - cumulative aquifer budget   -->  '~/histobil_nap_cumu.prn'
+                                    - climatic budget             -->  '~/histoclim.prn'
+                                    - flow budjet                 -->  '~/histobil_debit.prn'
+                               Default is 'histobil_nap_pastp.prn'.
+
+    Returns:
+    --------
+    1) filename IS a flow budget file ('histobil_debit.prn'):
+            bud_dfs (list) : budget DataFrames.
+                             Format: [global_flow_df, river_flow_df, cumulative_river_flow_df]
+
+    2) filename IS NOT a flow budget file:
+            dub_df (DataFrame) : global budget DataFrame. 
+
+    Examples:
+    --------
+    nap_cumul_df = read_budget(filename= 'histobil_nap_cumu.prn')
+    nap_pastp_df = read_budget(filename= 'histobil_nap_pastp.prn')
+    clim_df = read_budget(filename= 'histoclim.prn')
+    flow_df, riv_df, criv_df = read_budget(filename= 'histobil_debit.prn')
+
+    """
+    # ---- Try to import io package (needed)
+    try:
+        from io import StringIO
+    except:
+        err_msg = 'Could not load python `io` module. '
+        err_msg += 'Try `pip install io`.'
+        raise(ImportError(err_msg))
+
+    # ---- Read raw data as string
+    with open(filename, 'r', encoding=encoding) as f:
+        content = f.read()
+
+    # ---- Match specific tables
+    re_budget = r"Date(.+?)\n(Zone|Légende|Volumes|$)"
+    tables = re.findall(re_budget, content, re.DOTALL)
+
+    # ---- Extract budget(s)
+    bud_dfs = []
+    for table in tables:
+        if '<Date>' not in table[0]: 
+            # -- Convert string budget data to DataFrame (drop numeric date and NaN columns)
+            bud_df = pd.read_table( StringIO(table[0]),
+                                    index_col=0, parse_dates=True,
+                                        ).dropna(
+                                            axis=1).iloc[:,1:]
+            # -- Manage column names
+            bud_df.columns = bud_df.columns.str.strip()
+            bud_df.index.name = 'date'
+            # -- Add budget to main list
+            bud_dfs.append(bud_df)
+
+    # ---- Return budget DataFrame(s)
+    if len(bud_dfs) == 1:
+        return bud_dfs[0]
+    else:
+        return bud_dfs
+
+
+
+
+
+
+
+def read_zonebudget(filename= 'histobil_debit.prn'):
+    """
+    Zone budget reader.
+    The `io.StringIO` module is required.
+
+    Parameters:
+    ----------
+    filename (str, optional) : flow budget text file to read.
+                               Default is 'histobil_debit.prn'.
+
+    Returns:
+    --------
+    zb_df (DataFrame) : zone budget MultiIndex DataFrame.
+                        Format :
+
+                                            Entr_Limit_ext  Sort_Limit_ext      ..
+                        zone        date    
+                         100  01/01/2006           4658895         4667213      ..
+                         100  02/01/2006           4658796         4649391      ..
+                          ..          ..                ..              ..      ..
+                         920  01/01/2009           4697856         4263942      ..
+
+    Examples:
+    --------
+    zb_df = read_zonebudget()
+
+    """
+    # ---- Try to import io package (needed)
+    try:
+        from io import StringIO
+    except:
+        err_msg = 'Could not load python `io` module. '
+        err_msg += 'Try `pip install io`.'
+        raise(ImportError(err_msg))
+
+    # ---- Read raw data as string
+    with open(filename, 'r', encoding=encoding) as f:
+        content = f.read()
+
+    # ---- Manage regex expression/generation
+    re_zone = r"Zone\s*(\d+)\s*\n"
+    get_re_zb = lambda z: r"Zone\s*{}\s*\n(.+?)\n(Zone|Légende)".format(z)
+
+    # ---- Extract zone budget for each zones
+    zb_dfs = []
+
+    for zone in re.findall(re_zone, content):
+        # -- Extract string table with raw data 
+        zb_table = re.search(
+                        get_re_zb(zone), content, re.DOTALL
+                        ).group(1)
+        # -- Convert to DataFrame skiping the useless additional headers and NaN columns
+        zb_df = pd.read_table(StringIO(zb_table), skiprows=[1]).dropna(axis=1)
+        # -- Drop numeric date column
+        zb_df.drop(columns=zb_df.columns[1], inplace=True)
+        # -- Manage column names
+        zb_df.columns = ['date'] + list(zb_df.columns[1:].str.strip())
+        # -- Convert date column to datetime format
+        zb_df['date'] = pd.to_datetime(zb_df['date'])
+        # -- Add a column with the zone id
+        zb_df['zone'] = int(zone)
+        # -- Add zone budget to main list
+        zb_dfs.append(zb_df)
+
+    # ---- Concatenate all zone budget DataFrames with MultiIndex (zone, date)
+    zb_df = pd.concat(zb_dfs).set_index(['zone', 'date'])
+
+    # ---- Return MultiIndex DataFrame
+    return zb_df
+
