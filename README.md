@@ -138,8 +138,8 @@ mopt.set_param_trans(trans = 'lambda x: np.log10(-x + 1)',
 
 # -- Write PEST files
 mopt.write_parfile()
-mopt.write_tpl()
-mopt.write_ins()
+mopt.write_tplfile()
+mopt.write_insfile()
 pst = mopt.build_pst(add_reg0=True, write=True, noptmax = -1, phimlim=0)
 
 # -- Save/write parametrization configuration
