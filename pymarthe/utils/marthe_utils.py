@@ -1474,6 +1474,10 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
         # -- Add zone budget to main list
         zb_dfs.append(zb_df)
 
+    # ---- Manage absent zone budgets
+    err_msg = f"ERROR : there are no existing zone budgets in '{filename}'."
+    assert len(zb_dfs) > 0, err_msg
+
     # ---- Concatenate all zone budget DataFrames with MultiIndex (zone, date)
     zb_df = pd.concat(zb_dfs).set_index(['zone', 'date'])
 
