@@ -425,12 +425,8 @@ class MartheGridParam():
             msg += f" from the `{self.mobj.field}` field with a unique zpc zone "
             msg += " (in active cells) for each layer."
             warnings.warn(msg)
-            # -- Build default MartheField instance from .imask
-            izone = MartheField(f'i{self.parname}', deepcopy(self.mobj.data), self.mobj.mm)
-            # -- Set unique zpc per layer (on active cells)
-            for ilay in range(self.nlay):
-                # -- Set basic zone id (<0 for zpc)
-                izone.set_data(-1)
+            # -- Build default MartheField instance from .imask with -1 value (zpc) for all layers
+            izone = MartheField(f'i{self.parname}', -1, self.mobj.mm)
             # -- Write on disk
             f = os.path.join(self.mobj.mm.mldir,
                              f'{self.mobj.mm.mlname}.{izone.field}')
@@ -918,7 +914,7 @@ class MartheGridParam():
 
 
 
-    def write_kfac(self, vgm_range, vgm_transform= 'none', parpath=None , save_cov = False):
+    def write_kfac(self, vgm_range, krig_transform= 'none', parpath=None , save_cov = False):
         """
         Compute and write kriging factor files (PEST-like) from exponential variogram
         ranges for each layer and zone of pilot points.
@@ -942,7 +938,7 @@ class MartheGridParam():
                                                                  ...,
                                                                  layer_i : {zone_0: range_i_0, ..., zone_i: range_i_i} }
 
-        vgm_transform (str, optional) : transformation to apply to the 
+        krig_transform (str, optional) : transformation to apply to the 
                                         pyemu.utils.geostats.GeoStruct.
                                         Can be:
                                             - 'none'
@@ -1011,7 +1007,7 @@ class MartheGridParam():
                 #   - the contribution has no effect without nugget
                 vgm = pyemu.utils.geostats.ExpVario(contribution=1, a=vgmr[ilay][zone])
                 # -- Build up GeoStruct
-                gs = pyemu.utils.geostats.GeoStruct(variograms=vgm, transform=vgm_transform)
+                gs = pyemu.utils.geostats.GeoStruct(variograms=vgm, transform=krig_transform)
                 # -- Set up kriging
                 ok = pyemu.utils.geostats.OrdinaryKrige(
                             geostruct = gs,

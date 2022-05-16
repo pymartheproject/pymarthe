@@ -793,11 +793,14 @@ class MartheOptim():
 
 
 
-    def write_kriging_factors(self, vgm_range, parname=None, vgm_transform= 'none', save_cov = False ):
+    def write_kriging_factors(self, vgm_range, parname=None, krig_transform= 'none', save_cov = False ):
         """
         Compute and write kriging factor files (PEST-like) from exponential variogram
         ranges for given distributed parameters.
-        Wrapper to MartheGridPAram.write_kfac().
+        Wrapper to MartheGridParam.write_kfac().
+
+        Note: the ranges must be in the same distance unit as the model fields.
+
 
         Parameters
         -----------
@@ -817,7 +820,7 @@ class MartheOptim():
                                   If None, all distributed parameters will be considered.
                                   Default is None.
 
-        vgm_transform (str, optional) : transformation to apply to the 
+        krig_transform (str, optional): transformation to apply to the 
                                         pyemu.utils.geostats.GeoStruct.
                                         Can be:
                                             - 'none'
@@ -857,7 +860,7 @@ class MartheOptim():
 
         # ---- Iterate over parmeters to use the internal method .write_kfac()
         for pn in parnames:
-            self.param[pn].write_kfac(vgm_range, vgm_transform= 'none', save_cov = False )
+            self.param[pn].write_kfac(vgm_range, krig_transform = krig_transform, save_cov = False)
 
 
 
@@ -1139,7 +1142,19 @@ class MartheOptim():
             if k in pst.control_data.__dict__['_df'].index:
                 pst.control_data.__dict__['_df'].loc[k,'value'] = v
             elif k in pst.reg_data.__dict__.keys():
-                pst.reg_data.__dict__[k] = v
+                if add_reg0:
+                    pst.reg_data.__dict__[k] = v
+                else:
+                    msg = f"WARNING : a provided kwarg argument (`{k}`) does refer to a " \
+                           "pyEMU key of `pst.reg_data` whereas `add_reg0` = False. " \
+                           "It will not be considered."
+                    warnings.warn(msg)
+
+            else:
+                msg = f"WARNING : a provided kwarg argument (`{k}`) does not refer to " \
+                       "a existing pyEMU key in `pst.control_data` or `pst.reg_data`. " \
+                       "It will not be considered."
+                warnings.warn(msg)
 
         # -- Return and write pst if required
         if write == True:

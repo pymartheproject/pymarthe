@@ -356,6 +356,80 @@ mm.run_model(exe_name = 'Marth_R8', silent=True, verbose=False)
 mm.show_run_times()
 
 
+'''
+PyMarthe provide some built-in utils to read output budget files about:
+    - aquifer budget by timesteps -->  '~/histobil_nap_pastp.prn'
+    - cumulative aquifer budget   -->  '~/histobil_nap_cumu.prn'
+    - climatic budget             -->  '~/histoclim.prn'
+    - flow budjet                 -->  '~/histobil_debit.prn'
+The output is a comprehensive DataFrame with timesteps as index.
+
+Moreover, it is also possible, to read/extract the flow budget for eahc
+provided zone ids as a MultiIndex DataFrame.
+Let's try to read some budget outputs
+'''
+# -- Read aquifer budget (on timestep and cumulative)
+filename = os.path.join('monav3_pm', 'histobil_nap_cumu.prn')
+budget_df = marthe_utils.read_budget(filename)
+budget_df.head()
+filename = os.path.join('monav3_pm', 'histobil_nap_pastp.prn')
+budget_df = marthe_utils.read_budget(filename)
+budget_df.head()
+
+# -- Read climatic budget
+filename = os.path.join('monav3_pm', 'histoclim.prn')
+budget_df = marthe_utils.read_budget(filename)
+budget_df.head()
+
+# -- Read global flow budget and river budgets
+filename = os.path.join('monav3_pm', 'histobil_debit.prn')
+flow_df, riv_df, cum_riv_df = marthe_utils.read_budget(filename)
+flow_df.head()
+riv_df.head()
+cum_riv_df.head()
+
+# -- Read flow zone budget
+filename = os.path.join('monav3_pm', 'histobil_debit.prn')
+zb_df = marthe_utils.read_zonebudget(filename)
+
+# -- Examples of basic slicing on MultiIndex zone budget DataFrame
+# - Get budget of zone n° 401
+zb_df.xs(key=401, level= 'zone')
+zb_df.head()
+
+# - Get in/out limited flow of zone n°401 on a specific time window
+start = '1972-12-31'
+end = '1981-12-31'
+cols = ['Entr_Limit_Zon', 'Sort_Limit_Zon']
+
+# 1) "Cross-section" way (worst, works for only for single unique key)
+zb_401_df = zb_df.xs(key=401, level= 'zone')
+zb_401_df.loc[start:end, cols]
+
+# 2) "Classic" way (good)
+zb_df.loc[(401, slice(start, end)), cols]
+
+# 3) "Pandtastic" way (best)
+idx = pd.IndexSlice
+zb_df.loc[idx[401, start:end], cols]
+
+'''
+Since the budget/zone budget can be read as DataFrame with DateTimeIndex,
+the user can easily plot model budget records.
+Let's show a quick example below.
+'''
+# -- Subset required zones recharge flux records for some zones
+zones = [200, 201, 202, 204, 205]
+rec_df = zb_df.loc[(zones, slice(None)), 'Recharge_Maill'].reset_index()
+
+# -- Plot records for each zones
+rec_df.pivot( 'date', 'zone'
+            ).droplevel(0, axis=1
+            ).plot( title= 'Recharge records',
+                    figsize=(8,4),
+                    lw=0.8)
+plt.show()
+
 
 # --------------------------------------------------------
 # ---- MartheField instance
@@ -1236,8 +1310,8 @@ Let's imagine that we want to parametrize :
 # -- Load permh property
 permh = mm.prop['permh']
 
-# -- Build (or load) basic izone
-ipermh = MartheField('ipermh', mona_ws.replace('.rma', '.permh'), mm)
+# -- Build (or load) basic izone filled by NaN values
+ipermh = MartheField('ipermh', np.nan, mm)
 
 for ilay in range(mm.nlay):
     # -- Set pp zone for layer 4
@@ -1260,12 +1334,13 @@ for ilay in range(mm.nlay):
         ipermh.set_data(np.nan, layer=ilay)
 
 # -- Set pilot point data
-pp_shpfile = shpfile = os.path.join('monav3_pm', 'gis', 'pp_l4.shp')
+pp_shpfile = os.path.join('monav3_pm', 'gis', 'pp_l4.shp')
 pp_data = {4: {1: pp_shpfile} } # layer = 4, zone = 1
 
 # -- Check `izone` creation
 x,y = shp_utils.shp2points(pp_shpfile, stack=False)
 ax = ipermh.plot(layer=4, cmap= 'nipy_spectral_r')
+plt.delaxes(ax.get_figure().axes[1])
 ax.scatter(x, y, s=3, color='black', label= 'Pilot Points')
 ax.legend()
 ax.set_title(f"Property: '{permh.field}', Layer: 4", fontweight='bold')

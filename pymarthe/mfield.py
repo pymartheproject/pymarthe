@@ -57,13 +57,13 @@ class MartheField():
         """
         self.field = field
         self.mm = mm
+        self.dmv = dmv
         self.set_data(data)
         self.maxlayer = len(self.to_grids(inest=0))
         self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
-        self.dmv = dmv 
+
         # ---- Set property style
         self._proptype = 'grid'
-
 
 
 
@@ -300,9 +300,20 @@ class MartheField():
 
         # ---- Manage numeric input
         if _num:
-            mask = self.get_data(layer=layer, inest=inest,
-                        masked_values=self.dmv, as_mask=True)
-            self.data['value'][mask] = data
+            # -- If .data already exist
+            try:
+                # -- Set value on existing data
+                mask = self.get_data(layer=layer, inest=inest,
+                            masked_values=self.dmv, as_mask=True)
+                self.data['value'][mask] = data
+            except:
+                # -- Copy .imask recarray and change value by provided float/int
+                rec = deepcopy(self.mm.imask.data)
+                mask = self.mm.imask.get_data(layer=layer, inest=inest,
+                            masked_values=self.dmv, as_mask=True)
+                rec['value'][mask] = data
+                # -- Setting recarray as main .data
+                self.data = rec
 
         # ---- Manage recarray input
         if _rec:
