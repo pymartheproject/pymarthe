@@ -7,6 +7,7 @@ import re, ast
 import warnings
 import functools
 
+import pymarthe
 from pymarthe import *
 from .grid_utils import MartheGrid
 
@@ -365,22 +366,43 @@ def read_zonsoil_prop(martfile, pastpfile):
 
 
 
-def remove_autocal(martfile):
+def remove_autocal(rmafile, martfile):
     """
-    Function to make marthe auto calibration silent
+    Function to make marthe auto calibration / optimisation silent
 
     Parameters:
     ----------
+    rmafile (str) : path to .mart file.
     martfile (str) : path to .mart file.
 
     Returns:
     --------
-    Write in .mart file inplace
+    Write in .mart/.rma file inplace
 
     Examples:
     --------
-    remove_autocal('mymodel.mart')
+    remove_autocal('mymodel.rma', 'mymodel.mart')
     """
+
+    # ---- Fetch .rma file content
+    with open(rmafile, 'r', encoding=encoding) as f:
+        lines = f.readlines()
+
+    # ---- Define pattern to search
+    re_fopt = r"(\w+)\.(\w+)"
+    re_opt = r"{}\s*=(.*)Optimisation\n".format(re_fopt)
+
+    for line in lines:
+        # -- Search pattern
+        opt_match = re.search(re_opt, line)
+        if opt_match is not None:
+            # -- Get optimisation file name
+            fopt = '.'.join(re.findall(re_fopt, line)[0])
+            # -- Replace bye empty strings
+            new_line = re.sub(fopt,' '*len(fopt), line)
+            # -- Set changes inplace
+            replace_text_in_file(rmafile, line, new_line)
+
     # ---- Fetch .mart file content
     with open(martfile, 'r', encoding=encoding) as f:
         lines = f.readlines()
@@ -389,14 +411,16 @@ def remove_autocal(martfile):
     re_cal = r"^\s*1=Optimisation"
 
     for line in lines:
-        # ---- Search patterns
+        # -- Search patterns
         cal_match = re.search(re_cal, line)
-        # ---- Make calibration/optimisation silent 
+        # -- Make calibration/optimisation silent 
         if cal_match is not None:
             wrong = cal_match.group()
             right = re.sub('1','0', wrong)
             new_line  = re.sub(wrong, right, line)
-            replace_text_in_file(file, line, new_line)
+            replace_text_in_file(martfile, line, new_line)
+
+
 
 
 
@@ -906,8 +930,8 @@ def read_listm_qfile(qfile, istep, fmt):
         # ---- Set data types
         dt = {'value':'f8','j':'i4','i':'i4','layer':'i4'}
         # ---- Read qfile as DataFrame (separator = any whitespace)
-        df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
-                            names=list(dt.keys()), dtype=dt)
+        df = pd.read_csv(qfile, encoding=encoding, delim_whitespace=True,
+                         header=None, names=list(dt.keys()), dtype=dt)
         # ---- Pass t0 0-based
         df[['j','i','layer']] = df[['j','i','layer']].sub(1)
         # ---- Add istep
@@ -925,8 +949,8 @@ def read_listm_qfile(qfile, istep, fmt):
         # ---- Set data types
         dt = {'x':'f8','y':'f8','layer':'i4', 'value':'f8'}
         # ---- Read qfile as DataFrame (separator = any whitespace)
-        df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
-                            names=list(dt.keys()), dtype=dt)
+        df = pd.read_csv(qfile, encoding=encoding, delim_whitespace=True,
+                         header=None, names=list(dt.keys()), dtype=dt)
         # ---- Pass t0 0-based
         df['layer'] = df['layer'].sub(1)
         # ---- Add istep
@@ -944,8 +968,8 @@ def read_listm_qfile(qfile, istep, fmt):
         # ---- Set data types
         dt = {'x':'f8','y':'f8', 'value':'f8'}
         # ---- Read qfile as DataFrame (separator = any whitespace)
-        df = pd.read_csv(qfile, header=None,  delim_whitespace=True,
-                            names=list(dt.keys()), dtype=dt)
+        df = pd.read_csv(qfile, encoding=encoding, delim_whitespace=True,
+                         header=None, names=list(dt.keys()), dtype=dt)
         # ---- Add layer info (=0)
         df['layer'] = 0
         # ---- Add istep
@@ -967,10 +991,10 @@ def read_record_qfile(i,j,k,v,qfile,qcol):
     """
     """
     # ---- Read just qcol column in qfile
-    data = pd.read_csv(qfile, usecols=[qcol], dtype='f8',  delim_whitespace=True)
+    data = pd.read_csv(qfile, encoding=encoding, delim_whitespace=True)
     # ---- Extract boundname and value
     bdnme = 'boundname'
-    value = [v] + data[bdnme].tolist()
+    value = [v] + data.iloc[:,qcol].to_list()
     istep = qrow = list(range(len(value)))
     df = pd.DataFrame({'istep':istep,'layer':k,'i': i,'j':j,
                        'value': value, 'boundname': bdnme,
@@ -1018,7 +1042,7 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
     re_block = r";\s*\*{3}\n(.*?)/\*{5}"
     re_num = r"[-+]?\d*\.?\d+|\d+"
     re_jikv = r"C=\s*({})L=\s*({})P=\s*({})V=\s*({});".format(*[re_num]*4)
-    re_file = r"\s*File=\s*(.*);"
+    re_file = r"\s*File=\s*(.*)\.(\w{3})"
     re_col = r"\s*Col=\s*({})".format(re_num)
     re_listm_fmt = r'(?<=<)[^<:]+(?=:?>)'
 
@@ -1066,7 +1090,7 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
                         _df[['qfilename', 'qtype', 'qrow','qcol']] = [None, 'mail', None, None]
                     else:
 
-                        qfilename = os.path.normpath(os.path.join(mm_ws, _file.group(1)))
+                        qfilename = os.path.normpath(os.path.join(mm_ws, f"{_file.group(1)}.{_file.group(2)}"))
                         df, _df = read_record_qfile(i,j,k,v, qfilename, qcol)
 
                 # ---- Append (meta)DataFrame list
@@ -1084,7 +1108,8 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
 def convert_at2clp(pastpfile, mm):
     """
     Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
-    and rewrite it in pastp file
+    and rewrite it inplace in pastp file.
+    Warn user about the conversion.
 
     Parameters:
     ----------
@@ -1104,39 +1129,53 @@ def convert_at2clp(pastpfile, mm):
     re_num = r"[-+]?\d*\.?\d+|\d+"
     re_block = r";\s*\*{3}\n(.*?)/\*{5}"
 
-    # ---- Get convertisor (i,j) -> (a,t) as df
-    at = []
-    for s in ['aff_r', 'trc_r']:
-        arr = read_grid_file(mm.mlfiles[s])[0].array
-        ij = list(np.where(arr != 9999.))
-        at.append(arr[arr != 9999.])
-    conv_df = pd.DataFrame({k:v for k,v in zip(list('ijat'), [*ij, *at])}, dtype=int)
+    # ---- Build modelgrid if not exists
+    if mm.modelgrid is None:
+        mm.build_modelgrid()
+
+    # ---- Add aff and trc column in modelgrid
+    for ext in ['aff_r', 'trc_r']:
+        fname = ext.replace('_r', '')
+        field = pymarthe.mfield.MartheField(fname, mm.mlfiles[ext], mm)
+        mm.modelgrid[fname] = field.data['value']
 
     # ---- Extract .pastp file content
     with open(pastpfile, 'r', encoding=encoding) as f:
         # ---- Extract pastp by block 
         blocks = re.findall(re_block, f.read(), re.DOTALL)
+    
+    # ---- Set boolean marker to know if at list one convertion had been done
+    any_at = []
 
+    # ---- Iterate over timestep block data
     for block in blocks:
         # ---- Iterate over block content (lines)
         for line in block.splitlines():
             # ---- Check if the line contain aff/trc
             if all(s in line for s in ['Q_EXTER_RIVI','A=','T=']):
-                # ---- Replace TRONCON for MAILLE
-                mail_line = line.replace('TRONCON', 'MAIL')
-                # ---- Get substring to replace
+                # -- Detect conversion
+                any_at.append(True)
+                # -- Replace TRONCON to MAILLE
+                mail_line = line.replace('TRONCON', 'MAILLE')
+                # -- Get substring to replace
                 s2replace = line[line.index('A='):line.index('V=')]
-                # ---- Fetch aff/trc as number
+                # -- Fetch aff/trc as number
                 a,t = map(ast.literal_eval, re.findall(re_num, s2replace))
-                # ---- Convert aff/trc to column, line, plan (layer)
-                i,j = conv_df.query(f"a=={a} & t=={t}")[list('ij')].to_numpy()[0]
-                layer = mm.get_outcrop()[i,j]
-                # ---- Build substring to replace
-                sub = '{:>8}C={:>7}L={:>7}P={:>7}'.format(' ',j+1, i+1, int(layer))
-                # ---- Build entire line to be replace for
+                # ---- Convert aff/trc to column, line, plan (layer) by querying the grid
+                i, j, layer = mm.query_grid(aff=a, trc=t, target=['i','j','layer']).to_numpy()[0]
+                # -- Build substring to replace
+                sub = '{:>8}C={:>7}L={:>7}P={:>7}'.format(' ',j+1, i+1, layer+1)
+                # -- Build entire line to be replaced for
                 l2replace = mail_line.replace(s2replace,sub)
-                # ---- Replace text in pastp file
+                # -- Replace text in pastp file
                 replace_text_in_file(pastpfile, line, l2replace)
+
+    # ---- User warning about aff/trc conversion
+    if len(any_at) > 0:
+        msg = f"WARNINGS : some river pumpings in {pastpfile} file are " \
+               "located by there 'tributary' and 'reach' ids which is not supported. " \
+               "They will be converted to 'row', 'column', 'layer' format instead (inplace)."
+        warnings.warn(msg)
 
 
 

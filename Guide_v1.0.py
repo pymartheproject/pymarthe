@@ -364,9 +364,9 @@ PyMarthe provide some built-in utils to read output budget files about:
     - flow budjet                 -->  '~/histobil_debit.prn'
 The output is a comprehensive DataFrame with timesteps as index.
 
-Moreover, it is also possible, to read/extract the flow budget for eahc
+Moreover, it is also possible, to read/extract the flow budget for each
 provided zone ids as a MultiIndex DataFrame.
-Let's try to read some budget outputs
+Let's try to read some budget outputs.
 '''
 # -- Read aquifer budget (on timestep and cumulative)
 filename = os.path.join('monav3_pm', 'histobil_nap_cumu.prn')

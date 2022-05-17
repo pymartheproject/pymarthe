@@ -632,7 +632,7 @@ class MartheModel():
         mm = MartheModel(rma_file)
         mm.remove_autocal()
         """
-        marthe_utils.remove_autocal(self.mlfiles['mart'])      
+        marthe_utils.remove_autocal(self.rma_file, self.mlfiles['mart'])    
 
 
 

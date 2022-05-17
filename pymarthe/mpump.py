@@ -554,7 +554,6 @@ class MarthePump():
         re_block = r";\s*\*{3}\s*\n(.*?)/\*{5}"
         re_num = r"[-+]?\d*\.?\d+|\d+"
         re_jikv = r"C=\s*({})L=\s*({})P=\s*({})V=\s*({});".format(*[re_num]*4)
-        sp = r'\s*'
 
         # ---- Define mode tag
         mode_tag = '/DEBIT/' if self.mode == 'aquifer' else '/Q_EXTER_RIVI/'
@@ -571,16 +570,16 @@ class MarthePump():
                 q = f'i == {l} & j == {c} & layer == {p} & istep == 0'
                 new_v = rec_df.query(q)['value'].values[0]
                 # ---- Change value
-                new_line = re.sub('V=' + sp + re_num,
+                new_line = re.sub(r'V=\s*{};'.format(re_num),
                                   'V={:>10}'.format(new_v),
                                   line)
                 # ---- Change in file
-                marthe_utils.replace_text_in_file(mp.pastp_file, line, new_line)
+                marthe_utils.replace_text_in_file(self.pastp_file, line, new_line)
 
         # ---- Rewrite transient data in external file       
         for qfilename in rec_df['qfilename'].unique():
             # ---- Read external file 
-            df = pd.read_csv(qfilename, dtype='f8',  delim_whitespace=True)
+            df = pd.read_csv(qfilename,  delim_whitespace=True)
             # ---- Set new values
             rec_df_ss = rec_df.query(f"istep != 0 & qfilename == '{qfilename}'")
             for qcol, gb in rec_df_ss.groupby('qcol'):
