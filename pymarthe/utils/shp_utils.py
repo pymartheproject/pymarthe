@@ -133,7 +133,7 @@ def shp2points(shpname, stack=True):
     # ---- Assert that the shapefile contains points
     err_msg = 'ERROR : `shpname` must be shapefile of points. ' \
               f'Given shapefile type: `{r.shapeTypeName}`.'
-    assert r.shapeTypeName == 'POINT', err_msg
+    assert r.shapeTypeName in ['POINT', 'MULTIPOINT'], err_msg
     # ---- Extract points from shapefile
     points = []
     for shape in r.iterShapes():

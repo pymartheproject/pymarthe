@@ -148,7 +148,7 @@ class MartheField():
 
         # -- Build spatial index if required
         if self.mm.spatial_index is None:
-            self.mm.build_spatial_idx()
+            self.mm.build_spatial_index()
 
         # -- Manage masked values
         mv = [] if masked_values is None else marthe_utils.make_iterable(masked_values)

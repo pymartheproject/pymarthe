@@ -372,7 +372,7 @@ def remove_autocal(rmafile, martfile):
 
     Parameters:
     ----------
-    rmafile (str) : path to .mart file.
+    martfile (str) : path to .mart file.
     martfile (str) : path to .mart file.
 
     Returns:

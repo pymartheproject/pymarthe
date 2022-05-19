@@ -1329,9 +1329,7 @@ for ilay in range(mm.nlay):
     # -- Set single zpc for layer 10,11,12
     elif ilay in [10,11,12]:
             ipermh.set_data(-1, layer=ilay)
-    # -- Set no wanted to NaN
-    else:
-        ipermh.set_data(np.nan, layer=ilay)
+
 
 # -- Set pilot point data
 pp_shpfile = os.path.join('monav3_pm', 'gis', 'pp_l4.shp')

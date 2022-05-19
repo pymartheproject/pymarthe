@@ -774,8 +774,21 @@ class MartheGridParam():
 
         """
         # ---- Manage pilot point default value
-        ppx, ppy = np.column_stack(coords)
-        dv = self.get_dv_from_xy(ppx, ppy, layer) if self.defaultvalue is None else self.defaultvalue
+        if self.defaultvalue is None:
+            ppx, ppy = np.column_stack(coords)
+            dv = self.get_dv_from_xy(ppx, ppy, layer)
+            # -- Check default value(s) validity
+            if len(dv) != len(coords):
+                msg = "WARNINGS : could not extract field data properly at pilot points coordinates. " \
+                      "A generic value of 1e-3 will be set as `default_value instead. The reason can be the:\n" \
+                      "\t- Absence of spatial index in main model\n" \
+                      "\t- Bad spatial index files creation\n" \
+                      "\t- Presence of corrupted spatial index files`\n" \
+                      "A generic value of 1e-3 will be set as `default_value instead."
+                warnings.warn(msg)
+                dv = 1e-3
+        else:
+            dv = self.defaultvalue
 
         # ---- Build DataFrame with names
         pp_df = pp_utils.pp_df_from_coords(self.parname, coords, layer, zone, value= dv)
