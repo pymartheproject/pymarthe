@@ -9,9 +9,18 @@
 [![Awesome Badges](https://img.shields.io/badge/badges-awesome-green.svg)](https://github.com/Naereen/badges)
 
 
-<H1 align="center"> 
-PyMarthe v1.0 
-</H1>
+<H3 align="center"> 
+<pre>
+  _____            __  __                  _     _            
+ |  __ \          |  \/  |                | |   | |           
+ | |__) |  _   _  | \  / |   __ _   _ __  | |_  | |__     ___ 
+ |  ___/  | | | | | |\/| |  / _` | | '__| | __| | '_ \   / _ \
+ | |      | |_| | | |  | | | (_| | | |    | |_  | | | | |  __/
+ |_|       \__, | |_|  |_|  \__,_| |_|     \__| |_| |_|  \___|
+            __/ |                                             
+           |___/                                              
+</pre>
+</H3>
 
 
 <p align="center">
