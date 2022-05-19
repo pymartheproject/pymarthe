@@ -303,7 +303,7 @@ def read_config(configfile):
 def get_kmi(mobj, keys, **kwargs):
     """
     Return standard Keys Multi Index from a marthe object data.
-    keys >= 2
+    keys >= 2.
     """
     # -- Perform kwargs getting process on Marthe object
     df = mobj.get_data(**kwargs)

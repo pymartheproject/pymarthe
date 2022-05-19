@@ -935,7 +935,8 @@ class MartheGridParam():
             - pyemu.utils.geostats.ExpVario
             - pyemu.utils.geostats.GeoStruct
             - pyemu.utils.geostats.OrdinaryKrige
-
+        
+        Note: the ranges must be in the same distance unit as the model fields.
 
         Parameters
         ----------

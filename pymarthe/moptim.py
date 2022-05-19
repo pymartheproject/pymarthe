@@ -846,7 +846,7 @@ class MartheOptim():
         """
         # ---- Manage parname inputs
         if parname is None:
-            parnames = [p for p in self.param.keys() if p.type == 'grid']
+            parnames = [pn for pn in self.param.keys() if self.param[pn].type == 'grid']
         else:
             parnames = marthe_utils.make_iterable(parname)
             # ---- Bunch of assertions to avoid bad inputs
