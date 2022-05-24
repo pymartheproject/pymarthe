@@ -1459,6 +1459,132 @@ class MartheModel():
 
 
 
+    def get_time_window(self, tw_type='date'):
+        """
+        Function to extract model time window in .mart file.
+        Wrapper to marthe_utils.get_tw().
+
+
+        Parameters:
+        ----------
+        tw_type (str, optional) : time window output type.
+                                  Can be :
+                                    - 'date' : return pd.timestamp objects
+                                    - 'istep': return integers
+                                  Default is 'date'.
+
+        Returns:
+        --------
+        tw_min, tw_max (tuple): time window bounds (start/end)
+
+        Examples:
+        --------
+        # -- From isteps
+        istart, iend = get_time_window(tw_type='istep')
+        # -- Get time window dates
+        start, end = get_time_window(tw_type='date')
+
+        """
+        # ---- Extract time window
+        tw_min, tw_max =  marthe_utils.get_tw(martfile= self.mlfiles['mart'],
+                                              pastpfile= self.mlfiles['pastp'],
+                                              tw_type=tw_type)
+        # ---- Return time window as tuple
+        return tw_min, tw_max
+
+
+
+    def set_time_window(self, start=None, end=None):
+        """
+        Function to set/change model time window in .mart file.
+        Note: the .pastp file will not be modify.
+        Wrapper to marthe_utils.set_tw()
+
+        Parameters:
+        ----------
+        start (str/int, optional) : string date or istep number of required
+                                    first timestep to consider.
+                                    If None, the first istep (in .pastp file)
+                                    will be considered.
+                                    Default is None.
+
+        end (str/int, optional) : string date or istep number of required 
+                                  last timestep to consider.
+                                  If None, the last istep (in .pastp file)
+                                  will be considered.
+                                  Default is None.
+
+        Returns:
+        --------
+        Change .mart file inplace with required time window.
+
+        Examples:
+        --------
+        # -- From isteps
+        mm.set_time_window(start=10, end=35)
+
+        # -- From dates
+        mm.set_time_window(start='1999/01/28', end=65)
+        mm.set_time_window(start='1992/01/01', end='1993/05/02')
+
+        """
+        # ---- Wrapper to utils
+        marthe_utils.set_tw( start= start,
+                             end= end,
+                             martfile= self.mlfiles['mart'],
+                             pastpfile= self.mlfiles['pastp'] )
+
+
+
+
+    def set_hydrodyn_periodicity(self, istep, external=False, new_pastpfile=None):
+        """
+        Function to manage hydrodynamic computation periodicity in .pastp file.
+        Wrapper to marthe_utils.mm.set_hydrodyn_periodicity().
+
+        Parameters:
+        ----------
+
+        istep (str/int/iterable) : required istep to activate hydrodynamic computation.
+                                   Can be :
+                                        - 'all' : activate for all timesteps
+                                        - 'none': desactivate for all timesteps
+                                        - 'start:end:step' : string sequence
+                                        - [0,1,2,..] : any integer iterables
+
+        external (bool, optional) : whatever create a external file with required
+                                    hydrodynamic computation periodicity.
+                                    Note: external optional will not be considered
+                                          for global `istep` such as 'all', 'none'
+                                    Default is False.
+
+        new_pastpfile (str, optional) : path to the new pastp file to write.
+                                        If None, will overwrite the input pastp file.
+                                        Default is None.
+
+        Returns:
+        --------
+        (Over-)write pastp file.
+        If `external` == True, will also write 'cacul_hydro.txt'.
+                          .
+
+        Examples:
+        --------
+        # -- All timesteps
+        mm.set_hydrodyn_periodicity(istep= 'all', external=False)
+        # -- Weekly
+        mm.set_hydrodyn_periodicity(istep= '::7', external=True)
+        # -- Annual
+        mm.set_hydrodyn_periodicity(istep= '::365', external=False)
+        # -- Specific
+        mm.set_hydrodyn_periodicity(istep= [0,5,6,7,9,11], external=True)
+
+        """
+        # ---- Wrapper to utils
+        marthe_utils.hydrodyn_periodicity(pastpfile= self.mm.mlfiles['pastp'],
+                                          istep= istep,
+                                          external= external,
+                                          new_pastpfile= new_pastpfile)
 
 
     def __str__(self):

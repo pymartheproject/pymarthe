@@ -1063,10 +1063,13 @@ class MartheGridParam():
         
         """
         # ---- Concatenate all zpc and pilot point DataFrames
-        concat = pd.concat(
-                    [self.zpc_df, pd.concat(
-                            [pp_df for pp_df in self.pp_dic.values()])]
-                    )
+        dfs = []
+        if not self.zpc_df.empty:
+            dfs.append(self.zpc_df)
+        for pp_df in self.pp_dic.values():
+            if pp_df is not None:
+                dfs.append(pp_df)
+        concat = pd.concat(dfs)
         # ---- Set distinct parameter group names
         concat['pargp'] = concat.parname.apply(
                             lambda s: f"{self.pargp}_zpc" if 'zpc' in s else f"{self.pargp}_pp")

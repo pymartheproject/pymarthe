@@ -38,7 +38,7 @@ FMT_DIC = {"obsnme": SFMT, "obsval": FFMT, "ins_line": SFMT, "date": SFMT,"value
 
 
 # ---- Set observation character start and length
-VAL_START, VAL_END = 21, 40
+VAL_START, VAL_END = 23, 39
 
 
 
@@ -419,7 +419,11 @@ def write_simfile(dates, values, simfile):
     # ---- Build instruction lines
     df = pd.DataFrame(dict(date= dates, value = values))
     # ---- Write formated instruction file
-    df.to_csv(simfile, header=False, index=False, sep='\t', float_format = FFMT, date_format='%s')
+    with open(simfile,'w', encoding=encoding) as f:
+        f.write(df.to_string(col_space=0, columns=["date", "value"],
+                             formatters=FMT_DIC, justify="left",
+                             header=False, index=False, index_names=False,
+                             max_rows = len(df), min_rows = len(df)))
 
 
 
@@ -475,14 +479,19 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
 def run_from_config(configfile, **kwargs):
     """
     """
+    print('PERFORMING FORWARD RUN ...')
     # -- Load MartheModel with parametrized properties
+    print('\t-> Reading model with updated parameters')
     from pymarthe import MartheModel
     mm = MartheModel.from_config(configfile)
     # -- Overwrite new data from parfiles
+    print('\t-> Writing model properties')
     mm.write_prop()
     # -- Run model
+    print('\t-> Running model with updated parameters')
     mm.run_model(**kwargs)
     # -- Extract simulated data
+    print('\t-> Extracting simulated values')
     prn = marthe_utils.read_prn(os.path.join(mm.mldir,'historiq.prn'))
     hdic, _, odics = read_config(configfile)
     for odic in odics:
@@ -493,4 +502,3 @@ def run_from_config(configfile, **kwargs):
                     interp_method= odic['interp_method'],
                     fluc_dic= eval(odic['fluc_dic']),
                     sim_dir= os.path.normpath(hdic['Simulation files directory']))
-

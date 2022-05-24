@@ -66,8 +66,12 @@ class MartheObs():
                                         - string function name ('log10', 'sqrt')
 
         insfile (str, kwargs) : path to the instruction file 
-                                (for writing purpose)
-                                Default build as 'locnme.ins'
+                                (for writing purpose).
+                                Default build as 'locnme.ins'.
+
+        simfile (str, kwargs) : path to the simulated file
+                                (for writing purpose).
+                                Default build as 'locnme.dat'.
 
         fluc_dic (dict, kwargs) : fluctuation information from fluctuation process.
                                   Usefull only for fluctuation information.
@@ -98,11 +102,13 @@ class MartheObs():
         self.weight = kwargs.get('weight', 1)
         self.obgnme = kwargs.get('obgnme', locnme)
 
-        # -- Check transformation validity
+        # ---- Check transformation validity
         self.trans = kwargs.get('trans', 'none')
         pest_utils.check_trans(self.trans)
 
+        # ---- Manage io files
         self.insfile = kwargs.get('insfile', f'{self.locnme}.ins')
+        self.simfile = kwargs.get('simfile', f'{self.locnme}.dat')
 
         # ---- Get number of observation values
         ndigit = len(str(len(self.value)-1))
@@ -163,19 +169,54 @@ class MartheObs():
 
         Parameters:
         ----------
-        ins_dir (str, optional) : directory to write instruction file(s)
-                                  Default is '.'.
 
         Returns:
         --------
-        Write insfile file in ins_dir
+        Write insfile file.
 
         Examples:
         --------
-        mobs.write_ins()
+        mobs.write_insfile()
         """
         pest_utils.write_insfile(self.obsnmes, self.insfile)
     
+
+    def write_simfile(self, prn='historiq.prn'):
+        """
+        Write formatted simulated file (pest).
+        Wrapper of pest_utils.extract_prn().
+        Note: to get the related simulated values don't 
+              forget to (re)run the Marthe model before.
+
+        Parameters:
+        ----------
+        prn (str, optinal) : path to the simulated values file.
+                             Default is 'historiq.prn'.
+
+        Returns:
+        --------
+        Write simfile file.
+
+        Examples:
+        --------
+        mobs.write_simfile()
+        """
+        # ---- Manage prn
+        if isinstance(prn, str):
+            prn_df = marthe_utils.read_prn(prn)
+        elif isinstance(prn, pd.DataFrame):
+            prn_df = prn
+        else:
+            raise ValueError(f"ERROR : could not write simulated file for locnme = {self.locnme}.")
+
+        # ---- Extract and write simulated value(s)
+        pest_utils.extract_prn( prn_df,
+                                name= self.locnme,
+                                dates_out= self.date,
+                                fluc_dic= self.fluc_dic,
+                                sim_dir= os.path.split(self.simfile)[0] )
+
+
 
 
     def to_config(self):

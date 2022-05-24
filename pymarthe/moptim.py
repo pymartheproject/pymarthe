@@ -47,7 +47,15 @@ class MartheOptim():
         ----------
         mm (MartheModel): parent MartheModel instance
                           to interface with PEST utilities.
-        name (str) : name of optimisation process.
+
+        name (str, optional) : name of optimisation process.
+
+        kwargs : some paths to usefull organized folder such as:
+                    - `par_dir` : parameter folder
+                    - `tpl_dir` : template folder
+                    - `ins_dir` : instruction folder
+                    - `sim_dir` : simulation folder
+                    - `obs_dir` : observation folder
 
         Examples
         --------
@@ -63,6 +71,8 @@ class MartheOptim():
         # ---- Set arguments as atributes
         self.mm = mm
         self.name = f'{mm.mlname}_optim' if name is None else name
+        # ---- Get model time window bounds from .mart file
+        self.tw_min, self.tw_max = self.mm.get_time_window()
         # ---- Initialize observation and parameters
         self.obs, self.param = {}, {}
         # ---- Fetch available observation localisation names
@@ -261,7 +271,8 @@ class MartheOptim():
 
 
 
-    def add_obs(self, data, locnme = None, datatype = 'head', check_loc = True, nodata = None, **kwargs):
+    def add_obs(self, data, locnme = None, datatype = 'head',
+                      check_loc = True, nodata = None, **kwargs):
         """
         Add and set observations 
 
@@ -349,31 +360,38 @@ class MartheOptim():
         if check_loc:
             self.check_loc(locnme)
 
-        # ---- Avoid observations out of model time window
-        start, end = min(self.mm.mldates), max(self.mm.mldates)
-        if len(df) > len(df.loc[start:end]):
+        # ---- Avoid observations out of model actual time window
+        df_tw = df.loc[self.tw_min:self.tw_max]
+
+        if df_tw.empty:
             # -- Raise warning message
-            warn_msg = 'WARNING : some observation data are out of model time window ' \
-                       f'({start} - {end} ). They will not be considered.'
-            warnings.warn(warn_msg, Warning)
-            df = df.loc[start:end]
+            warn_msg = 'WARNING : no observation data within the model time window was found. ' \
+                       f'{locnme} observation set will not be added.'
+            warnings.warn(warn_msg)
+
+        if len(df) > len(df_tw):
+            # -- Raise warning message
+            warn_msg = f'WARNING : some observation data of `locnme` = {locnme} ' \
+                       f'are out of actual model time window ({self.tw_min} - {self.tw_max}). ' \
+                       'They will not be considered.'
+            warnings.warn(warn_msg)
 
         # ---- Build MartheObs instance from data input
         insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))
+        simfile = kwargs.pop('simfile', os.path.join(self.sim_dir, f'{locnme}.dat'))
         mobs = MartheObs(iloc = self.get_nlocs(),
                          locnme = locnme,
-                         date = df.index,
-                         value = df['value'].values,
+                         date = df_tw.index,
+                         value = df_tw['value'].values,
                          obsfile = obsfile,
                          insfile = insfile,
+                         simfile = simfile,
                          datatype = datatype,
                          **kwargs)
 
-        # ---- Build MartheObs instance
+        # ---- Add MartheObs to main observation dictionary
         self.obs[locnme] = mobs
 
-        # # ---- Verbose
-        # print(f"Observation '{locnme}' had been added successfully.")
 
 
 
@@ -534,7 +552,7 @@ class MartheOptim():
 
     def write_insfile(self, locnme=None):
         """
-        Write formatted instruction file (pest).
+        Write formatted instruction file in instruction directory (`.ins_dir`).
         Wrapper of pest_utils.write_insfile().
 
         Parameters:
@@ -542,8 +560,6 @@ class MartheOptim():
         locnme (str, optional) : observation location name (ex. BSS id)
                                  If None all locnmes are considered.
                                  Default is None
-        ins_dir (str, optional) : directory to write instruction file(s)
-                                  Default is '.'
 
         Returns:
         --------
@@ -551,7 +567,7 @@ class MartheOptim():
 
         Examples:
         --------
-        moptim.write_insfile(locnme = 'myobs', ins_dir = 'ins')
+        moptim.write_insfile(locnme = 'myobs')
         """
         # ---- Manage multiple locnme input
         if locnme is None:
@@ -560,14 +576,59 @@ class MartheOptim():
             locnmes = marthe_utils.make_iterable(locnme)
             # -- Check locnames validity
             not_found = [ln for ln in locnmes if ln not in self.obs.keys()]
-            err_msg = "ERROR : Some provided `locname` not added yet: {}.".format(', '.join(not_found))
+            err_msg = "ERROR : Some provided `locnme` not added yet: {}.".format(', '.join(not_found))
             assert len(not_found) == 0, err_msg
 
         # ---- Iterate over locnmes
-        for locnme in locnmes:
-            self.obs[locnme].write_insfile()
+        for ln in locnmes:
+            self.obs[ln].write_insfile()
 
             
+
+    def write_simfile(self, locnme=None, prnfile=None):
+        """
+        Write formatted simulated file in simulate directory (`.sim_dir`).
+        Wrapper of pest_utils.extract_prn().
+        Note: to write the related simulated values don't 
+              forget to (re)run the Marthe model before.
+
+        Parameters:
+        ----------
+        locnme (str, optional) : observation location name (ex. BSS id)
+                                 If None all locnmes are considered.
+                                 Default is None.
+
+        prnfile (str, optional) : path to the simulated value file.
+                                  If None, prnfile = model_path + 'historiq.prn'.
+                                  Default is None.
+
+        Returns:
+        --------
+        Write simfile file in `.ins_dir`
+
+        Examples:
+        --------
+        moptim.write_simfile(locnme = 'myobs')
+        """
+        # ---- Manage multiple locnme input
+        if locnme is None:
+            locnmes = self.obs.keys()
+        else:
+            locnmes = marthe_utils.make_iterable(locnme)
+            # -- Check locnames validity
+            not_found = [ln for ln in locnmes if ln not in self.obs.keys()]
+            err_msg = "ERROR : Some provided `locnme` not added yet: {}.".format(', '.join(not_found))
+            assert len(not_found) == 0, err_msg
+
+        # ---- Get simalated value as DataFrame
+        prnfile = os.path.join(self.mm.mldir, 'historiq.prn') if prnfile is None else prnfile
+        prn_df = marthe_utils.read_prn(prnfile)
+
+        # ---- Iterate over locnmes
+        for ln in locnmes:
+            self.obs[ln].write_simfile(prn_df)
+
+
 
 
     def add_fluc(self, locnme=None, tag= '', on = 'mean'):
@@ -609,20 +670,26 @@ class MartheOptim():
 
         # ----- Iterate over locnmes
         for ln in locnmes:
-            # ---- Alerte if a same fluctuation had already been added
-            new_locnme = ln + tag + 'fluc'
-            # ---- Get DataFrame of the source observation
-            df = self.obs[ln].obs_df.set_index('date').rename({'obsval':'value'}, axis=1)
-            # ---- Infer fluctuation manipulation to perform
-            s = df['value'].replace(self.nodata, pd.NA)  # replace nodata values by NaN
-            sub_val = s.agg(on) if isinstance(on, str) else on
-            # ---- Get fluctuation by substraction
-            df['value'] = [x - sub_val if not x in self.nodata else x for x in df['value']]
-            # ---- Add fluctuation observation
-            new_dt = self.obs[ln].datatype + tag + 'fluc'
-            self.add_obs(data = df, locnme = new_locnme,
-                         datatype = new_dt, check_loc = False,
-                         fluc_dic = {'tag':tag,'on':on})
+            # -- Avoid non existing locnmes
+            if ln in self.obs.keys():
+                # ---- Define new locnme
+                new_locnme = ln + tag + 'fluc'
+                # ---- Get DataFrame of the source observation
+                df = self.obs[ln].obs_df.set_index('date').rename({'obsval':'value'}, axis=1)
+                # ---- Infer fluctuation manipulation to perform
+                s = df['value'].replace(self.nodata, pd.NA)  # replace nodata values by NaN
+                sub_val = s.agg(on) if isinstance(on, str) else on
+                # ---- Get fluctuation by substraction
+                df['value'] = [x - sub_val if not x in self.nodata else x for x in df['value']]
+                # ---- Add fluctuation observation
+                new_dt = self.obs[ln].datatype + tag + 'fluc'
+                self.add_obs(data = df, locnme = new_locnme,
+                             datatype = new_dt, check_loc = False,
+                             fluc_dic = {'tag':tag,'on':on})
+            else:
+                warn_msg = f"WARNING : could not found observation with `locnme` = {ln}. " \
+                           "Fluctuation observation set will not be added."
+                warnings.warn(warn_msg)
 
 
 
@@ -945,7 +1012,7 @@ class MartheOptim():
 
     def write_parfile(self, parname= None):
         """
-        Write parameter file(s) in parameter folder.
+        Write parameter file(s) in parameter directory (`par_dir`).
 
         Parameters
         ----------
@@ -973,7 +1040,7 @@ class MartheOptim():
 
     def write_tplfile(self, parname= None):
         """
-        Write template file(s) in template folder.
+        Write template file(s) in template directory (`tpl_dir`).
 
         Parameters
         ----------
@@ -997,6 +1064,7 @@ class MartheOptim():
         # -- Write parameter file for each provided parameter
         for pnme in pnmes:
             self.param[pnme].write_tplfile()
+
 
 
 
@@ -1063,7 +1131,7 @@ class MartheOptim():
 
 
 
-    def build_pst(self, add_reg0= False, write= False, **kwargs):
+    def build_pst(self, add_reg0= False, write= False, model_command='model.bat', **kwargs):
         """
         Generate Pest Control File from the current observation
         and parameters sets added to MartheOptim instance.
@@ -1081,6 +1149,9 @@ class MartheOptim():
                                      the user provided name.
                                      if False, the Pest Control File will not be written.
                                      Default is False.
+
+        model_command (str/list, optional) : command(s) to launch forward run.
+                                             Default is 'model.bat'.
 
         **kwargs, additional internal arguments that refer to the pyemu.Pst:
                 - `control_data` section:
@@ -1155,6 +1226,9 @@ class MartheOptim():
                        "a existing pyEMU key in `pst.control_data` or `pst.reg_data`. " \
                        "It will not be considered."
                 warnings.warn(msg)
+
+        # -- Manage forward run command
+        pst.model_command = marthe_utils.make_iterable(model_command)
 
         # -- Return and write pst if required
         if write == True:

@@ -1523,3 +1523,355 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
     # ---- Return MultiIndex DataFrame
     return zb_df
 
+
+
+
+
+def hydrodyn_periodicity(pastpfile, istep, external=False, new_pastpfile=None):
+    """
+    Helper function to manage hydrodynamic computation periodicity in .pastp file.
+
+    Parameters:
+    ----------
+
+    pastpfile (str) : path to the required model .pastp file.
+
+    istep (str/int/iterable) : required istep to activate hydrodynamic computation.
+                               Can be :
+                                    - 'all' : activate for all timesteps
+                                    - 'none': desactivate for all timesteps
+                                    - 'start:end:step' : string sequence
+                                    - [0,1,2,..] : any integer iterables
+
+    external (bool, optional) : whatever create a external file with required
+                                hydrodynamic computation periodicity.
+                                Note: external optional will not be considered
+                                      for global `istep` such as 'all', 'none'
+                                Default is False.
+
+    new_pastpfile (str, optional) : path to the new pastp file to write.
+                                    If None, will overwrite the input pastp file.
+                                    Default is None.
+
+    Returns:
+    --------
+    (Over-)write pastp file.
+    If `external` == True, will also write 'cacul_hydro.txt'.
+                      .
+
+    Examples:
+    --------
+    f = 'mymodel.pastp'
+    # -- All timesteps
+    hydrodyn_periodicity(f, istep= 'all', external=False)
+    # -- Weekly
+    hydrodyn_periodicity(f, istep= '::7', external=True)
+    # -- Annual
+    hydrodyn_periodicity(f, istep= '::365', external=False)
+    # -- Specific
+    hydrodyn_periodicity(f, istep= [0,5,6,7,9,11], external=True)
+
+    """
+    # ---- Read .pastp file by lines
+    with open(pastpfile, 'r', encoding = encoding) as f:
+        init = f.readlines()
+
+    # ---- Clear existing hydrodynamic action
+    lines = [l for l in init if not 'CALCUL_HDYNAM' in l]
+    nlines = deepcopy(lines)
+
+    # -- Manage string istep
+    if isinstance(istep, str):
+        # ---- Activate all timesteps
+        if istep == 'all':
+            # -- Find index `i` where insert required line
+            for i, l in enumerate(lines):
+                if 'Fin de ce pas' in l:
+                    break
+            # -- Insert line to activate all timesteps (default) 
+            _l ='  /CALCUL_HDYNAM/ACTION    I= 0;\n'
+            nlines.insert(i, _l)
+
+        # ---- Desactivate all timesteps
+        if istep == 'none':
+            # -- Find index `i` where insert required line
+            for i, l in enumerate(lines):
+                if 'Fin de ce pas' in l:
+                    break
+            # -- Insert line to activate all timesteps (default)
+            _l ='  /CALCUL_HDYNAM/ACTION    I= -1;\n'
+            nlines.insert(i, _l)
+
+        # ---- Manage string sequence to get istep 
+        if ':' in istep:
+            # -- Extract total number of timesteps
+            nstep = len(re.findall(r'Fin de ce pas', ''.join(lines)))
+            # -- Extract time bounds (start, end, step) as integers
+            re_seq = r'(\d+|\s*):(\d+|\s*):(\d+)'
+            s, e, ii = re.findall(re_seq,istep)[0]
+            start = eval(s) if s != '' else 0
+            end = eval(e) if e != '' else nstep
+            step = eval(ii) if ii != '' else 1
+            # -- Set numerical istep as array
+            if start < end:
+                istep = np.arange(start, end, step)
+            else:
+                istep = np.arange(end, start, step)
+
+    # -- Manage iterable istep
+    if not isinstance(istep, str):
+        # -- Make istep iterable if is not already
+        isteps = make_iterable(istep)
+        # -- Manage external mode
+        if external:
+            # -- Set external filename (generic) in first timestep
+            ext = 'calcul_hydro.txt'
+            _l = f'  /CALCUL_HDYNAM/ACTION    I= 0; File= {ext}\n'
+            ext_path = os.path.join(os.path.split(pastpfile)[0], ext)
+            for i, l in enumerate(lines):
+                if 'Fin de ce pas' in l:
+                    break
+            nlines.insert(i, _l)
+            # -- Fetch timesteps calendar dates
+            dates = re.findall(r'\d{2}\/\d{2}\/\d{4}', ''.join(lines))
+            # -- Set external file header
+            s =  "HYDRODYNAMIC COMPUTATION PLANNING\n"
+            # -- Iterate over all time steps (2 = active, 0 = inactive)
+            for n, date in enumerate(dates):
+                # -- Active if in required timesteps desactive otherwise
+                if n in isteps:
+                    s += f'2\t{date}\n'
+                else:
+                    s += f'0\t{date}\n'
+
+            # -- Write external file
+            with open(ext_path, 'w', encoding =encoding) as f:
+                f.write(s)
+
+        # -- Manage internal mode
+        else:
+            # -- Set active/desactive line to write
+            _l = '  /CALCUL_HDYNAM/ACTION    I= 2;\n'
+            __l = '  /CALCUL_HDYNAM/ACTION    I= 0;\n'
+            n = -1
+            # -- Iterate over pastp lines
+            for i, l in enumerate(lines):
+                # -- Detect end of time step line index
+                if 'Fin de ce pas' in l:
+                    n += 1
+                    # -- Insert active/desative line
+                    if n in isteps:
+                        nlines.insert(i+n,_l)
+                    else:
+                        nlines.insert(i+n,__l)
+
+    # -- (Over-)write pastp file 
+    out = pastpfile if new_pastpfile is None else new_pastpfile
+    with open(out, 'w', encoding=encoding) as f:
+        f.write(''.join(nlines))
+
+    # -- Print final message
+    print("==> Hydrodynamic computation periodicity " \
+          f"had been set successfully in '{out}'") 
+
+
+
+
+def set_tw(start=None, end=None, mm=None, martfile=None, pastpfile=None):
+    """
+    Function to set/change model time window in .mart file.
+    Note: the .pastp file will not be modify.
+
+    Parameters:
+    ----------
+    start (str/int, optional) : string date or istep number of required
+                                first timestep to consider.
+                                If None, the first istep (in .pastp file)
+                                will be considered.
+                                Default is None.
+
+    end (str/int, optional) : string date or istep number of required 
+                              last timestep to consider.
+                              If None, the last istep (in .pastp file)
+                              will be considered.
+                              Default is None.
+
+    mm (MartheModel, optional) : MartheModel with correct .mldates and .mlfiles.
+                                 If None, `martfile` and `pastpfile` arguments
+                                 will be considered.
+                                 Default is None.
+
+    martfile (str, optional) : related model .mart file
+                               Default is None.
+
+    pastpfile (str, optional) : related model .mart file
+                               Default is None.
+
+
+    Returns:
+    --------
+    Change .mart file inplace with required time window.
+
+    Examples:
+    --------
+    # -- From isteps
+    set_tw(start=10, end=35, mm=mm)
+
+    # -- From dates
+    set_tw(start='1999/01/28', end=65, mm=mm)
+
+    # -- From external files
+    set_tw(start=10, end=35,
+                martfile='mymodel.mart',
+                pastpfile='mymodel.pastp')
+    """
+    # ---- Manage provided required Marthe files
+    if mm is not None:
+        pastpfile = mm.mlfiles['pastp']
+        martfile = mm.mlfiles['mart']
+        dates = mm.mldates
+    else:
+        err_msg = "ERROR : could not reach .mart or .pastp file. " \
+                  "Make sure to provide either a `MartheModel` " \
+                  "instance or both .mart and .pastp file names."
+        assert all(f is not None for f in [martfile, pastpfile]), err_msg
+        dates = get_dates(pastpfile, martfile)
+
+    # ---- Manage default start/end input
+    start = 0 if start is None else start
+    end = 0 if end is None else end
+
+    # ---- Manage time bounds
+    tbounds = []
+    for tb in [start, end]:
+
+        # -- Manage date input (str)
+        if isinstance(tb, str):
+            # -- Convert string to pandas Timestamp
+            ts = pd.Timestamp(tb)
+            # -- Check if fall in model time window
+            err_msg = "ERROR : provided date (str) is outside the model time window. " \
+                      f"Given: {tb}."
+            assert ts in dates, err_msg
+            # -- Convert to istep (int)
+            itb = dates.get_loc(ts)
+
+        # -- Manage istep input (int)
+        elif isinstance(tb, int):
+            # -- Check if fall in model time window
+            err_msg = "ERROR : provided istep (int) is outside the model time window. " \
+                      f"Given: {tb}."
+            assert tb in list(range(len(dates))), err_msg
+            itb = tb
+
+        # # -- Manage not provided end
+        # elif tb is None:
+        #     itb = 0 #défault
+
+        # -- Add time bound
+        tbounds.append(itb)
+
+    istart, iend = tbounds
+
+    # ---- Assert that start < end
+    err_msg = "ERROR : `end` timestep must be greater than `start`. " \
+              "Given : {}, {}.".format(*tbounds)
+    assert np.logical_or(istart < iend, iend == 0) , err_msg
+
+    # ---- Extract .mart file content
+    with open(martfile, encoding=encoding) as f:
+        lines = f.readlines()
+
+    # ---- Set usefull regex
+    re_block = r"\*{3}\s*Pas de Temps"
+    re_repl = r"([-+]?\d*\.?\d+|\d+)=N"
+
+    # ---- Extract required lines
+    for i, line in enumerate(lines):
+        if re.search(re_block, line) is not None:
+            start_line = lines[i+4]
+            end_line = lines[i+1]
+            break
+
+    # ---- Replace start line
+    replace_text_in_file( martfile, start_line, re.sub(re_repl, str(istart) + '=N', start_line) )
+
+    # ---- Replace end line
+    replace_text_in_file( martfile, end_line, re.sub(re_repl, str(iend) + '=N', end_line) )
+
+    # -- Print final message
+    print(f"==> Model time window had been set from istep " \
+          f"{istart} to {iend} successfully. ")
+
+
+
+def get_tw(mm=None, martfile=None, pastpfile=None, tw_type='date'):
+    """
+    Function to extract model time window in .mart file.
+
+    Parameters:
+    ----------
+    mm (MartheModel, optional) : MartheModel with correct .mldates and .mlfiles.
+                                 If None, `martfile` and `pastpfile` arguments
+                                 will be considered.
+                                 Default is None.
+
+    martfile (str, optional) : related model .mart file
+                               Default is None.
+
+    pastpfile (str, optional) : related model .mart file
+                               Default is None.
+
+    tw_type (str, optional) : time window output type.
+                              Can be :
+                                - 'date' : return pd.timestamp objects
+                                - 'istep': return integers
+                              Default is 'date'.
+
+    Returns:
+    --------
+    tw_min, tw_max (tuple): time window bounds (start/end)
+
+    Examples:
+    --------
+    # -- From isteps
+    istart, iend = get_tw(mm=mm, tw_type='istep')
+    # -- Get time window dates
+    start, end = get_tw(mm=mm, tw_type='date')
+    # -- From external files
+    start, end = get_tw(martfile='mymodel.mart', pastpfile='mymodel.pastp')
+
+    """
+    # ---- Manage provided required Marthe files
+    if mm is not None:
+        pastpfile = mm.mlfiles['pastp']
+        martfile = mm.mlfiles['mart']
+    else:
+        err_msg = "ERROR : could not reach .mart or .pastp file. " \
+                  "Make sure to provide either a `MartheModel` " \
+                  "instance or both .mart and .pastp file names."
+        assert all(f is not None for f in [martfile, pastpfile]), err_msg
+
+    # ---- Extract .mart file content
+    with open(martfile, encoding=encoding) as f:
+        lines = f.readlines()
+
+    # ---- Set usefull regex
+    re_block = r"\*{3}\s*Pas de Temps"
+    re_istep = r"([-+]?\d*\.?\d+|\d+)=N"
+
+    # ---- Extract required lines
+    for i, line in enumerate(lines):
+        if re.search(re_block, line) is not None:
+            tw_min = ast.literal_eval(re.search(re_istep, lines[i+4]).group(1))
+            tw_max = ast.literal_eval(re.search(re_istep, lines[i+1]).group(1))
+            break
+
+    # ---- Return time window as tuple
+    if tw_type == 'date':
+        dates = get_dates(pastpfile, martfile) if mm is None else mm.mldates
+        return dates[tw_min], dates[tw_max]
+
+    elif tw_type == 'istep':
+        return tw_min, tw_max
+
