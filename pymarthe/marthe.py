@@ -222,7 +222,6 @@ class MartheModel():
 
             # -- Enable insertion of inactive cells 
             else:
-
                 # -- Iterate over structured grid data
                 for r in records:
                     # Store infos of current cell

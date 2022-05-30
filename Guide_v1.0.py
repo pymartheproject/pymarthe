@@ -1005,6 +1005,8 @@ the default `datatype` is 'head'.
 Some other arguments can be explicite such as `loc_name` (name of the observation point),
 `check_loc` (verify if this loc_name exist and is unique) and other kwargs such as 
 observation weights, observation group name (obgnme), ...
+Note : if user provid observation records beyond the model time window, a warnings will be
+       raised and only observations that fall in the actual model time window will be considered.
 Let's add a single observation.
 '''
 
@@ -1151,7 +1153,15 @@ mopt.write_insfile(locnme = '07065X0002')
 # -- Write all instruction files
 mopt.write_insfile()
 
-
+'''
+The PEST tools not only requires the instruction files but also the equivalent out files
+extracting from the marthe 'historiq.prn' file after a model run. In general, these files are
+generated after a forward run but, pyemu use the pest 'inscheck' executable to build the
+Pst instance during the setup. In consequence, that produces a bunch of anoying pest inscheck
+warnings. PyMarthe can avoid these by extracting required simulated data before the .pst
+file construction thanks to the `.write_simfile()` method.
+'''
+mopt.write_simfile()
 
 
 # --------------------------------------------------------
@@ -1448,43 +1458,7 @@ mopt.write_tplfile()
 
 
 # --------------------------------------------------------
-# ---- Pest Control File (.pst)
-
-'''
-After all the observations and parameters of the model had been added to
-the MartheOptim instance and all pest files already written, the user need
-to create the main pest file : Pest Control File.
-This file contains all the information about the required calibration/optimisation
-and others internal arguments about the used algorithm (pestpp-glma, pestpp-ies,
-pestpp-cmaes, pestpp-opt, ...). A built-in method in MartheOptim can be use to 
-easily generate and write the required '.pst' file. It is a simple wrapper to the
-pyemu.pst.pst_handler.Pst() class. Thus, the .build_pst() method will collect
-all the observation and parameter information already added in MartheOptim and
-push them into a pyEMU pst instance. 
-Passing the `add_reg0` argument to True will add a 0-order Tikhonov regularization
-to the current parametrisation.
-Note : The method always return a Pst instance even if the user choose to write
-       the .pst file directly (`write = True`). Moreover, the generated Pst
-       instance can still be modified before writing it on user disk
-Let's generate a pest control files with:
-    - Tikhonov regularization (order 0)
-    - noptmax = 0
-    - phimlim = 5
-    - phimaccept = 10
-    - fracphim = 0.05
-
-'''
-# -- Build Pst with regularization 
-pst = mopt.build_pst(add_reg0=True, write=True, noptmax=0,
-                     phimlim=5, phimaccept=10, fracphim=0.05)
-# -- Check out the generate pst
-pst.parameter_data.head()
-pst.observation_data.head()
-
-
-
-# --------------------------------------------------------
-# ---- Forward run (.config)
+# ---- Forward run (.config/.py)
 
 
 '''
@@ -1537,4 +1511,76 @@ that had been parametrized earlier.
 print(mmfrom.prop.keys())
 
 
+'''
+MartheOptim also has a built-in function to generate a standard forward run python script.
+It uses the pymarthe.utils.pest_utils.run_from_config() function but the user can also
+provides other (extra) post-processing function to run after (re)running the model.
+Let's try this .write_forward_run() method.
+'''
+# -- Write standard forward run file
+fr_file = os.path.join(mm.mldir,'forward_run.py')
+mopt.write_forward_run(fr_file, configfile, exe_name='Marth_R8')
+
+# -- Write forward run with extra basics functions
+def foo():
+    s='get upper case'
+    return s.upper()
+
+def bar():
+    return glob.glob('.')
+
+mopt.write_forward_run(fr_file, configfile,
+                       extra_py_imports= 'glob', # additional python package to import
+                       extra_functions = [foo, bar], # additional python functions to run 
+                       exe_name='Marth_R8')
+
+
+
+
+# --------------------------------------------------------
+# ---- Pest Control File (.pst)
+
+'''
+After all the observations and parameters of the model had been added to
+the MartheOptim instance and all pest files already written, the user need
+to create the main pest file : Pest Control File.
+This file contains all the information about the required calibration/optimisation
+and others internal arguments about the used algorithm (pestpp-glma, pestpp-ies,
+pestpp-cmaes, pestpp-opt, ...). A built-in method (.build_pst()) in MartheOptim can
+be use to easily generate and write the required '.pst' file. It is a simple wrapper
+to the pyemu.pst.pst_handler.Pst() class. Thus, the .build_pst() method will collect
+all the observation and parameter information already added in MartheOptim and
+push them into a pyEMU pst instance. 
+Passing the `add_reg0` argument to True will add a 0-order Tikhonov regularization
+to the current parametrisation.
+The method also provided an integrated argument to write the configuration, forward run
+and .pst files on disk (respectivly `write_config`, `write_fr` and `write_pst`).
+Passing `True` values to these arguments will write files with generic names, otherwise
+the user can choose the names of each single file.
+Note : The method always return a Pst instance even if the user choose to write
+       the .pst file on disk directly. Moreover, the generated Pst instance can
+       still be modified before writing it on user disk.
+
+Let's generate a pest control file and related configuration and forward run files
+with the following settings:
+    - Tikhonov regularization (order 0)
+    - noptmax = 0
+    - phimlim = 5
+    - phimaccept = 10
+    - fracphim = 0.05
+
+'''
+# -- Build Pst with regularization 
+pst = mopt.build_pst(add_reg0=True,
+                     write_pst=True,
+                     write_config=True,
+                     write_fr=True,
+                     noptmax=0,
+                     phimlim=5,
+                     phimaccept=10,
+                     fracphim=0.05)
+
+# -- Check out the generate pst
+pst.parameter_data.head()
+pst.observation_data.head()
 

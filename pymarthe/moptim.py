@@ -369,28 +369,29 @@ class MartheOptim():
                        f'{locnme} observation set will not be added.'
             warnings.warn(warn_msg)
 
-        if len(df) > len(df_tw):
-            # -- Raise warning message
-            warn_msg = f'WARNING : some observation data of `locnme` = {locnme} ' \
-                       f'are out of actual model time window ({self.tw_min} - {self.tw_max}). ' \
-                       'They will not be considered.'
-            warnings.warn(warn_msg)
+        else:
+            if len(df) > len(df_tw):
+                # -- Raise warning message
+                warn_msg = f'WARNING : some observation data of `locnme` = {locnme} ' \
+                           f'are out of actual model time window ({self.tw_min} - {self.tw_max}). ' \
+                           'They will not be considered.'
+                warnings.warn(warn_msg)
 
-        # ---- Build MartheObs instance from data input
-        insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))
-        simfile = kwargs.pop('simfile', os.path.join(self.sim_dir, f'{locnme}.dat'))
-        mobs = MartheObs(iloc = self.get_nlocs(),
-                         locnme = locnme,
-                         date = df_tw.index,
-                         value = df_tw['value'].values,
-                         obsfile = obsfile,
-                         insfile = insfile,
-                         simfile = simfile,
-                         datatype = datatype,
-                         **kwargs)
+            # ---- Build MartheObs instance from data input
+            insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))
+            simfile = kwargs.pop('simfile', os.path.join(self.sim_dir, f'{locnme}.dat'))
+            mobs = MartheObs(iloc = self.get_nlocs(),
+                             locnme = locnme,
+                             date = df_tw.index,
+                             value = df_tw['value'].values,
+                             obsfile = obsfile,
+                             insfile = insfile,
+                             simfile = simfile,
+                             datatype = datatype,
+                             **kwargs)
 
-        # ---- Add MartheObs to main observation dictionary
-        self.obs[locnme] = mobs
+            # ---- Add MartheObs to main observation dictionary
+            self.obs[locnme] = mobs
 
 
 
@@ -1068,6 +1069,133 @@ class MartheOptim():
 
 
 
+    def write_forward_run(self, fr_file, configfile, extra_py_imports=[], extra_functions=[], **kwargs):
+        """
+        Write forward run python file.
+        Note : if some extra functions are provided, the `inspect` 
+               python module will be required.
+
+        Parameters:
+        ----------
+
+        fr_file (str) : forward run python file to write.
+
+        configfile (str) : pointer to .config file.
+                           Note: used by pest_utils.run_from_config().
+
+        extra_py_imports (str/list[str], optional) : additional python module to import. 
+                                                     Default is [].
+
+        extra_functions (str/list[str], optional) : additional post-processing functions
+                                                    to import.
+                                                    Default is [].
+
+        kwargs : additional argument of MartheModel.run_model() method.
+                 Can be :
+                    - `exe_name` (str)
+                    - `verbose` (bool)
+                    - `silent` (bool)
+                    - ...
+
+        Examples:
+        --------
+
+        # -- Set additional functions
+        def foo():
+            s='get upper case'
+            return s.upper()
+
+        def bar():
+            return glob.glob('.')
+        
+        # -- Write forward run file
+        mopt.write_forward_run(fr_file= 'forward_run.py',
+                               configfile= 'mysettings.config',
+                               extra_py_imports='glob',
+                               extra_functions=[foo, bar],
+                               exe_name= 'Marth_R8')
+
+        """
+        
+        with open(fr_file, 'w', encoding='utf-8') as f:
+
+            # ---- Print artistic header
+            f.write('\n'*2)
+            arts = ['███████╗ ██████╗ ██████╗ ██╗    ██╗ █████╗ ██████╗ ██████╗     ██████╗ ██╗   ██╗███╗   ██╗',
+                    '██╔════╝██╔═══██╗██╔══██╗██║    ██║██╔══██╗██╔══██╗██╔══██╗    ██╔══██╗██║   ██║████╗  ██║',
+                    '█████╗  ██║   ██║██████╔╝██║ █╗ ██║███████║██████╔╝██║  ██║    ██████╔╝██║   ██║██╔██╗ ██║',
+                    '██╔══╝  ██║   ██║██╔══██╗██║███╗██║██╔══██║██╔══██╗██║  ██║    ██╔══██╗██║   ██║██║╚██╗██║',
+                    '██║     ╚██████╔╝██║  ██║╚███╔███╔╝██║  ██║██║  ██║██████╔╝    ██║  ██║╚██████╔╝██║ ╚████║',
+                    '╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝']
+            for art in arts:
+                f.write(f"print('{art}')\n")
+            f.write('\n'*3)
+
+            # ---- Import modules
+            # -- Basic python modules
+            f.write('# -- Import basic python modules\n')
+            imp = ['import os', 'import pyemu',
+                   'import multiprocessing as mp',
+                   'import numpy as np',
+                   'import pandas as pd',
+                   'import pymarthe']
+            f.write('\n'.join(imp))
+            f.write('\n'*2)
+
+            # ---- Extra python modules
+            ext_imports = marthe_utils.make_iterable(extra_py_imports)
+            if len(ext_imports) > 0:
+                f.write('# -- Import extra python modules\n')
+                for ext_imp in ext_imports:
+                        f.write("import {0}\n".format(ext_imp))
+            f.write('\n')
+
+            # ---- Write extra functions
+            ext_func = marthe_utils.make_iterable(extra_functions)
+            # -- Assert that all items are functions
+            assert all(callable(obj) for obj in ext_func), err_msg
+            if len(ext_func) > 0:
+                # -- Try to import inspect module
+                try:
+                    import inspect
+                except:
+                    raise ImportError('Could not import `inspect` python module.')
+                # -- Extrac function
+                for i, func in enumerate(ext_func):
+                    # -- Assert that item is a function
+                    err_msg = 'ERROR : All single items in `extra_functions` must be callable. ' \
+                              f'Given : {type(func)}' 
+                    assert callable(func), err_msg
+                    f.write(f"# -- Extra function n°{i}\n")
+                    # -- Get source code of the function
+                    f.write(inspect.getsource(func))
+                    f.write('\n')
+
+            # ---- Write main() function
+            f.write('\n')
+            f.write('def main():\n')
+            # -- Perform a forward run from .config file
+            f.write('\t# -- Run model from .config file\n')
+            run_lines = ['\tpymarthe.utils.pest_utils.run_from_config(',
+                        f'"{configfile}"',
+                        *[f', {k}={v}' if isinstance(v,(type(None), bool)) else f', {k}="{v}"' for k,v in kwargs.items()],
+                        ')\n']
+            f.write(''.join(run_lines))
+            # -- Perform additional functions
+            f.write('\t# -- Run extra functions\n')
+            for func in ext_func:
+                f.write(f'\t{func.__name__}()\n')
+
+            # ---- Write forward run internal launcher
+            f.write('\n'*2)
+            f.write('# -- Launch forward run\n')
+            f.write("if __name__ == '__main__':\n")
+            f.write('\tmp.freeze_support()\n')
+            f.write('\tmain()\n\n')
+
+
+
+
 
     def collect_pest_files(self, ftypes=['tpl', 'par', 'ins', 'sim']):
         """
@@ -1130,8 +1258,9 @@ class MartheOptim():
 
 
 
-
-    def build_pst(self, add_reg0= False, write= False, model_command='model.bat', **kwargs):
+    def build_pst(self, add_reg0= False, write_pst= False,
+                        write_config=False, write_fr=False,
+                        model_command=None, **kwargs):
         """
         Generate Pest Control File from the current observation
         and parameters sets added to MartheOptim instance.
@@ -1142,16 +1271,36 @@ class MartheOptim():
                                     Wrapper to pyemu.helpers.zero_order_tikhonov()
                                     Default is False.
 
-        write (bool/str, optional) : .pst file writing management.
-                                     If True, the Pest Control File will be written with
-                                     a generic name: 'name_of_MartheOptim_instance.pst'.
-                                     If string, the Pest Control File will be written with
-                                     the user provided name.
-                                     if False, the Pest Control File will not be written.
-                                     Default is False.
+        write_pst (bool/str, optional) : .pst file writing management.
+                                         If True, the Pest Control File will be written with
+                                         a generic name: 'name_of_MartheOptim_instance.pst'.
+                                         If string, the Pest Control File will be written with
+                                         the user provided name.
+                                         If False, the Pest Control File will not be written.
+                                         Default is False.
+
+        write_config (bool/str, optional) : .config file writing management.
+                                            If True, the .config file will be written with
+                                            a generic name: 'name_of_MartheOptim_instance.config'.
+                                            If string, the .config file will be written with
+                                            the user provided name.
+                                            If False, the .config file will not be written.
+                                            Default is False.
+
+        write_fr (bool/str, optional) : forward run file writing management.
+                                        If True, the forward run file will be written with
+                                        a generic name: 'forward_run.py'.
+                                        If string, the forward run file will be written with
+                                        the user provided name.
+                                        If False, the forward run file will not be written.
+                                        Default is False.
 
         model_command (str/list, optional) : command(s) to launch forward run.
-                                             Default is 'model.bat'.
+                                             If None and `write_fr` == True|str the default command
+                                             will be 'python3 {forward_run_file}'.
+                                             If None and `write_fr` == False, the default command
+                                             will be 'model.bat' (no changes from pyemu).
+                                             Default is None.
 
         **kwargs, additional internal arguments that refer to the pyemu.Pst:
                 - `control_data` section:
@@ -1175,10 +1324,43 @@ class MartheOptim():
 
         Examples
         --------
-        pst = mopt.build_pst(add_reg0=True, write='mycalibration.pst',
-                             noptmax=0, phimlim=1)
+        pst = mopt.build_pst(add_reg0=True,
+                             write_pst='mycalibration.pst',
+                             write_config=True,
+                             write_fr=True,
+                             noptmax=0,
+                             phimlim=1)
 
         """
+        # -- Get generic path
+        gpath = os.path.join(self.mm.mldir, self.name)
+
+        # -- Fetch generic configfile path
+        msg = 'WARNING : no .config file name found. ' \
+              f'The generic name "{gpath}.config" will be used instead.'
+
+        # -- Write .config file if required
+        if write_config == True:
+            configfile = f'{gpath}.config'
+            self.write_config(configfile)
+        elif isinstance(write_config, str):
+            configfile = write_config
+            self.write_config(write_config)
+
+        # -- Write forward run file if required
+        if write_fr == True:
+            fr_file = os.path.join(self.mm.mldir, 'forward_run.py')
+            if write_config == False:
+                warnings.warn(msg)
+            self.write_forward_run(fr_file, configfile)
+        elif isinstance(write_fr, str):
+            if write_config == False:
+                warnings.warn(msg)
+            fr_file = write_fr
+            self.write_forward_run(fr_file, configfile)
+        elif write_fr == False:
+            fr_file = None
+
         # -- Generate basic pst from io files
         pst = pyemu.Pst.from_io_files(*self.collect_pest_files())
 
@@ -1228,15 +1410,21 @@ class MartheOptim():
                 warnings.warn(msg)
 
         # -- Manage forward run command
-        pst.model_command = marthe_utils.make_iterable(model_command)
+        if model_command is None:
+            if fr_file is not None:
+                pst.model_command = [f'python3 {fr_file}']
+        else:
+            pst.model_command = marthe_utils.make_iterable(model_command)
 
-        # -- Return and write pst if required
-        if write == True:
-            pst.write(os.path.join(self.mm.mldir, f'{self.name}.pst'))
-        elif isinstance(write, str):
-            pst.write(write)
-        
+        # -- Write pst if required
+        if write_pst == True:
+            pst.write(f'{gpath}.pst')
+        elif isinstance(write_pst, str):
+            pst.write(write_pst)
+
+        # -- Return Pst instance
         return pst
+
 
 
 

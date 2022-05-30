@@ -854,8 +854,8 @@ class MartheGridParam():
                         pf = os.path.join(path, f)
                         # -- Write parameter file
                         pest_utils.write_mgp_parfile(pf, zpp_df, trans= self.trans, ptype=ptype)
-            else : 
-                print('No Pilot Points identified for parameter {0} in izone data.'.format(self.mobj.field))
+            # else :
+            #     print('No Pilot Points identified for parameter {0} in izone data.'.format(self.mobj.field))
 
         # ---- Manage multiple True only
         if np.all([only_zpc, only_pp]):
@@ -916,8 +916,8 @@ class MartheGridParam():
                         pf = os.path.join(path, f)
                         # -- Write parameter file
                         pest_utils.write_mgp_tplfile(pf, zpp_df, ptype=ptype)
-            else : 
-                print('No Pilot Points identified for parameter {0} in izone data.'.format(self.mobj.field))
+            # else : 
+            #     print('No Pilot Points identified for parameter {0} in izone data.'.format(self.mobj.field))
 
         # ---- Manage multiple True only
         if np.all([only_zpc, only_pp]):
