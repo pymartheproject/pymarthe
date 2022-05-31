@@ -1098,11 +1098,12 @@ class MartheModel():
         # -- Read 'permh' with adjacent cells (layer 0)
         mgs = marthe_utils.read_grid_file(
                     self.mlfiles['permh'],
-                        keep_adj=True)[:self.nnest+1]
+                        keep_adj=True)
+        mgs0 = [mg for mg in mgs if mg.layer == 0]
         # -- Compute rlevel (dx_main_grid / dx_nested_grid)
         rlevels = {mg.inest : int(mg.dx[0]//mg.dx[1])
                                 if mg.inest > 0 else None
-                                    for mg in mgs}
+                                    for mg in mgs0}
         # -- Return
         return rlevels
 
