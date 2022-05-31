@@ -292,7 +292,17 @@ class MartheField():
         # ---- Manage Marthe filename as input
         if np.logical_and.reduce([_str, _none]):
             grids = marthe_utils.read_grid_file(data)
-            self.data =  self._grids2rec(grids)
+            rec =  self._grids2rec(grids)
+            # -- Independant grid (contains value and geometry)
+            if 'permh' in data:
+                self.data =  rec
+            # -- Model dependant grid (only contains value)
+            else:
+                irec = deepcopy(self.mm.imask.data)
+                mask = self.mm.imask.get_data(layer=layer, inest=inest,
+                            masked_values=self.dmv, as_mask=True)
+                irec['value'][mask] = rec['value'][mask]
+                self.data = irec
 
         # ---- Manage list of MartheGrids as input
         if np.logical_and.reduce([_list, _none]):
