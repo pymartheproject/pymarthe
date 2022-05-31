@@ -558,10 +558,10 @@ class MartheField():
 
         # ---- Iterate over layer and inest
         mgrids = []
-        for layer in np.unique(rec['layer']):
-            for inest in np.unique(rec['inest']):
-                # ---- Convert selected recarray to single MartheGrid instance
+        for inest in np.unique(rec['inest']):
+            for layer in np.unique(rec['layer']):
                 mgrids.append(self._rec2grid(layer, inest))
+
         # ---- Return list of grids
         return mgrids
 
@@ -1006,7 +1006,7 @@ class MartheFieldSeries():
         """
         self.mm = mm
         self.field = field
-        self.simfile = os.path.join(self.mm.mldir, 'chamsim.out') if simfile is None else simfile
+        self.simfile = os.path.join(self.mm.mldir, 'chasim.out') if simfile is None else simfile
         self.data = self._extract_fieldseries()
 
 

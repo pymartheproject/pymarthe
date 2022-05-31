@@ -219,8 +219,10 @@ class MartheGrid():
         lines.append('! Line 3+Nrows :   0   ,     0          , <     Dx_of_all_Columns   >')
         # ---- Append uniform data
         if self.isuniform:
+            uniform_value = array[~np.isin(array,[-9999,0,8888,9999])].mean()
+            uniform_value = 0 if np.isnan(uniform_value) else uniform_value            
             lines.append('[Constant_Data]')
-            lines.append('Uniform_Value={}'.format(array[~np.isin(array,[-9999,0,8888,9999])].mean()))
+            lines.append('Uniform_Value={}'.format(uniform_value))
             lines.append('[Columns_x_and_dx]')
             lines.append('\t'.join([str(i+1) for i in range(ncol)]))
             lines.append('\t'.join([str(i) for i in xcc]))
