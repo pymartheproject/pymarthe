@@ -63,7 +63,8 @@ class MartheGrid():
         self.yvertices = np.append(np.array(self.yl), self.yl + np.cumsum(self.dy))
         self.isnested = True if inest != 0 else False
         self.isregular = True if all(len(np.unique(a)) == 1 for a in [dx,dy]) else False
-        self.isuniform = True if len(np.unique(array)) == 1 else False
+        nvalues = len(np.unique(array[~np.isin(array, [-9999,0,8888,9999])]))
+        self.isuniform = False if nvalues > 1 else True
 
 
     def get_cell_vertices(self, i, j, closed=False):
@@ -148,17 +149,29 @@ class MartheGrid():
 
 
 
-    def to_string(self, maxlayer=None, maxnest=None, rlevel=None):
+    def to_string(self, maxlayer=None, maxnest=None, rlevel=None, keep_uniform_fmt=False):
 
         """
         Convert grid to a single string
         with Marthe Grid file format.
         Parameters: 
         -----------
-        maxlayer (int) : maximum number of layer.
-        maxnest (int) : maximum number of nested grid.
-        rlevel (int) : refine level to extract adjacent
-                       cells informations.
+        maxlayer (int/None, optional) : maximum number of layer.
+                                        If None, value will be '0'.
+                                        Default is None.
+        maxnest (int/None, optional) : maximum number of nested grid.
+                                       If None, value will be '0'.
+                                       Default is None.
+        rlevel (int/None, optional) : refine level to extract adjacent
+                                      cells informations.
+                                      Default is None.
+        keep_uniform_fmt (bool, optional) : whatever to conserve marthe light format
+                                            for uniform grid.
+                                            If True, light format will be conserved.
+                                            If False, all grids will be written explictly.
+                                            Default is False.
+                                            /!/ CAREFULL /!/ keeping uniform light format
+                                            on `permh` field can modify the model geometry.
 
         Return:
         -----------
@@ -181,7 +194,7 @@ class MartheGrid():
             xcc = np.r_[ self.xcc[0] - (dx[1] + dx[0])/2, self.xcc, self.ycc[-1] + (dx[-2] + dx[-1])/2]
             ycc = np.r_[ self.ycc[0] + (dy[1] + dy[0])/2, self.ycc, self.ycc[-1] - (dy[-2] + dy[-1])/2] # reversed direction
             xl, yl = xcc.min() - (dx[0]/2), ycc.min() - (dy[0]/2)
-            array = marthe_utils.bordered_array(self.array, -9999)
+            array = marthe_utils.bordered_array(self.array, 0) # set bordered array with value 0
             nrow, ncol = array.shape
 
         # ---- Manage nested grid number as str 
@@ -210,17 +223,10 @@ class MartheGrid():
         lines.append('Y_Lower_Corner={}'.format(yl))
         lines.append('Ncolumn={}'.format(ncol))
         lines.append('Nrows={}'.format(nrow))
-        lines.append('[Data_Descript]')
-        lines.append('! Line 1       :   0   ,     0          , <   1 , 2 , 3 , Ncolumn   >')
-        lines.append('! Line 2       :   0   ,     0          , < X_Center_of_all_Columns >')
-        lines.append('! Line 2+1     :   1   , Y_of_Row_1     , < Field_Values_of_all_Columns > , Dy_of_Row_1')
-        lines.append('! Line 2+2     :   2   , Y_of_Row_2     , < Field_Values_of_all_Columns > , Dy_of_Row_2')
-        lines.append('! Line 2+Nrows : Nrows , Y_of_Row_Nrows , < Field_Values_of_all_Columns > , Dy_of_Row_2')
-        lines.append('! Line 3+Nrows :   0   ,     0          , <     Dx_of_all_Columns   >')
-        # ---- Append uniform data
-        if self.isuniform:
-            uniform_value = array[~np.isin(array,[-9999,0,8888,9999])].mean()
-            uniform_value = 0 if np.isnan(uniform_value) else uniform_value            
+        if np.logical_and(self.isuniform, keep_uniform_fmt):
+            uv = np.unique(array[~np.isin(array,[-9999,0,8888,9999])])
+            uniform_value = 0 if len(uv) == 0 else uv[0]
+            # uniform_value = 0 if np.isnan(uniform_value) else uniform_value            
             lines.append('[Constant_Data]')
             lines.append('Uniform_Value={}'.format(uniform_value))
             lines.append('[Columns_x_and_dx]')
@@ -233,6 +239,14 @@ class MartheGrid():
             lines.append('\t'.join([str(i) for i in dy]))
         # ---- Append non uniform data
         else:
+            lines.append('[Data_Descript]')
+            lines.append('! Line 1       :   0   ,     0          , <   1 , 2 , 3 , Ncolumn   >')
+            lines.append('! Line 2       :   0   ,     0          , < X_Center_of_all_Columns >')
+            lines.append('! Line 2+1     :   1   , Y_of_Row_1     , < Field_Values_of_all_Columns > , Dy_of_Row_1')
+            lines.append('! Line 2+2     :   2   , Y_of_Row_2     , < Field_Values_of_all_Columns > , Dy_of_Row_2')
+            lines.append('! Line 2+Nrows : Nrows , Y_of_Row_Nrows , < Field_Values_of_all_Columns > , Dy_of_Row_2')
+            lines.append('! Line 3+Nrows :   0   ,     0          , <     Dx_of_all_Columns   >')
+        # ---- Append uniform data
             lines.append('[Data]')
             lines.append('\t'.join(['0','0'] + [str(i+1) for i in range(ncol)]))
             lines.append('\t'.join(['0','0'] + [str(i) for i in xcc]))

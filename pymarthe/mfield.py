@@ -567,7 +567,7 @@ class MartheField():
 
 
 
-    def write_data(self, filename=None):
+    def write_data(self, filename=None, keep_uniform_fmt=False):
         """
         Write field data in Marthe field property file.
 
@@ -575,9 +575,16 @@ class MartheField():
         ----------
         filename (str) : path to write field data.
 
+        keep_uniform_fmt (bool, optional) : whatever to conserve marthe light format
+                                            for uniform grid.
+                                            If True, light format will be conserved.
+                                            If False, all grids will be written explictly.
+                                            Default is False.
+                                            /!/ CAREFULL /!/ keeping uniform light format
+                                            on `permh` field can modify the model geometry.
         Returns:
         --------
-        Write in Marthe field property file inplace.
+        Write in Marthe field property file on disk.
 
         Examples:
         --------
@@ -602,7 +609,8 @@ class MartheField():
                             mg.to_string(
                                 maxlayer = self.maxlayer,
                                 maxnest = self.maxnest,
-                                rlevel = rl[mg.inest] )
+                                rlevel = rl[mg.inest],
+                                keep_uniform_fmt = keep_uniform_fmt )
                                                                         )
 
 
