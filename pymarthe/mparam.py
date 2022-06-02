@@ -617,31 +617,33 @@ class MartheGridParam():
         for ilay in range(self.nlay):
             ldata = self.izone.get_data(layer=ilay, masked_values=self.izone.dmv)
             zones = np.unique(ldata['value']).astype(int)
-            pp_dfs = []
-            for zone in zones:
-                if zone > 0:
-                    # -- Try to get pilot point coordinates if provided
-                    try:
-                        ppobj = self.pp_data[ilay][zone]
-                        # ---- Manage pilot point input object
-                        coords = shp_utils.shp2points(ppobj) if isinstance(ppobj, str) else ppobj
-                    # -- Get izone cell centers as pilot point coordinates if not provided
-                    except:
-                        # -- Warn about default behaviour
-                        msg = f"WARNING : pilot point coordinates not provided for layer = {ilay}" \
-                              f" and zone = {int(zone)}. Default pilot points will be generated."
-                        warnings.warn(msg)
-                        coords = self.default_pp_coords(layer=ilay, zone=int(zone))
-                    # -- Build DataFrame from pilot point coordinates
-                    pp_df = self.build_pp_df(coords, layer=ilay, zone=int(zone))
-                    pp_dfs.append(pp_df)
-                else:
-                    pp_dfs.append(pd.DataFrame())
+            # -- Search for at least 1 defined zpc 
+            if len(zones) > 1:
+                pp_dfs = []
+                for zone in zones:
+                    if zone > 0:
+                        # -- Try to get pilot point coordinates if provided
+                        try:
+                            ppobj = self.pp_data[ilay][zone]
+                            # ---- Manage pilot point input object
+                            coords = shp_utils.shp2points(ppobj) if isinstance(ppobj, str) else ppobj
+                        # -- Get izone cell centers as pilot point coordinates if not provided
+                        except:
+                            # -- Warn about default behaviour
+                            msg = f"WARNING : pilot point coordinates not provided for layer = {ilay}" \
+                                  f" and zone = {int(zone)}. Default pilot points will be generated."
+                            warnings.warn(msg)
+                            coords = self.default_pp_coords(layer=ilay, zone=int(zone))
+                        # -- Build DataFrame from pilot point coordinates
+                        pp_df = self.build_pp_df(coords, layer=ilay, zone=int(zone))
+                        pp_dfs.append(pp_df)
+                    else:
+                        pp_dfs.append(pd.DataFrame())
 
-            # -- Set zone pilot point data for current layer
-            pp_df = pd.concat(pp_dfs)
-            if not pp_df.empty:
-                self.pp_dic[ilay] = pp_df
+                # -- Set zone pilot point data for current layer
+                pp_df = pd.concat(pp_dfs)
+                if not pp_df.empty:
+                    self.pp_dic[ilay] = pp_df
 
 
 
