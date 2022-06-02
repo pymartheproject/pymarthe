@@ -1867,9 +1867,15 @@ def get_tw(mm=None, martfile=None, pastpfile=None, tw_type='date'):
             tw_max = ast.literal_eval(re.search(re_istep, lines[i+1]).group(1))
             break
 
+    # ---- Fetch model dates from .pastp file
+    dates = get_dates(pastpfile, martfile) if mm is None else mm.mldates
+
+    # ---- Rectify Marthe default max date
+    if tw_max == 0:
+        tw_max = len(dates) - 1
+
     # ---- Return time window as tuple
     if tw_type == 'date':
-        dates = get_dates(pastpfile, martfile) if mm is None else mm.mldates
         return dates[tw_min], dates[tw_max]
 
     elif tw_type == 'istep':
