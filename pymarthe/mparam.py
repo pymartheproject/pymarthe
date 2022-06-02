@@ -187,7 +187,8 @@ class MartheListParam():
         par_df = self.param_df.copy(deep=True)
         # ---- Transform values if required
         if transformed:
-            par_df['defaultvalue'] = pest_utils.transform(par_df['defaultvalue'], self.trans)
+            cols = ['defaultvalue', 'parlbnd', 'parubnd']
+            par_df[cols] = par_df[cols].apply(lambda x: pest_utils.transform(x, self.trans))
         # ---- Return paramater DataFrame
         return par_df
 
@@ -1084,7 +1085,8 @@ class MartheGridParam():
                                   self.scale, self.offset, self.dercom ]
         # ---- Transform values if required
         if transformed:
-            par_df['defaultvalue'] = pest_utils.transform(par_df['defaultvalue'], self.trans)
+            cols = ['defaultvalue', 'parlbnd', 'parubnd']
+            par_df[cols] = par_df[cols].apply(lambda x: pest_utils.transform(x, self.trans))
         # ---- Return parameter DataFrame
         return par_df
 
