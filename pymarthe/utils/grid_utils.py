@@ -191,7 +191,7 @@ class MartheGrid():
         else:
             dx = np.r_[ self.dx[0]*rlevel, self.dx, self.dx[-1]*rlevel]
             dy = np.r_[ self.dy[0]*rlevel, self.dy, self.dy[-1]*rlevel]
-            xcc = np.r_[ self.xcc[0] - (dx[1] + dx[0])/2, self.xcc, self.ycc[-1] + (dx[-2] + dx[-1])/2]
+            xcc = np.r_[ self.xcc[0] - (dx[1] + dx[0])/2, self.xcc, self.xcc[-1] + (dx[-2] + dx[-1])/2]
             ycc = np.r_[ self.ycc[0] + (dy[1] + dy[0])/2, self.ycc, self.ycc[-1] - (dy[-2] + dy[-1])/2] # reversed direction
             xl, yl = xcc.min() - (dx[0]/2), ycc.min() - (dy[0]/2)
             array = marthe_utils.bordered_array(self.array, 0) # set bordered array with value 0
