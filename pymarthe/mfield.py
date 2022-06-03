@@ -48,8 +48,7 @@ class MartheField():
                         - 3D-array
                         - List of MartheGrid instance
         mm (MartheModel) : parent Marthe model.
-                           Note: consider providing a parent MartheModel
-                           instance ss far as possile
+                           
 
         Examples
         -----------
@@ -420,8 +419,8 @@ class MartheField():
         return self.get_data(inest=0, as_array=True)
 
 
-
-    def _grids2rec(self, grids):
+    @staticmethod
+    def _grids2rec(grids):
         """
         Read Marthe field property file.
         Wrapper of marthe_utils.read_grid_file().
@@ -447,6 +446,46 @@ class MartheField():
                         autoconvert=True, usemask=False, asrecarray=True)
         # ---- Stack all recarrays as once
         return rec
+
+
+
+    @classmethod
+    def from_indep(cls, field, data, mm):
+        """
+        Marthe gridded property as independend field
+        (no related to mm.imask at all).
+
+        Parameters
+        -----------
+        field (str) : independant field name.
+                        Can be :
+                            - 'permh'
+                            - 'zonep'
+                            - 'zgeom'
+                            - ...
+
+        data (object): field data.
+                       Can be:
+                        - Marthe property file ('mymodel.permh')
+                        - List of MartheGrid instance
+
+        mm (MartheModel) : parent Marthe model.
+                           Note: consider providing a parent MartheModel
+                           instance as far as possile
+        """
+        # ---- Fetch MartheGrid list from input data
+        if isinstance(data, str):
+            grids = marthe_utils.read_grid_file(data)
+        elif all(isinstance(item, MartheGrid) for item in data):
+            grids = data
+        
+        # ---- Build independent Marthefield instance 
+        mf = cls(field, cls._grids2rec(grids), mm)
+
+        # ---- Return
+        return mf
+
+
 
 
     def _3d2rec(self, arr3d):
