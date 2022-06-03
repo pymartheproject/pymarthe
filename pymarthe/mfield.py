@@ -6,7 +6,7 @@ Designed for handling distributed Marthe properties
 
 import os, sys
 import numpy as np
-import np.lib.recfunctions
+import numpy.lib.recfunctions
 import pandas as pd
 from copy import deepcopy
 import shutil
