@@ -327,7 +327,7 @@ class MartheModel():
 
 
 
-    def load_geometry(self, g=None):
+    def load_geometry(self, g=None, **kwargs):
         """
         Load and store geometry grid information of a MartheModel instance.
 
@@ -337,6 +337,10 @@ class MartheModel():
                             Can be 'sepon', 'topog', 'hsubs', ..
                             If None all geometry grid file will be loaded.
                             Default is None.
+
+        **kwargs : additional arguments of property classes.
+                   Can be :
+                        - `use_imask` (bool) : Default will be False.
 
         Returns:
         --------
@@ -353,13 +357,15 @@ class MartheModel():
         # ---- Assertion to avoid non geometry field input
         err_msg = 'ERROR : `g` must be a geometry grid file such as `sepon`, `topog`, ... ' \
                   'Given : {}.'.format(', '.join(list(_g)))
-        assert all(g in self.geometry.keys() for g in _g), err_msg
+        assert all(g in self.mlfiles.keys() for g in _g), err_msg
 
         # ---- Load geometry as MartheField instance
         for g in _g:
-            self.geometry[g] = MartheField(g, self.mlfiles[g] , self)
-
-
+            self.geometry[g] = MartheField(g, 
+                                          self.mlfiles[g],
+                                          self,
+                                          use_imask=kwargs.get('use_imask', False)
+                                          )
 
 
 
@@ -426,7 +432,7 @@ class MartheModel():
         """
         # ---- Manage fields
         if prop in self.mlfiles.keys():
-            self.prop[prop] = MartheField(prop, self.mlfiles[prop], self)
+            self.prop[prop] = MartheField(prop, self.mlfiles[prop], self, **kwargs)
 
         # ---- Manage pumping
         elif prop == 'aqpump':

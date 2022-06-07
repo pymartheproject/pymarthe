@@ -1,3 +1,4 @@
+
 """
 Contains the classes related to field data.
 Designed for handling distributed Marthe properties
@@ -8,7 +9,7 @@ import os, sys
 import numpy as np
 import numpy.lib.recfunctions
 import pandas as pd
-from copy import deepcopy
+from copy import copy, deepcopy
 import shutil
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
@@ -29,7 +30,7 @@ class MartheField():
     """
     Wrapper Marthe --> python
     """
-    def __init__(self, field, data, mm):
+    def __init__(self, field, data, mm, use_imask=True):
         """
         Marthe gridded property instance.
 
@@ -49,7 +50,18 @@ class MartheField():
                         - 3D-array
                         - List of MartheGrid instance
         mm (MartheModel) : parent Marthe model.
-                           
+
+        use_imask (bool, optional) : whatever masking the field data with related
+                                     model active cells (`.imask`). 
+                                     If True, only data on layer active domain will
+                                     be considered (works as model related field).
+                                     If False, all data in `rec.array` object will be
+                                     considered (works as independent field).
+                                     Default is True.
+                                     Note : an 'independant field' contains both the 
+                                            field data and active domain (geometry)
+                                            when a 'related field' only contains data.
+           
 
         Examples
         -----------
@@ -58,6 +70,7 @@ class MartheField():
         self.field = field
         self.mm = mm
         self.dmv = dmv
+        self.use_imask = use_imask
         self.set_data(data)
         self.maxlayer = len(self.to_grids(inest=0))
         self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
@@ -292,21 +305,12 @@ class MartheField():
         # ---- Manage Marthe filename as input
         if np.logical_and.reduce([_str, _none]):
             grids = marthe_utils.read_grid_file(data)
-            rec =  self._grids2rec(grids)
-            # -- Independant grid (contains value and geometry)
-            if 'permh' in data:
-                self.data =  rec
-            # -- Model dependant grid (only contains value)
-            else:
-                irec = deepcopy(self.mm.imask.data)
-                mask = self.mm.imask.get_data(layer=layer, inest=inest,
-                            masked_values=self.dmv, as_mask=True)
-                irec['value'][mask] = rec['value'][mask]
-                self.data = irec
+            rec =  self.grids2rec(grids)
+            self.data = self.get_masked(rec)
 
         # ---- Manage list of MartheGrids as input
         if np.logical_and.reduce([_list, _none]):
-            self.data =  self._grids2rec(data)
+            self.data =  self.get_masked(self.grids2rec(data))
 
         # ---- Manage numeric input
         if _num:
@@ -327,15 +331,47 @@ class MartheField():
 
         # ---- Manage recarray input
         if _rec:
-            self.data = data
+            self.data = self.get_masked(data)
 
         # ---- Manage 3D-array input
         if np.logical_and.reduce([_arr, not _rec, _none]):
             # -- Verify data is a 3D-array
             err_msg = f"ERROR: `data` array must be 3D. Given shape: {data.shape}."
             assert len(data.shape) == 3, err_msg
-            self.data = self._3d2rec(data)
+            self.data = self.get_masked(self._3d2rec(data))
 
+
+
+    def get_masked(self, rec):
+        """
+        Return field data (`rec.array`) after masking with model active cells (`.imask`).
+        Note : if the field is not related to the model (`use_imask`=False) then return
+               the inputed data.
+
+        Parameters:
+        ----------
+        rec (rec.array) : field data.
+
+        Returns:
+        --------
+        mrec (rec.array) : masked field data
+
+        Examples:
+        --------
+        mf.get_masked()
+        """
+        # -- Model dependent grid (only contains value)
+        if np.logical_and(self.use_imask, self.field.casefold() != 'imask'):
+            mrec = deepcopy(self.mm.imask.data)
+            mask = self.mm.imask.get_data(masked_values=self.dmv, as_mask=True)
+            mrec['value'][mask] = rec['value'][mask]
+
+        # -- Independant grid (contains value and geometry)
+        else:
+            mrec = rec
+
+        # -- Return masked rec.array
+        return mrec
 
 
 
@@ -421,7 +457,7 @@ class MartheField():
 
 
     @staticmethod
-    def _grids2rec(grids):
+    def grids2rec(grids):
         """
         Read Marthe field property file.
         Wrapper of marthe_utils.read_grid_file().
@@ -447,45 +483,6 @@ class MartheField():
                         autoconvert=True, usemask=False, asrecarray=True)
         # ---- Stack all recarrays as once
         return rec
-
-
-
-    @classmethod
-    def from_indep(cls, field, data, mm):
-        """
-        Marthe gridded property as independend field
-        (no related to mm.imask at all).
-
-        Parameters
-        -----------
-        field (str) : independant field name.
-                        Can be :
-                            - 'permh'
-                            - 'zonep'
-                            - 'zgeom'
-                            - ...
-
-        data (object): field data.
-                       Can be:
-                        - Marthe property file ('mymodel.permh')
-                        - List of MartheGrid instance
-
-        mm (MartheModel) : parent Marthe model.
-                           Note: consider providing a parent MartheModel
-                           instance as far as possile
-        """
-        # ---- Fetch MartheGrid list from input data
-        if isinstance(data, str):
-            grids = marthe_utils.read_grid_file(data)
-        elif all(isinstance(item, MartheGrid) for item in data):
-            grids = data
-        
-        # ---- Build independent Marthefield instance 
-        mf = cls(field, cls._grids2rec(grids), mm)
-
-        # ---- Return
-        return mf
-
 
 
 
@@ -1092,16 +1089,18 @@ class MartheFieldSeries():
                                             if mg.field.casefold() == self.field.casefold()] )
 
         # ---- Rebuild MartheField instance for each provided istep
-        # (changing value, field from imask then rebuild initial imask for better performance)
+        # (Not optimized since it's impossible to perform a deepcopy
+        #  of entire .imask changing only value because it screw up
+        #  the .spatial_index usage)
         print('Converting to MartheField instance ...')
         unique_isteps = set(isteps.astype(int))
         digits = len(str(len(unique_isteps)))
         mf_dic = {}
         for istep in unique_isteps:
-            mf = deepcopy(self.mm.imask)
-            mf.field = '{}_{}'.format(self.field, str(istep).zfill(digits))
-            mf.data['value'] = arr[isteps==istep]
-            mf_dic[istep] = mf
+            rec = deepcopy(self.mm.imask.data)
+            rec['value'] = arr[isteps==istep]
+            fieldname = '{}_{}'.format(self.field, str(istep).zfill(digits))
+            mf_dic[istep] = MartheField(fieldname, rec, self.mm)
 
         # ---- Return field series as dictionary (format: {istep: MartheField()})
         return mf_dic
@@ -1110,7 +1109,7 @@ class MartheFieldSeries():
 
 
 
-    def get_tseries(self, x, y, layer, names= None, index = 'date', masked_values = dmv[::2]):
+    def _get_tseries(self, x, y, layer, names= None, index = 'date', masked_values = dmv[::2]):
         """
         Sample field data by x, y, layer coordinates and stack timeseries in a DataFrame.
         It will perform simple a spatial intersection with field data.
@@ -1148,16 +1147,17 @@ class MartheFieldSeries():
         names = ['rec1', 'rec2']
         df = mfs.get_tseries(x,y,layer,names)
         """
-
+        # -- Manage coordinates inputs
         _x, _y, _layer = [marthe_utils.make_iterable(arg) for arg in [x,y,layer]]
         if (len(_layer) == 1) and (len(_x) > 1) :
             _layer = list(_layer) * len(_x)
 
-
+        # -- Manage names input
         if names is not None:
             _names = marthe_utils.make_iterable(names)
             err_msg = 'ERROR : arguments `x`, `y` and `names` must have the same length. ' \
                       f'Given: len(x) = {len(_x)}, len(y) = {len(_y)}, len(names) = {len(_names)}.'
+
 
         # -- Fetch field value at xy-coordinates
         df = pd.DataFrame.from_records(
@@ -1188,6 +1188,99 @@ class MartheFieldSeries():
             return df.droplevel('date')
         else:
             return df
+
+
+
+
+    def get_tseries(self, x, y, layer, names= None, index = 'date', masked_values = dmv[::2], base=0):
+        """
+        Sample field data by x, y, layer coordinates and stack timeseries in a DataFrame.
+        It will perform simple a spatial intersection with field data.
+
+        Parameters:
+        ----------
+        x, y (float/iterable) : xy-coordinate(s) of the required point(s)
+
+        layer (int/iterable) : layer id(s) to intersect data.
+
+        names (str/list of str, optional) : additional names of each required point coordinates.
+                                            If None, standard names are given according to the 
+                                            coordinates. Example: '23i_45j_6k'
+                                            Default is None.
+
+        masked_values (None/list): values to ignore during the sampling process
+                                   Default are [-9999, 0, 9999].
+
+        index (str, optional) : type of index required for the output DataFrame.
+                                Can be:
+                                    - 'date': index is a pd.DatetimeIndex.
+                                    - 'istep': index is a pd.index
+                                    - 'both': index is a pd.MultiIndex(pd.index, pd.DatetimeIndex)
+                                Default is 'date'.
+
+        base (int, optional) : spatial coordinates base reference.
+                               Default is 0.
+                               Note : only use to build default output DataFrame columns
+                                      when `names` is not provided.
+                               Reminder : Python is 0-based and Marthe is compiled in 1-based (Fortran).
+
+        Returns:
+        --------
+        df (DataFrame): Output timeseries stack in DataFrame.
+
+
+        Examples:
+        --------
+        x, y = [343., 385.3], [223., 217.2]
+        layer = 0
+        names = ['rec1', 'rec2']
+        df = mfs.get_tseries(x,y,layer,names)
+        """
+        # -- Manage coordinates inputs
+        _x, _y, _layer = [marthe_utils.make_iterable(arg) for arg in [x,y,layer]]
+        if (len(_layer) == 1) and (len(_x) > 1) :
+            _layer = list(_layer) * len(_x)
+
+        # -- Manage names input
+        if names is not None:
+            _names = marthe_utils.make_iterable(names)
+            err_msg = 'ERROR : arguments `x`, `y` and `names` must have the same length. ' \
+                      f'Given: len(x) = {len(_x)}, len(y) = {len(_y)}, len(names) = {len(_names)}.'
+
+
+        # -- Get node numbers of x,y,layer coordinates
+        nodes = self.mm.get_node(_x, _y, _layer)
+
+        # -- Get field data on nodes as DataFrame
+        df = pd.DataFrame.from_records(
+              [self.data[istep].data[nodes]['value']
+                    for istep in self.data.keys()]
+                    )
+        
+        # -- Add column names
+        if names is None:
+            ijk = self.mm.query_grid(node=nodes, target=['i','j','layer']).to_numpy() + base
+            df.columns = [f'{ix}i_{iy}j_{ik}k' for ix,iy,ik in ijk]
+        else:
+            df.columns = marthe_utils.make_iterable(names)
+
+        # -- Convert basic index to MultiIndex
+        df = df.set_index( pd.MultiIndex.from_tuples(
+                                [(istep, self.mm.mldates[istep]) for istep in self.data.keys()],
+                                names = ['istep', 'date'])
+                          ).replace(
+                        marthe_utils.make_iterable(masked_values),
+                        np.nan       )
+
+        # -- Return Multiindex DataFrame
+        if index == 'date':
+            return df.droplevel('istep')
+        elif index == 'istep':
+            return df.droplevel('date')
+        else:
+            return df
+
+
 
 
 
