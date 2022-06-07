@@ -254,7 +254,7 @@ class MartheOptim():
         # ---- Get existence if required
         exi = locnme in self.available_locnmes
         # ---- Get unicity
-        mask = self.available_locnmes.str.contains(locnme).tolist()
+        mask = self.available_locnmes.str.fullmatch(locnme).tolist()
         uni = mask.count(True) <= 1
         # ---- Error handling
         if error == 'raise':
