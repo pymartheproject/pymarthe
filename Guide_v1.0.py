@@ -439,8 +439,17 @@ The new MartheFiled instance was created to manage Marthe gridded/field data.
 It generally instantialized with a Marthe grid file such as permh, emmca, emmli, kepon, ..
 All single Marthe grid data in this file are stored in a numpy recarray with
 usefull informations: 'layer', 'inest', 'i', 'j', 'x', 'y', 'value'.
+The `use_imask` argument in the MartheField constructor allows the user to mask his
+field with the model `.imask` if required. In other words, if `use_imask`= True only
+field data on layer active domain will be considered (works as model related field).
+But if `use_imask`= False, all field data will be considered including masked values
+(0,9999, 8888, ..) to build active/inactive domains (works as independent field).
+
+Note :  an "independent" field contains both the field data and active domain (geometry)
+       when a "dependent" field only contains data on active hydraulic model domain.
 
 '''
+
 # -- Build MartheField instance externaly
 mf = MartheField(field = 'permh', data = mm.mlfiles['permh'], mm=mm)
 

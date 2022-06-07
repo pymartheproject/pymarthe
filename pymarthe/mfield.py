@@ -58,7 +58,7 @@ class MartheField():
                                      If False, all data in `rec.array` object will be
                                      considered (works as independent field).
                                      Default is True.
-                                     Note : an 'independant field' contains both the 
+                                     Note : an 'independent field' contains both the 
                                             field data and active domain (geometry)
                                             when a 'related field' only contains data.
            
