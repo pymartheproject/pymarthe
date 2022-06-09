@@ -64,16 +64,43 @@ class MartheSoil():
         self.pastpfile = self.mm.mlfiles['pastp'] if pastpfile is None else pastpfile
         self.mode, self.data = marthe_utils.read_zonsoil_prop(self.martfile, self.pastpfile)
         self.isteps = np.arange(self.mm.nstep)
-        self.soilprops = self.data['soilprop'].unique()
         # ---- Soil zone numbers as independant field
         self.zonep = MartheField('zonep', self.mm.mlfiles['zonep'], self.mm, use_imask=False)
-        self.zones = np.unique(self.zonep.data['value'])
-        # ---- Number of soil properties and zones
-        self.nzone = len(np.unique(self.zonep.data['value']))
-        self.nsoilprop = len(self.soilprops)
         # ---- Set property style
         self._proptype = 'list'
 
+
+
+    @property
+    def soilprops(self):
+        """
+        Get array of unique soil property names
+        """
+        return self.data['soilprop'].unique()
+
+
+    @property
+    def zones(self):
+        """
+        Get array of unique soil property zone ids
+        """
+        return self.data['zone'].unique()
+
+
+    @property
+    def nsoilprop(self):
+        """
+        Get number of defined soil properties
+        """
+        return len(self.soilprops)
+    
+
+    @property
+    def nzone(self):
+        """
+        Get number of defined zone ids
+        """
+        return len(self.zones)
 
 
 
