@@ -619,7 +619,7 @@ class MartheGridParam():
             ldata = self.izone.get_data(layer=ilay, masked_values=self.izone.dmv)
             zones = np.unique(ldata['value']).astype(int)
             # -- Search for at least 1 defined zpc 
-            if len(zones) > 1:
+            if len(zones) >= 1:
                 pp_dfs = []
                 for zone in zones:
                     if zone > 0:
