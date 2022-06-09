@@ -1428,7 +1428,7 @@ def read_budget(filename= 'histobil_nap_pastp.prn'):
         if '<Date>' not in table[0]: 
             # -- Convert string budget data to DataFrame (drop numeric date and NaN columns)
             bud_df = pd.read_table( StringIO(table[0]),
-                                    index_col=0, parse_dates=True,
+                                    index_col=0, parse_dates=True, dayfirst = True
                                         ).dropna(
                                             axis=1).iloc[:,1:]
             # -- Manage column names
@@ -1507,7 +1507,7 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
         # -- Manage column names
         zb_df.columns = ['date'] + list(zb_df.columns[1:].str.strip())
         # -- Convert date column to datetime format
-        zb_df['date'] = pd.to_datetime(zb_df['date'])
+        zb_df['date'] = pd.to_datetime(zb_df['date'], dayfirst = True)
         # -- Add a column with the zone id
         zb_df['zone'] = int(zone)
         # -- Add zone budget to main list
