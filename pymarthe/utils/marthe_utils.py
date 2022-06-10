@@ -89,9 +89,12 @@ def get_mlfiles(rma_file):
     mldir, mlname = os.path.split(rma_file)
     with open(rma_file, 'r', encoding=encoding) as f:
         content = f.read()
+
     # ---- Fetch all marthe file paths
-    re_mlfile = r'\n(\w+.\w+)\s*'
-    mlfiles = re.findall(re_mlfile, content)
+    re_mlfile = r"\n(.+?)="
+    mlfiles = [s.strip() for s in re.findall(re_mlfile, content)
+                         if (not s.isspace()) & ('=' not in s)]
+
     # ---- Build dictionary with all marthe file path
     mlfiles_dic = {mlfile.split('.')[1]: 
                         os.path.normpath(
