@@ -96,7 +96,7 @@ def get_mlfiles(rma_file):
                          if (not s.isspace()) & ('=' not in s)]
 
     # ---- Build dictionary with all marthe file path
-    mlfiles_dic = {mlfile.split('.')[1]: 
+    mlfiles_dic = {mlfile.split('.')[-1]: 
                         os.path.normpath(
                             os.path.join(mldir, mlfile)) for mlfile in mlfiles}
     return mlfiles_dic
