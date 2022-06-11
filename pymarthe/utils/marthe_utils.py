@@ -1860,14 +1860,17 @@ def get_tw(mm=None, martfile=None, pastpfile=None, tw_type='date'):
         lines = f.readlines()
 
     # ---- Set usefull regex
-    re_block = r"\*{3}\s*Pas de Temps"
-    re_istep = r"([-+]?\d*\.?\d+|\d+)=N"
+    re_block = r"\*{3}\s*(Pas|Pas de Temps) et"
+    re_istep = r"([-+]?\d*\.?\d+|\d+)|(\*|\s*)=N"
+
+    # ---- 0 if there has no match
+    tw_infer = lambda m: 0 if m.group(1) is None else ast.literal_eval(m.group(1))
 
     # ---- Extract required lines
     for i, line in enumerate(lines):
-        if re.search(re_block, line) is not None:
-            tw_min = ast.literal_eval(re.search(re_istep, lines[i+4]).group(1))
-            tw_max = ast.literal_eval(re.search(re_istep, lines[i+1]).group(1))
+        if re.search(re_block, line) is not None: 
+            tw_min = tw_infer(re.search(re_istep, lines[i+4]))
+            tw_max = tw_infer(re.search(re_istep, lines[i+1]))
             break
 
     # ---- Fetch model dates from .pastp file

@@ -161,7 +161,7 @@ mm.query_grid(layer=4, active = 1)['area'].sum()
 
 
 '''
-The .imask attribute based on permh property correspond to a simple MartheField 
+The .imask attribute based on permh property correspond to a simple MartheField
 delimiting aquifer extensions by binary values (0 inactive cell, 1 active cell).
 '''
 mm.imask
@@ -843,12 +843,12 @@ ms.set_data('equ_ruis_perc', value = 17, zone = 8)
 print(ms.data.to_markdown(tablefmt='github', index=False))
 
 '''
-The soil property data has to be write in .mart file with the
+The soil property data has to be write in .mart/.pastp file with the
 .write_data() method (can be performed by soil property).
 (Don't do it if you want to keep original data)
 '''
 
-#ms.write_data(martfile='Lizonnetest.mart')
+#ms.write_data('Lizonnetest.mart')
 
 
 
