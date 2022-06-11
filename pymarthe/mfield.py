@@ -842,7 +842,7 @@ class MartheField():
 
 
 
-    def zonal_stats(self, stats, polygons, layer=None, names = None, trans=None):
+    def zonal_stats(self, stats, polygons, layer=None, names = None, trans='none'):
         """
         Perform statistics on zonal areas.
 
@@ -866,7 +866,7 @@ class MartheField():
         trans (str/func, optional): function/function name to transform field values
                                     before applying statistics.
                                     If None, field values are not transformed.
-                                    Default is None.
+                                    Default is 'none'.
 
         Returns:
         --------
