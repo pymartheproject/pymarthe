@@ -1230,12 +1230,12 @@ class MartheOptim():
         for ft in fts:
             # -- Template file(s)
             if any(tag == ft for tag in ['template', 'tpl_file' , 'tpl']):
-                files = [os.path.join(self.tpl_dir, f) for f in os.listdir(self.tpl_dir)
+                files = [os.path.join(self.tpl_dir, f) for f in sorted(os.listdir(self.tpl_dir))
                          if any(k in f for k in self.param.keys()) & f.endswith('.tpl')]
 
             # -- Input file(s)
             if any(tag == ft for tag in ['parameter', 'in_file' , 'in' , 'par']):
-                files = [os.path.join(self.par_dir, f) for f in os.listdir(self.par_dir)
+                files = [os.path.join(self.par_dir, f) for f in sorted(os.listdir(self.par_dir))
                          if any(k in f for k in self.param.keys()) & f.endswith('.dat')]
 
             # -- Instruction file(s)
