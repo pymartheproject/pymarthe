@@ -520,7 +520,8 @@ class MartheModel():
         """
         # -- Build MartheModel from configuration file
         hdic, pdics, _ = pest_utils.read_config(configfile)
-        mm = cls(hdic['Model full path'], spatial_index=hdic['Model spatial index'])
+        si = None if hdic['Model spatial index'] == 'None' else hdic['Model spatial index']
+        mm = cls(hdic['Model full path'], spatial_index=si)
 
         # -- Iterate over parameter dictionaries
         for pdic in pdics:
