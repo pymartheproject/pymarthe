@@ -577,6 +577,15 @@ def read_grid_file(grid_file, keep_adj=False):
         # -- Append MartheGrid instance to the grid list
         grid_list.append(MartheGrid(*args))
 
+    # ---- Raise error if marthe grid file headers are not provided
+    err_msg = f"ERROR : uncorrect headers values in `{grid_file}` grid file.\n" \
+               "Check and correct the following lines:\n" \
+               "\t-'Layer='\n" \
+               "\t-'Max_Layer='\n" \
+               "\t-'Nest_grid='\n" \
+               "\t-'Max_NestG='\n"
+    assert all(mg.layer >= 0 for mg in grid_list), err_msg
+
     # ---- Return all MartheGrid instances and xcc, ycc if required
     return tuple(grid_list)
 
@@ -1424,7 +1433,7 @@ def read_budget(filename= 'histobil_nap_pastp.prn'):
         content = f.read()
 
     # ---- Match specific tables
-    re_budget = r"Date(.+?)\n(Zone|Légende|Volumes|$)"
+    re_budget = r"Date(.+?)\n(Zone|Légende|Volumes|Bilan|$)"
     tables = re.findall(re_budget, content, re.DOTALL)
 
     # ---- Extract budget(s)
@@ -1494,17 +1503,23 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
         content = f.read()
 
     # ---- Manage regex expression/generation
-    re_zone = r"Zone\s*(\d+)\s*\n"
-    get_re_zb = lambda z: r"Zone\s*{}\s*\n(.+?)\n(Zone|Légende)".format(z)
+    re_zone = r"\n(\s*|.+)Zone(\s+|\s+=\s+)(\d+)\s*\n"
+
+    get_re_zb = lambda z: ''.join(
+                            [ re_zone.replace(r'(\d+)', str(z)),
+                              r"(.+?)\n(Bilan|Zone|Légende)" ]
+                        )
 
     # ---- Extract zone budget for each zones
     zb_dfs = []
 
-    for zone in re.findall(re_zone, content):
-        # -- Extract string table with raw data 
+    for match_zone in re.findall(re_zone, content):
+        # -- Convert match to interger zone number
+        zone = int(match_zone[-1]) 
+        # -- Extract string table with raw data
         zb_table = re.search(
                         get_re_zb(zone), content, re.DOTALL
-                        ).group(1)
+                        ).group(3)
         # -- Convert to DataFrame skiping the useless additional headers and NaN columns
         zb_df = pd.read_table(StringIO(zb_table), skiprows=[1]).dropna(axis=1)
         # -- Drop numeric date column
@@ -1514,7 +1529,7 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
         # -- Convert date column to datetime format
         zb_df['date'] = pd.to_datetime(zb_df['date'], dayfirst = True)
         # -- Add a column with the zone id
-        zb_df['zone'] = int(zone)
+        zb_df['zone'] = zone
         # -- Add zone budget to main list
         zb_dfs.append(zb_df)
 

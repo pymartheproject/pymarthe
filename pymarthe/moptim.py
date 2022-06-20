@@ -551,7 +551,7 @@ class MartheOptim():
 
 
 
-    def write_insfile(self, locnme=None):
+    def write_insfile(self, locnme=None, cleanup=True):
         """
         Write formatted instruction file in instruction directory (`.ins_dir`).
         Wrapper of pest_utils.write_insfile().
@@ -562,6 +562,10 @@ class MartheOptim():
                                  If None all locnmes are considered.
                                  Default is None
 
+        cleanup (bool, optional) : remove all existing file with `.ins`
+                                   extension in `.ins_dir`.
+                                   Default is True.
+
         Returns:
         --------
         Write insfile file in ins_dir
@@ -570,6 +574,12 @@ class MartheOptim():
         --------
         moptim.write_insfile(locnme = 'myobs')
         """
+        # -- Cleanup folder if required
+        if cleanup:
+            files = [os.path.join(self.ins_dir, f)
+                     for f in os.listdir(self.ins_dir)
+                     if f.endswith('.ins')]
+            for f in files: os.remove(f)
         # ---- Manage multiple locnme input
         if locnme is None:
             locnmes = self.obs.keys()
@@ -861,7 +871,7 @@ class MartheOptim():
 
 
 
-    def write_kriging_factors(self, vgm_range, parname=None, krig_transform= 'none', save_cov = False ):
+    def write_kriging_factors(self, vgm_range, parname=None, krig_transform= 'none', save_cov = False, cleanup=True):
         """
         Compute and write kriging factor files (PEST-like) from exponential variogram
         ranges for given distributed parameters.
@@ -900,6 +910,10 @@ class MartheOptim():
                                     Note: the covariance matrices files will take the same
                                           names as kriging factor files with the '.jcb' extension.
 
+        cleanup (bool, optional) : remove all existing file with `.fac`
+                                   extension in `.par_dir`.
+                                   Default is True. 
+
         Returns
         -------
         Write kriging factor file in parameter path (with '.fac' extension).
@@ -912,6 +926,12 @@ class MartheOptim():
         mopt.write_kriging_factors(vgm_range, parname='hk', vgm_transform= 'log',  save_cov=True)
 
         """
+        # -- Cleanup folder if required
+        if cleanup:
+            files = [os.path.join(self.par_dir, f)
+                     for f in os.listdir(self.par_dir)
+                     if f.endswith('.fac')]
+            for f in files: os.remove(f)
         # ---- Manage parname inputs
         if parname is None:
             parnames = [pn for pn in self.param.keys() if self.param[pn].type == 'grid']
@@ -1011,19 +1031,32 @@ class MartheOptim():
 
 
 
-    def write_parfile(self, parname= None):
+    def write_parfile(self, parname= None, cleanup=True):
         """
         Write parameter file(s) in parameter directory (`par_dir`).
 
         Parameters
         ----------
-        parname (str) : required parameter names.
+        parname (str, optional) : required parameter names.
+                                  If None, all provided parameters
+                                  will be considered.
+                                  Default is None.
+
+        cleanup (bool, optional) : remove all existing file with `.dat`
+                                   extension in `.par_dir`.
+                                   Default is True. 
 
         Examples
         --------
         mopt.write_parfile(['soil', 'hk'])
 
         """
+        # -- Cleanup folder if required
+        if cleanup:
+            files = [os.path.join(self.par_dir, f)
+                     for f in os.listdir(self.par_dir)
+                     if f.endswith('.dat')]
+            for f in files: os.remove(f)
         # -- Manage parameter name to write
         if parname is None:
             pnmes = self.param.keys()
@@ -1039,19 +1072,32 @@ class MartheOptim():
 
 
 
-    def write_tplfile(self, parname= None):
+    def write_tplfile(self, parname= None, cleanup=True):
         """
         Write template file(s) in template directory (`tpl_dir`).
 
         Parameters
         ----------
-        parname (str) : required parameter names.
+        parname (str, optional) : required parameter names.
+                                  If None, all provided parameters
+                                  will be considered.
+                                  Default is None.
+
+        cleanup (bool, optional) : remove all existing file with `.tpl`
+                                   extension in `.tpl_dir`.
+                                   Default is True. 
 
         Examples
         --------
         mopt.write_tplfile(['soil', 'hk'])
 
         """
+        # -- Cleanup folder if required
+        if cleanup:
+            files = [os.path.join(self.tpl_dir, f)
+                     for f in os.listdir(self.tpl_dir)
+                     if f.endswith('.tpl')]
+            for f in files: os.remove(f)
         # -- Manage parameter name to write
         if parname is None:
             pnmes = self.param.keys()

@@ -4,9 +4,10 @@ Contains geospatial export utils
 (not much dependencies required)
 
 """
-import sys, shutil
+
 import numpy as np
 import pandas as pd
+import shutil
 import shapefile
 
 srefhttp = "https://spatialreference.org"

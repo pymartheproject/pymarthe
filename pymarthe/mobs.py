@@ -122,9 +122,10 @@ class MartheObs():
 
         # ---- Fill observations DataFrame with input data
         self.obs_df = pd.DataFrame(index=self.obsnmes)
-        self.obs_df[base_obs] = [ self.obsnmes, self.date, self.value,
-                                  self.datatype, self.locnme, self.obsfile,
-                                   self.weight, self.obgnme, self.trans ]
+        self.obs_df[base_obs] = np.array( [ self.obsnmes, self.date, self.value,
+                                            self.datatype, self.locnme, self.obsfile,
+                                            self.weight, self.obgnme, self.trans ],
+                                          dtype=object)
 
         # ---- Store fluctuation arguments
         self.fluc_dic = kwargs.get('fluc_dic', dict())

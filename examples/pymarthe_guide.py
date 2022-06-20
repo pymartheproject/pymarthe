@@ -7,8 +7,8 @@ USER GUIDE
 Get started with new 1.0 PyMarthe version.
 Ths script gives several examples of some basics commands.
 The script use 2 existing Marthe models modified for this guide:
-    - MONA
-    - Lizonne
+    - mona
+    - Didact3
 
 '''
 
@@ -41,10 +41,9 @@ import matplotlib.pyplot as plt
 
 
 # ---- Set model's relative paths
-mona_ws = os.path.join('monav3_pm', 'mona.rma')
-mona_si = os.path.join('monav3_pm', 'mona_si')
-lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
-lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
+mona_ws = os.path.join('monav3', 'mona.rma')
+mona_si = os.path.join('monav3', 'mona_si')
+dd3_ws = os.path.join('didac3', 'Didact3.rma')
 
 
 
@@ -369,27 +368,27 @@ provided zone ids as a MultiIndex DataFrame.
 Let's try to read some budget outputs.
 '''
 # -- Read aquifer budget (on timestep and cumulative)
-filename = os.path.join('monav3_pm', 'histobil_nap_cumu.prn')
+filename = os.path.join('monav3', 'histobil_nap_cumu.prn')
 budget_df = marthe_utils.read_budget(filename)
 budget_df.head()
-filename = os.path.join('monav3_pm', 'histobil_nap_pastp.prn')
+filename = os.path.join('monav3', 'histobil_nap_pastp.prn')
 budget_df = marthe_utils.read_budget(filename)
 budget_df.head()
 
 # -- Read climatic budget
-filename = os.path.join('monav3_pm', 'histoclim.prn')
+filename = os.path.join('monav3', 'histoclim.prn')
 budget_df = marthe_utils.read_budget(filename)
 budget_df.head()
 
 # -- Read global flow budget and river budgets
-filename = os.path.join('monav3_pm', 'histobil_debit.prn')
+filename = os.path.join('monav3', 'histobil_debit.prn')
 flow_df, riv_df, cum_riv_df = marthe_utils.read_budget(filename)
 flow_df.head()
 riv_df.head()
 cum_riv_df.head()
 
 # -- Read flow zone budget
-filename = os.path.join('monav3_pm', 'histobil_debit.prn')
+filename = os.path.join('monav3', 'histobil_debit.prn')
 zb_df = marthe_utils.read_zonebudget(filename)
 
 # -- Examples of basic slicing on MultiIndex zone budget DataFrame
@@ -631,7 +630,7 @@ Note: the filename has to be provided without any extension, the adequate extens
 ('.vtu' or '.vtk') will be infered from the `.xml` argument.
 Let's export the based 10 logarithm of 'permh' field to vtk file. 
 '''
-mm.prop['permh'].to_vtk(filename = os.path.join('monav3_pm', 'vtk_permh'),
+mm.prop['permh'].to_vtk(filename = os.path.join('monav3', 'vtk_permh'),
                         trans = 'log10',
                         vertical_exageration=0.02,
                         smooth=False, binary=True)
@@ -647,7 +646,7 @@ be called to manipulate these series of simulated fields. The MartheFieldSeries 
 the simulated fields and collect all MartheGrid for a given field. 
 Let's try to load simulated heads from the MONA model.
 '''
-chasim = os.path.join('monav3_pm', 'chasim_cal_histo.out')
+chasim = os.path.join('monav3', 'chasim_cal_histo.out')
 mfs = MartheFieldSeries(mm=mm, field = 'charge', simfile=chasim)
 
 '''
@@ -662,7 +661,7 @@ Additional `names` iterable can be added to reference each point. The `index` ar
 to manage the required index of the output DataFrame, can be 'date', 'istep', 'both'.
 '''
 # -- Read points from a shapefile
-shpname = os.path.join('monav3_pm', 'gis', 'sim_points.shp')
+shpname = os.path.join('monav3', 'gis', 'sim_points.shp')
 shp_df = shp_utils.read_shapefile(shpname)
 
 # -- Extract coordinates
@@ -704,7 +703,7 @@ The .save_animation() method support of kwargs from MartheField.plot() method (c
 This method have a additional dependency to `imageio` python package.
 It may be quite slow for model with large number of cells, layers and time steps.
 '''
-gif = os.path.join('monav3_pm', 'export', 'heads5_animation.gif')
+gif = os.path.join('monav3', 'export', 'heads5_animation.gif')
 mfs.save_animation(gif, dpf = 0.2, dpi=200, 
                         layer=5, vmin=-50, vmax=150,
                         extent=(300,210,490,380), cmap = 'jet')
@@ -718,7 +717,7 @@ x, y but also the values of each simulated field (1 per column).
 Note: column names can be truncated if field name is too long.
 '''
 
-filename = os.path.join('monav3_pm', 'export', 'heads_09.shp')
+filename = os.path.join('monav3', 'export', 'heads_09.shp')
 mfs.to_shapefile(filename, layer=9)
 
 
@@ -753,7 +752,8 @@ ms = MartheSoil(mm)
 
 '''
 The actual mova v.3 model does not contain these properties. So, let's try with
-another Marthe Model named 'Lizonne.rma'. The MartheSoil instance can support 3
+another Marthe Model named 'Didact3.rma' (available in Marthe examples folder
+while downloading Marthe software). The MartheSoil instance can support 3
 type of soil property data :
     - 'mart-c'  : constant soil properties in .mart file
     - 'pastp-c' : constant soil property in .pastp file
@@ -761,16 +761,14 @@ type of soil property data :
 It will recognize the `mode` of implementation automatically.
 
 '''
-lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
-lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
-liz_mm = MartheModel(lizonne_ws, spatial_index=lizonne_si)
+dd3_mm = MartheModel(dd3_ws, spatial_index=True)
 
 # -- Build MartheSoil instance externaly
-ms = MartheSoil(liz_mm)
+ms = MartheSoil(dd3_mm)
 
 # -- Fetch soil property instance from main model
-mm.load_prop('soil')
-ms = mm.prop['soil']
+dd3_mm.load_prop('soil')
+ms = dd3_mm.prop['soil']
 
 '''
 The main data correspond to a simple table (DataFrame) with the correspondance 
@@ -782,7 +780,7 @@ print(ms.data.to_markdown(tablefmt='github', index=False))
 print(f'\nSoil data implementation mode : {ms.mode}')
 print(f'Number of zone: {ms.nzone}')
 print(f'Number of soil properties: {ms.nsoilprop}')
-print(f'Soil properties of the {mm.mlname} model:')
+print(f'Soil properties of the {dd3_mm.mlname} model:')
 print('\n'.join([f'\t- {p}' for p in ms.soilprops]))
 
 '''
@@ -794,8 +792,8 @@ So, it is possible to fetch complete cell-by-cell soil data as recarray turning 
 (MartheField) with the value of a given soil property.
 Note: soil properties are defined only on the first layer, others are set to 0.
 '''
-ms.get_data(soilprop = 'cap_sol_progr', zone=[1,8])
-ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=1)    # Constant value (=0)
+ms.get_data(soilprop = 'cap_sol_progr', zone=1)
+ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=1)    # defined only on first layer
 ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=0)
 
 '''
@@ -807,17 +805,16 @@ Let's extract the property `cap_sol_progr` for the istep 10 to 15 (must be the s
 the first timestep because soil properties are constant). 
 '''
 # --- Without forcing
-ms.get_data(soilprop = 'cap_sol_progr', istep = np.arange(10,16), force=False)
+ms.get_data(soilprop = 'cap_sol_progr', istep = np.arange(0,3), force=False)
 # --- With forcing
-ms.get_data(soilprop = 'cap_sol_progr', istep = np.arange(10,16), force=True)
+ms.get_data(soilprop = 'cap_sol_progr', istep = np.arange(0,3), force=True)
 
 '''
 Moreover, some wrappers of usefull functionalities of MartheField instance can be 
 use on soil properties. 
 '''
-# ---- Sampling (from points shapefile)
-shpname = os.path.join(mm.mldir, 'export', 'points.shp')
-x,y = shp_utils.shp2points(shpname, stack=False)
+# ---- Sampling
+x, y = [100.7, 315.8, 520.4], [500.2, 281.8, 356.3]
 ms.sample('cap_sol_progr', x, y)
 
 # ---- Ploting
@@ -829,8 +826,8 @@ ms.plot('cap_sol_progr', ax=ax, cmap='Paired')
 plt.show()
 
 # ---- Exporting
-filename = os.path.join(mm.mldir, 'export','cap_sol_progr.shp')
-ms.to_shapefile('cap_sol_progr', filename=filename, epsg=2154)
+filename = os.path.join(dd3_mm.mldir, 'export','cap_sol_progr.shp')
+ms.to_shapefile('cap_sol_progr', filename=filename)
 
 '''
 To change/set data by soil property and by zone use the .set_data() 
@@ -839,7 +836,7 @@ method with the required value.
 '''
 # ---- Changing data
 ms.set_data('cap_sol_progr', value = 125, zone = [1,2])
-ms.set_data('equ_ruis_perc', value = 17, zone = 8)
+ms.set_data('equ_ruis_perc', value = 17, zone = 2)
 print(ms.data.to_markdown(tablefmt='github', index=False))
 
 '''
@@ -848,7 +845,7 @@ The soil property data has to be write in .mart/.pastp file with the
 (Don't do it if you want to keep original data)
 '''
 
-#ms.write_data('Lizonnetest.mart')
+ms.write_data(os.path.join(dd3_mm.mldir,'dd3_modified.mart'))
 
 
 
@@ -915,7 +912,7 @@ mp.get_data(istep=3, layer=3, j=71)
 mp.get_data(istep=3, layer=3, i=102, j=71)
 
 # -- Subset by boundname
-mp.get_data(istep=3, boundname = 'aqpump_020720')
+mp.get_data(istep=3, boundname = 'aqpump_035533')
 
 
 '''
@@ -925,21 +922,21 @@ and store in `mp.data`, the user can access the pumping data value for specific 
 use the `force` argument.
 This works by searching the nearest previous istep (`npi`) where pumping data were defined,
 that can be quite slow if several timesteps are required.
-Let's try to get pumping data of not explicitly provided isteps (10 to 15, for example)
-on Lizonne model for well generic name 'aqpump_07346'.
+Let's try to get pumping data of not explicitly provided.
 '''
-liz_mm.load_prop('aqpump')
-liz_mp = liz_mm.prop['aqpump']
-# -- Return empty DataFrame 
-liz_mp.get_data(istep= np.arange(10,16), boundname='aqpump_07346')
-# -- Force output on required time steps 
-liz_mp.get_data(istep= np.arange(10,16), boundname='aqpump_07346', force=True)
 
+# -- Volontary remove last 10 time steps for all wells
+mp.data = mp.data.loc[mp.data.istep.isin(np.arange(29))]
+
+# -- Return proovided timestep only
+mp.get_data(istep=np.arange(20,39), boundname='aqpump_034350', force=False)
+# -- Force not provided timesteps extraction
+mp.get_data(istep=np.arange(20,39), boundname='aqpump_034350', force=True)
 
 # -- Switch boundname by another bound names
-switch_dic = {'aqpump_046949' : 'pump1', 'aqpump_020822' : 'pump2' }
+switch_dic = {'aqpump_035533' : 'pump1', 'aqpump_034350' : 'pump2' }
 mp.switch_boundnames(switch_dic)
-mp.get_data(i=101, j=70)
+mp.get_data(boundname='pump1')
 
 '''
 Reminder:
@@ -1351,7 +1348,7 @@ for ilay in range(mm.nlay):
 
 
 # -- Set pilot point data
-pp_shpfile = os.path.join('monav3_pm', 'gis', 'pp_l4.shp')
+pp_shpfile = os.path.join('monav3', 'gis', 'pp_l4.shp')
 pp_data = {4: {1: pp_shpfile} } # layer = 4, zone = 1
 
 # -- Check `izone` creation

@@ -229,13 +229,13 @@ class MarthePump():
                     in zip(col_query, [istep,node,layer,i,j,boundname])
                     ]
                         )
-
+        
         # ---- Force all provided isteps (slow)
         if force:
             # -- Subset (without timestep)
             dfs = []
             df_ss = self.data.query(q[q.index('node'):])
-            for istep in marthe_utils.make_iterable(istep):
+            for istep in range(self.mm.nstep):
                 df = df_ss.loc[df_ss.istep == istep]
                 # -- If istep not provided in pastp file
                 if df.empty:
