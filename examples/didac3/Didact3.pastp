@@ -1,0 +1,15 @@
+Didacticiel 3 (Qmasse par maille)
+ #<V7.5># --- Fin du texte libre --- ; Ne pas modifier/retirer cette ligne
+ *** Début de la simulation    à la date :         0; ***
+  /*****/***** Fin de ce pas
+ *** Le pas :    1: se termine à la date :        12; ***
+  /QMASS_CONC/MAILLE       C=  6:11 L= 12:18 P=      1V=    105192;
+  /CONCENTR/EDITION        I= 1;V= 0;R= 0;
+  /*****/***** Fin de ce pas
+ *** Le pas :    2: se termine à la date :        24; ***
+  /CONCENTR/EDITION        I= 1;V= 0;R= 0;
+  /*****/***** Fin de ce pas
+ *** Le pas :    3: se termine à la date :        36; ***
+  /CONCENTR/EDITION        I= 1;V= 0;R= 0;
+  /*****/***** Fin de ce pas
+ ***        :     : Fin de la simulation :            ; ***

@@ -1,0 +1,9 @@
+Didacticiel 3
+ #<V7.5># --- Fin du texte libre --- ; Ne pas modifier/retirer cette ligne
+  /Concentr     /HISTO/   =   /XCOO:X=    290Y=    310P=      1;P1
+  /Concentr     /HISTO/   =   /XCOO:X=    390Y=    310P=      1;P2
+  /Concentr     /HISTO/   =   /XCOO:X=    290Y=    310P=      2;P3
+  /Concentr     /HISTO/   =   /XCOO:X=    390Y=    310P=      2;P4
+  /Concentr     /HISTO/   =   /XCOO:X=    290Y=    310P=      3;P5
+  /Concentr     /HISTO/   =   /XCOO:X=    390Y=    310P=      3;P6
+ *** Fin du fichier des 'Mailles à Historique'       ***

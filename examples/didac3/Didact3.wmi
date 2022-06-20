@@ -1,0 +1,34 @@
+Zoom=2.603249 #Coefficient de zoom
+EchelleXY=2.603249 #Echelle des coordonnées X et Y
+FactY=1.000000 #Facteur de dilatation sur l'axe Y
+FactZ=25.000000 #Facteur de dilatation sur l'axe Z
+DxGradAxe=0.000000 #Graduation DX de l'axe des X
+DyGradAxe=0.000000 #Graduation DY de l'axe des Y
+ScrollX=0 #Position en abcisse
+ScrollY=0 #Position en ordonnée
+ContourMailles=1 #Flag indiquant si les contours des mailles doivent être dessinés
+RepartitionCouleur=0 #Répartitions des valeurs en plages : 0 = Linéaire, 1 = Log, 2 = Personnalisée, 3 = Équirépartie
+ChampsCharges=PERMEAB,DEBIT,CHARGE,EMMAG_LIBR,H_SUBSTRAT,H_TOPOGR,ZONE_SOL,SUBS_EPONTE,POROSITE  #Liste des champs chargés
+ChampCourant=4 #Champ courant
+TypeVue=0 #Mode vue: 0 = Plan, 1 = Coupe style modèle, 2 = Coupe style réel
+OrientationVue=0 #Orientation de la vue : 0 = Ouest-Est  ;  3 = Sud-Nord
+ModeVue=0 #Type de vue : 0 = par valeur, 1 = par géométrie, 2 = par isovaleur
+Focus=0 #Maillage ou gigogne qui possède le focus
+CoucheCourante=2 #Couche courante
+LigneCourante=29 #Ligne courante du maillage Principal (N° WinMarthe)
+ColonneCourante=29 #colonne courante du maillage Principal (N° WinMarthe)
+AfficheLegende=1 #flag indiquant si la légende est activée
+AfficheQuadrillage=1 #flag indiquant si le quadrillage est activé
+AfficheMaillage=1 #flag indiquant si le maillage est dessiné
+AffichePolygones=1 #flag indiquant si les polygones sont dessinés
+AfficheFondCarte=0 #flag indiquant si le fond de carte est dessiné
+FondCarte= #fichier BMP du fond de carte
+AfficherToutesMailles=0 #permet d'afficher toutes les mailles(y compris celles inexistantes)
+AfficherMaillesSurf=0 #permet d'afficher les mailles si une de la verticale affleure
+FichierCoupuresPerso= #Nom du dernier fichier Coupures Perso
+Polygone1_fichier=Didact3_Pompage.bln
+Polygone1_couleur=0,0,0
+Polygone1_epaisseur=7
+Polygone1_type=BLN
+Polygone1_echelle=1
+Polygone1_visible=1

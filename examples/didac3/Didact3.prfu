@@ -1,0 +1,19 @@
+Didacticiel 3
+ *** Profils d'Utilisation    [Logiciel MARTHE 7.5]  ***
+         0=Hydrodynamique simple en régime permanent
+         1=Régime Transitoire
+         0=/// Transport ///
+         1=Transport de masse classique
+         0=Zone Non Saturée
+         0=Rivières, Drains, Lacs (1=Rivières et/ou Lacs  ;  2=Drains  ;  3=tous les 3)
+         0=Hydroclimatologie, Cultures, Nitrates : 1=Cultures ; 2=Cultures+NO3 BICHE ; 3=Cultures+MONICA
+         0=Salinité (1=Oui  ;  2=Calcul de la Salinité et de la Densité)
+         0=Interface Eau douce/Eau salée
+         0=Température (1=Oui  ;  2=Calcul de la Température)
+         0=Multiphasique
+         0=Écoulements de Gaz
+         0=Couplage Géochimique  ou  Multicomposant (1=SCS, Chaine ; 2=PHREEQC ; 3=TREACT)
+         0=Utilisation Avancée
+         0=Compatibilité avec des versions antérieures
+         0=Utilisation très avancée = Tout
+ *** Fin du fichier <Profil d'Utilisation>           ***
