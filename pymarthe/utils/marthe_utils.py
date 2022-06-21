@@ -464,8 +464,66 @@ def make_silent(martfile):
 
 
 
+def get_chasim_indexer(chasim):
+    """
+    Return a DataFrame with start/end columns using as 
+    character indexes to read grid in Marthe simulated grid file.
 
-def read_grid_file(grid_file, keep_adj=False):
+    Parameters
+    -----------
+    chasim (str): simulated field(s) file
+                  If None, the 'chasim.out' in model path
+                  will be considered.
+                  Default is None.
+
+    Returns
+    --------
+    indexer (DataFrame) : table indexer.
+                          Format:
+
+                                    field       istep       start       end     
+                            0      CHARGE           0           0     16789
+                            1      CHARGE           0       16790     33578
+                            2      CHARGE           0       33579     50367
+                           ..          ..          ..          ..        ..
+
+    Examples
+    -----------
+    mm = MartheField('mona.rma')
+    mfs = MartheFieldSeries(mm, chasim=None)
+
+    """
+    # -- Extract chasim content as string
+    with open(chasim, 'r', encoding = encoding) as f:
+        content = f.read()
+
+    # -- Set regular expressions
+    re_igrid = r"Marthe_Grid(.*?)\[End_Grid]"
+    re_headers = [r"Field=(\w*)", r"Time_Step=([-+]?\d*\.?\d+|\d+)"]
+
+    # -- Extract only usefull grid informations into a indexer DataFrame
+    indexer = pd.DataFrame(
+                np.column_stack(
+                    [ 
+                    np.column_stack(
+                        [re.findall(r, content) for r in re_headers]
+                        ),
+                    np.column_stack(
+                        [[m.start(0), m.end(0)] for m in re.finditer(re_igrid, content, re.DOTALL)]
+                        ).T
+                    ]
+                ),
+            columns = ['field', 'istep', 'start', 'end']
+            ).astype(
+                {col: int for col in ['istep', 'start', 'end']}
+                )
+
+    # -- Return indexer
+    return indexer
+
+
+
+def read_grid_file(grid_file, keep_adj=False, start=None, end=None):
 
     """
     Function to read Marthe grid data in file.
@@ -474,9 +532,17 @@ def read_grid_file(grid_file, keep_adj=False):
     Parameters:
     ----------
     grid_file (str) : Marthe Grid file full path
+
     keep_adj (bool) : whatever conserving adjacent cells
                       for nested grids.
                       Default is False.
+    
+    start/end (int, optional) : first/last character index to 
+                                consider in whole grid file.
+                                If None, `start`=0 and `end`= len(N)
+                                (where N is the number of character
+                                 in the provided grid file)
+                                Default is None.
 
     Returns:
     --------
@@ -490,7 +556,10 @@ def read_grid_file(grid_file, keep_adj=False):
     """
     # ---- Extract data as large string
     with open(grid_file, 'r', encoding = encoding) as f:
-        content = f.read()
+        allcontent = f.read()
+        s = 0 if start is None else start
+        e = len(allcontent) if end is None else end
+        content = allcontent[s:e]
 
     # ---- Define data regex
     sgrid, scgrid, egrid, cxdx0, cydy0, cxdx1, cydy1 =  [r'\[Data]',
@@ -575,7 +644,7 @@ def read_grid_file(grid_file, keep_adj=False):
                 args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # -- Append MartheGrid instance to the grid list
-        grid_list.append(MartheGrid(*args))
+        grid_list.append(pymarthe.utils.grid_utils.MartheGrid(*args))
 
     # ---- Raise error if marthe grid file headers are not provided
     err_msg = f"ERROR : uncorrect headers values in `{grid_file}` grid file.\n" \
@@ -588,6 +657,7 @@ def read_grid_file(grid_file, keep_adj=False):
 
     # ---- Return all MartheGrid instances and xcc, ycc if required
     return tuple(grid_list)
+
 
 
 

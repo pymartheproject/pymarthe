@@ -643,22 +643,48 @@ mm.prop['permh'].to_vtk(filename = os.path.join('monav3', 'vtk_permh'),
 While running a MARTHE model, if provided in the .pastp file, some fields will be simulated and saved
 (currently in the 'chamsim.out' file). For post-processing purpose, the MartheFieldSeries class can
 be called to manipulate these series of simulated fields. The MartheFieldSeries constructor will read
-the simulated fields and collect all MartheGrid for a given field. 
-Let's try to load simulated heads from the MONA model.
+the simulated file ('chamsim.out') and create a indexer DataFrame that will allowed to get the psoition
+of each required field grid (`MartheGrid`) in whole file.
+Let's try to initialize a MartheFieldSeries class.
 '''
 chasim = os.path.join('monav3', 'chasim_cal_histo.out')
-mfs = MartheFieldSeries(mm=mm, field = 'charge', simfile=chasim)
+mfs = MartheFieldSeries(mm=mm, chasim=chasim)
 
 '''
-The MartheFieldSeries object store data all data in a dictionary with format:
+All the available simulated fields in the chasim file are stored in the `.fields` arguments.
+The helping indexer can be reached by using the `.indexer` argument.
+The simulated fields will be stored in `.data` arguments.
+'''
+mfs.fields
+mfs.indexer
+mfs.data
+
+'''
+To load a specific field, the user can use the `.load_field()` method with the possibility of selecting
+a specific sequence of timestep (to readuced the reading time process for example).
+Note : the field name must correspond exactly to how it was written by Marthe in the chasim file,
+       otherwise, an assertion error will be raised.
+'''
+# -- Try to load a bad field name
+mfs.load_field('charge')
+# -- Load simulated heads for all timestep
+mfs.load_field('CHARGE')
+# -- Load simulated heads each 5 timesteps
+mfs.load_field('CHARGE', istep= np.arange(0, mm.nstep, 5))
+
+
+'''
+The MartheFieldSeries object store field data in a dictionary with format:
 {istep_0 : MartheField_0, ..., istep_N : MartheField_N}
 '''
 mfs.data
 
+
 '''
-Simulated time series of given point(s) (x-y-layer) can be fetch with the .get_tseries() method.
-Additional `names` iterable can be added to reference each point. The `index` argument allows 
-to manage the required index of the output DataFrame, can be 'date', 'istep', 'both'.
+Simulated time series of given point(s) (x-y-layer) can be fetch with the .get_tseries() method
+for all loaded fields. Additional `names` iterable can be added to reference each point.
+The `index` argument allows to manage the required index of the output DataFrame,
+can be 'date', 'istep', 'combined'.
 '''
 # -- Read points from a shapefile
 shpname = os.path.join('monav3', 'gis', 'sim_points.shp')
@@ -668,25 +694,25 @@ shp_df = shp_utils.read_shapefile(shpname)
 x, y = zip(*shp_df.coords.explode())
 
 # -- Get time series
-df = mfs.get_tseries(x,y, layer=5)
+df = mfs.get_tseries(, x,y, layer=5)
 print(df)
 
 '''
 If `names` arguments are not provided, generic names are created according to points row, column, layer
 with format: f'{row}i_{col}j_{layer}k'. Let's try again providing points names and a different index.
 '''
-df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'istep')
+df = mfs.get_tseries('CHARGE', x, y, layer=5, names = shp_df['ID'], index = 'istep')
 print(df)
-df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'date')
+df = mfs.get_tseries('CHARGE', x, y, layer=5, names = shp_df['ID'], index = 'date')
 print(df)
-df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'both')
+df = mfs.get_tseries('CHARGE', x, y, layer=5, names = shp_df['ID'], index = 'combined')
 print(df)
 
 '''
 One of the main advantage of the DataFrame output is the pandas plot support to visualize field time series.
 Let's make a example
 '''
-df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'])
+df = mfs.get_tseries('CHARGE', x, y, layer=5, names = shp_df['ID'])
 plt.rc('font', family='serif', size=7)
 df[['rec_8','rec_9','rec_10']].plot(figsize = (8,4), title = 'Simulated heads',
                                     lw = 0.8, xlabel ='', ylabel ='Hydraulic heads [m]')
@@ -704,9 +730,9 @@ This method have a additional dependency to `imageio` python package.
 It may be quite slow for model with large number of cells, layers and time steps.
 '''
 gif = os.path.join('monav3', 'export', 'heads5_animation.gif')
-mfs.save_animation(gif, dpf = 0.2, dpi=200, 
-                        layer=5, vmin=-50, vmax=150,
-                        extent=(300,210,490,380), cmap = 'jet')
+mfs.save_animation('CHARGE', gif, dpf = 0.2, dpi=200, 
+                                  layer=5, vmin=-50, vmax=150,
+                                  extent=(300,210,490,380), cmap = 'jet')
 
 
 '''
@@ -718,7 +744,7 @@ Note: column names can be truncated if field name is too long.
 '''
 
 filename = os.path.join('monav3', 'export', 'heads_09.shp')
-mfs.to_shapefile(filename, layer=9)
+mfs.to_shapefile('CHARGE', filename, layer=9)
 
 
 
