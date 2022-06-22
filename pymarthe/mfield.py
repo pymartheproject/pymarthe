@@ -13,8 +13,6 @@ from copy import copy, deepcopy
 import shutil
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
-
-
 from .utils import marthe_utils, shp_utils, pest_utils
 from .utils.grid_utils import MartheGrid
 
@@ -1148,7 +1146,9 @@ class MartheFieldSeries():
             # Perform a deepcopy of the .imask field
             mf = deepcopy(self.mm.imask)
             # Replace with simulated values
-            mf.data['value'] = np.ravel([mg.array for mg in all_grids if mg.istep == istep])
+            mf.data['value'] = np.concatenate(
+                                        [mg.array.ravel() for mg in all_grids if mg.istep == istep]
+                                    )
             # Add generic field name
             mf.field = '{}_{}'.format(field, str(istep).zfill(digits))
             # Add field to main field dictionary
