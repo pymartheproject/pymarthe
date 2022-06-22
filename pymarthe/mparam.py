@@ -1108,7 +1108,12 @@ class MartheGridParam():
         """
         # ---- Get all parameter file names
         parfiles = [os.path.join(self.parpath, f) for f in os.listdir(self.parpath)
-                    if f.endswith('.dat') and any(s in f for s in ['_zpc','_pp'])]
+                    if np.logical_and.reduce(
+                                [ any(s in f for s in ['_zpc','_pp']),
+                                f.endswith('.dat'),
+                                f.startswith(f'{self.parname}_')]
+                                )
+                    ]
 
         lines = ['[START_PARAM]']
         data = [
