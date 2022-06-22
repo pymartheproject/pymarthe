@@ -499,7 +499,7 @@ def get_chasim_indexer(chasim):
 
     # -- Set regular expressions
     re_igrid = r"Marthe_Grid(.*?)\[End_Grid]"
-    re_headers = [r"Field=(\w*)", r"Time_Step=([-+]?\d*\.?\d+|\d+)"]
+    re_headers = [r"Field=(.+)\n", r"Time_Step=([-+]?\d*\.?\d+|\d+)"]
 
     # -- Extract only usefull grid informations into a indexer DataFrame
     indexer = pd.DataFrame(
@@ -571,7 +571,7 @@ def read_grid_file(grid_file, keep_adj=False, start=None, end=None):
                                                          r'\[Num_Rows_/_y_/_dy]']
 
     # ---- Define infos regex
-    re_headers = [r"Field=(\w*)",
+    re_headers = [r"Field=(.+)\n",
                   r"Time_Step=([-+]?\d*\.?\d+|\d+)",
                   r"\nLayer=(\d+)",
                   r"Nest_grid=(\d+)",
