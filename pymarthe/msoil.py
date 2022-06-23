@@ -426,10 +426,9 @@ class MartheSoil():
                     df = self.data.loc[self.data['istep'] == istep]
                     for d in df.itertuples():
                         # ---- Regex to match in current block
-                        re_match = r"\/{0}\/ZONE_SOL\s*Z=\s*{1}V=\s*({2});".format(
+                        re_match = r"\/{0}\/ZONE_SOL\s*Z=\s*{1}V=\s*(.+);".format(
                                                                         d.soilprop.upper(),
-                                                                        d.zone,
-                                                                        re_num)
+                                                                        d.zone)
                         # ---- Match regex in block
                         match = re.search(re_match, block)
                         # ---- Get line with new value
