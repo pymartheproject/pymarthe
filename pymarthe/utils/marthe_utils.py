@@ -557,9 +557,11 @@ def read_grid_file(grid_file, keep_adj=False, start=None, end=None):
     # ---- Extract data as large string
     with open(grid_file, 'r', encoding = encoding) as f:
         allcontent = f.read()
-        s = 0 if start is None else start
-        e = len(allcontent) if end is None else end
-        content = allcontent[s:e]
+        # -- Manage start/end input 
+        starts = [0] if start is None else make_iterable(start)
+        ends = [len(allcontent)] if end is None else make_iterable(end)
+        # -- Get subseted content
+        content = ''.join([allcontent[s:e] for s,e in zip(starts, ends)])
 
     # ---- Define data regex
     sgrid, scgrid, egrid, cxdx0, cydy0, cxdx1, cydy1 =  [r'\[Data]',

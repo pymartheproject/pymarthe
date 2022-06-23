@@ -1124,35 +1124,47 @@ class MartheFieldSeries():
         exist, _ = self.check_fieldname(field, raise_error=False)
         assert exist, err_msg
 
+        # -- Manage isteps input
+        available_isteps = self.indexer.loc[self.indexer.field == field, 'istep'].unique()
+        if istep is None:
+            isteps = available_isteps
+        else:
+            isteps = [ i for i in marthe_utils.make_iterable(istep) if i in available_isteps]
 
-        # -- Get required isteps and layers
-        isteps = list(range(self.mm.nstep)) if istep is None else marthe_utils.make_iterable(istep)
-        digits = len(str(len(isteps)))
+        # -- Infer digits from isteps values
+        digits = len(str(np.max(isteps)))
 
-        # -- Extract character index of chasim file required
+        # -- Subset indexer by required field and isetps
         df = self.indexer.query(f"field == '{field}' & istep in @isteps")
-        start, end = df['start'].min(), df['end'].max()
 
-        # -- Convert to MartheGrid instances
-        print(f'Convert `{field}` simulated field to grids ...')
-        all_grids = marthe_utils.read_grid_file(self.chasim, start=start, end=end)
+        # -- Get all required MartheGrid instances
+        print(f'Extract `{field}` MartheGrid instances ...')
+        df['mg'] = marthe_utils.read_grid_file(self.chasim, start=df.start, end=df.end)
 
-        # -- Convert to Marthefield instances
-        print(f'Convert `{field}` simulated field to fields ...')
+        # -- Iterate over isteps to (re)construct MartheField instances
+        print(f'Convert `{field}` to MartheField instances ...')
         mf_dic = {}
-        for i, istep in enumerate(isteps):
+        progress = 1
+        for i, idf in df.groupby('istep'):
             # Inform user about the time processing
-            marthe_utils.progress_bar((i+1)/len(isteps))
+            marthe_utils.progress_bar(progress/len(isteps))
+            # Get index of start/end section in chasim file
+            start, end = idf['start'].min(), idf['end'].max()
             # Perform a deepcopy of the .imask field
             mf = deepcopy(self.mm.imask)
-            # Replace with simulated values
-            mf.data['value'] = np.concatenate(
-                                        [mg.array.ravel() for mg in all_grids if mg.istep == istep]
+            # Replace .imask value by field simulated values
+            # (using hstack instead of concatenate to speed up process)
+            mf.data['value'] = np.hstack(
+                                    idf.mg.apply(
+                                        lambda g: g.array.ravel()
+                                        ).to_numpy()
                                     )
-            # Add generic field name
-            mf.field = '{}_{}'.format(field, str(istep).zfill(digits))
-            # Add field to main field dictionary
-            mf_dic[istep] = mf
+            # Add field name according to current timestep
+            mf.field = '{}_{}'.format(field, str(i).zfill(digits))
+            # Add MartheField instance to main field dictionary
+            mf_dic[i] = mf
+            # Update progress
+            progress += 1
 
         # -- Add Marthefield records in main data dictionary
         self.data[field] = mf_dic
