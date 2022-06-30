@@ -1373,7 +1373,8 @@ for ilay in range(mm.nlay):
             ipermh.set_data(-1, layer=ilay)
 
 
-# -- Set pilot point data
+
+# -- Fetch pre-generated pilot point data
 pp_shpfile = os.path.join('monav3', 'gis', 'pp_l4.shp')
 pp_data = {4: {1: pp_shpfile} } # layer = 4, zone = 1
 
@@ -1390,6 +1391,7 @@ ax = ipermh.plot(layer=13)
 ax.set_title(f"Property: '{permh.field}', Layer: 13", fontweight='bold')
 plt.show()
 
+
 '''
 If the `izone` instance is satisfying enough, make sure to write it on disk.
 A common practice is to name it exactly as the field grid file which is
@@ -1399,6 +1401,57 @@ Example: 'mymodel.permh'  --->    'mymodel.ipermh'
 
 # -- Write ipermh as izone file
 ipermh.write_data(mona_ws.replace('.rma', f'.{ipermh.field}'))
+
+
+'''
+The pilot points generation can of course be perform manually with a gis software such as ArcGis 
+or Qgis but it can be time consuming especially if the model has many layers to parameterize.
+To facilitate and speed up the pilot points management, PyMarthe provides an easy-to-use class
+named : PilotPoints.
+/!/  It required the python `shapely` module /!/
+To build a PilotPoints instance, an existing izone (MartheField) is required. It will automatically
+merge all cells with the same positive zone ids into shapely Polygon instances (`.polygons`).
+Let's try to build a empty PilotPoints instance from previous `ipermh` object.
+'''
+
+# -- Import pp tool
+from pymarthe.utils.pp_utils import PilotPoints
+# -- Create PilotPoints Manager
+pp = PilotPoints(ipermh)
+print(pp.polygons)
+print(pp.data)
+
+'''
+The PilotPoints instance does not contain any pilot points at first. The user can generate them
+layer by layer and zone by zone using either the:
+    - `.add_spacing_pp()` : generate a structured point mesh grid from xy-spacing between points
+    - `.add_n_pp()`       : generate a structured point mesh grid from a required number of points
+The `xoffset` and `yoffset` arguments can be provide to add a offset distance from the origin point
+(lower left corner of the current polygon extension) in xy-direction.
+During pilot points generation process the user can use the internal `.plot()` method to have a
+quick geographical check of generated points (See `help(pp.plot)` for more details).
+Note: the spacing distance has the same distance unit as the izone field.
+'''
+# -- Generate fixed number of pilot points
+pp.add_n_pp(layer=4, zone=1, n=100, tol=1, xoffset=-8, yoffset=1)
+pp.plot(layer=4, zone=1)
+plt.show()
+
+# -- Generate pilot point from spacing(s)
+pp.add_spacing_pp(layer=4, zone=1, xspacing=12, yspacing=15, xoffset=1, yoffset=1)
+pp.plot(layer=4, zone=1)
+plt.show()
+
+
+'''
+Some asertion errors will be raised if the user try to generate a set of pilot points in a 
+non pilot point prametrized zone according to the provided `.izone`. 
+'''
+# -- Non pilot point layer
+pp.add_spacing_pp(layer=5, zone=1, xspacing=12, yspacing=15)
+# -- Non pilot point zone
+pp.add_spacing_pp(layer=4, zone=2, xspacing=12, yspacing=15)
+
 
 
 '''
@@ -1433,6 +1486,15 @@ mopt.add_param(parname='hk', mobj=permh, izone=ipermh, pp_data=pp_data, trans='l
 
 
 '''
+If the parametrized field contains pilot points zones, the user should provides
+informations about their location (basically, xy-coordinates) via the `pp_data`
+argument (See more details with `help(mopt.add_param)`). The PilotPoints instance 
+can facilitate this task using the `.to_pp_data()` method.  
+'''
+mopt.add_param(parname='hk', mobj=permh, izone=ipermh, pp_data=pp.to_pp_data(), defaultvalue=1e-3)
+
+
+'''
 If `izone` contains pilot point zone(s), it's necessary to compute and store 
 the kriging factors in order to perform ordinary kriging between pilot points
 and be able to set interpolated field values into each required grid cells.
@@ -1445,20 +1507,31 @@ the same name of the parameter file with the '.fac' extension.
 Note : This method can also write the covariance matrices as binary files
        passing the `save_cov` argument to True. This can be usefull for
        optimisation or uncertainty analysis for example.
+
+Find the suitable range for each set of pilot points is a complex step.
+it is very common to set the range of the variogram as a factor (generally around 3)
+of the maximum distance between nearest neighbors of each pilot point.
 '''
 # -- Fetch minimum distance between pilot points
-pp = np.array(shp_utils.shp2points(pp_shpfile))
-dist = np.abs(pp[np.newaxis, :, :] - pp[:, np.newaxis, :])
-mdist = dist[dist > 0].min()
+ppts = np.array(shp_utils.shp2points(pp_shpfile))
+dist = np.abs(ppts[np.newaxis, :, :] - ppts[:, np.newaxis, :])
+mdist = dist[dist > 0].min()    # regular mesh grid
 
-# -- Compute kriging factors as 2 * minimum distance between pilot points
+# -- Compute kriging factors as 3 times the minimum distance between pilot points
 # Invalid range inputs
-mopt.write_kriging_factors(vgm_range={2: {1: 2*mdist}}, parname='hk')
-mopt.write_kriging_factors(vgm_range={4: {2: 2*mdist}}, parname='hk')
+mopt.write_kriging_factors(vgm_range={2: {1: 3*mdist}}, parname='hk')
+mopt.write_kriging_factors(vgm_range={4: {2: 3*mdist}}, parname='hk')
 # Valid range input
-mopt.write_kriging_factors(vgm_range={4: {1: 2*mdist}}, parname='hk')
-mopt.write_kriging_factors(vgm_range={4: 2*mdist}, parname='hk')
-mopt.write_kriging_factors(vgm_range=2*mdist, parname='hk')
+mopt.write_kriging_factors(vgm_range={4: {1: 3*mdist}}, parname='hk')
+mopt.write_kriging_factors(vgm_range={4: 3*mdist}, parname='hk')
+mopt.write_kriging_factors(vgm_range=3*mdist, parname='hk')
+
+'''
+Once again, if the pilot points were created with the PyMarthe PilotPoints utils,
+the `vgm_range` can be easily extracted from added pilot points.
+'''
+vgm_range = pp.extract_vgm_range(factor=3)
+mopt.write_kriging_factors(vgm_range, parname='hk')
 
 '''
 To write pest parameter files and template files from the MartheOptim instance
@@ -1473,7 +1546,6 @@ mopt.write_tplfile(parname = 'hk')
 # -- Writing all parameters
 mopt.write_parfile()
 mopt.write_tplfile()
-
 
 
 

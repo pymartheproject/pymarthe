@@ -11,7 +11,7 @@ import shutil
 import shapefile
 
 srefhttp = "https://spatialreference.org"
-
+PYSHP_TYPES = {'Null':0, 'Point':1, 'LineString':3, 'Polygon':5}
 
 
 def read_shapefile(shpname):
@@ -227,7 +227,7 @@ def get_pyshp_field_dtypes(code):
 
 
 
-def recarray2shp(recarray, geoms, shpname="recarray.shp", epsg=None, prj=None, **kwargs):
+def recarray2shp(recarray, geoms, shpname="recarray.shp", geomtype= 'Polygon', epsg=None, prj=None, **kwargs):
     """
     Write a numpy record array to a shapefile, using a corresponding
     list of geometries.
@@ -264,12 +264,21 @@ def recarray2shp(recarray, geoms, shpname="recarray.shp", epsg=None, prj=None, *
     # ---- Check empty recarray
     if len(recarray) == 0:
         raise Exception("Recarray is empty")
+
+    # ---- Check shapetype detection
+    err_msg = f'ERROR : `{geomtype}` geometry type not understood. ' \
+              'Must be one of those : {}.'.format(', '.join([f'`{gt}`' 
+                                                    for gt in PYSHP_TYPES.keys()]))
+    assert geomtype in PYSHP_TYPES.keys(), err_msg
+
+
     # ---- Initialize pyshp writer object
-    w = shapefile.Writer(shpname, shapeType=shapefile.POLYGON)
+    w = shapefile.Writer(shpname, shapeType=PYSHP_TYPES[geomtype])
     w.autoBalance = 1
 
     # ---- Write field for each name of recarray
     names = enforce_10ch_limit(recarray.dtype.names)
+
     for i, npdtype in enumerate(recarray.dtype.descr):
         key = names[i]
         if not isinstance(key, str):
@@ -278,14 +287,30 @@ def recarray2shp(recarray, geoms, shpname="recarray.shp", epsg=None, prj=None, *
 
     # ---- write the geometry and attributes for each record
     ralist = recarray.tolist()
-    for i, r in enumerate(ralist):
-        w.poly(geoms[i])
-        w.record(*r)
+
+    # -- Manage polygon
+    if PYSHP_TYPES[geomtype] == 5:
+        for i, r in enumerate(ralist):
+            w.poly(geoms[i])
+            w.record(*r)
+
+    # -- Manage line
+    elif PYSHP_TYPES[geomtype] == 3:
+        for i, r in enumerate(ralist):
+            w.line(geoms[i])
+            w.record(*r)
+
+    # -- Manage Point
+    elif PYSHP_TYPES[geomtype] == 1:
+        for i, r in enumerate(ralist):
+            w.point(*geoms[i])
+            w.record(*r)
 
     # ---- Close pyshp writer object
     w.close()
     # ---- Write projection file
     write_prj(shpname, epsg, prj)
+
 
 
 

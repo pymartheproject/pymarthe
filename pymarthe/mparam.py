@@ -750,7 +750,7 @@ class MartheGridParam():
     def build_pp_df(self, coords, layer, zone):
         """
         Create pilot point Dataframe from xy-coordinates with generic names.
-        Wrapper to pp_utils.pp_df_from_coords().
+        Wrapper to PilotPoints.pp_df_from_coords().
 
         Parameters
         ----------
@@ -783,18 +783,19 @@ class MartheGridParam():
             # -- Check default value(s) validity
             if len(dv) != len(coords):
                 msg = "WARNINGS : could not extract field data properly at pilot points coordinates. " \
-                      "A generic value of 1e-3 will be set as `default_value instead. The reason can be the:\n" \
+                      f" for `layer`={layer} and `zone`={zone}. The reason can be the:\n" \
                       "\t- Absence of spatial index in main model\n" \
                       "\t- Bad spatial index files creation\n" \
-                      "\t- Presence of corrupted spatial index files`\n" \
-                      "A generic value of 1e-3 will be set as `default_value instead."
+                      "\t- Presence of corrupted spatial index files\n" \
+                      "\t- Pilot point(s) location outside the current zone\n" \
+                      "The mean field value on this zone will be set as `default_value` instead."
                 warnings.warn(msg)
-                dv = 1e-3
+                dv = self.get_dv_from_lz(layer, zone, agg='mean')
         else:
             dv = self.defaultvalue
 
         # ---- Build DataFrame with names
-        pp_df = pp_utils.pp_df_from_coords(self.parname, coords, layer, zone, value= dv)
+        pp_df = pp_utils.PilotPoints.pp_df_from_coords(self.parname, coords, layer, zone, value= dv)
 
         # ---- Check spatial lies distribution
         # msg = f"WARNING : some pilot points are located outside " \
@@ -1107,7 +1108,7 @@ class MartheGridParam():
         print(mgp.to_config())
         """
         # ---- Get all parameter file names
-        parfiles = [os.path.join(self.parpath, f) for f in os.listdir(self.parpath)
+        parfiles = [os.path.join(self.parpath, f) for f in sorted(os.listdir(self.parpath))
                     if np.logical_and.reduce(
                                 [ any(s in f for s in ['_zpc','_pp']),
                                 f.endswith('.dat'),
