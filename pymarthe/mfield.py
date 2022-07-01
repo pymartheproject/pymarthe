@@ -732,7 +732,7 @@ class MartheField():
 
     def plot(self,  ax=None, layer=0, inest=None, vmin=None,
                     vmax=None, log = False, extent = None,
-                    masked_values = dmv, **kwargs):
+                    masked_values = dmv, basemap=False, **kwargs):
         """
         Plot data by layer
 
@@ -741,22 +741,44 @@ class MartheField():
         ax (matplotlib.axes, optional) : matplotlib.axes custom ax.
                              If None basic ax will be create.
                              Default is None.
+
         layer (int, optional) : layer numerical id to export.
                                 Note : a unique layer id is allowed
                                 Default is 0.
+
         inest (int, optional) : nested grid numerical id to export.
                                 If None, all nested grid are considered.
                                 Default is None.
+
         vmin, vmax (float, optional) : min/max value(s) to plot.
-        masked_values (list, optional) : field values to ignore.
-                                         Default is [-9999., 0., 9999].
+
         log (bool, optional) : logarithmic transformation of all values.
                                Default is False.
+
         extent (tuple/list, optional): xy-limits of the plot window.
                                        Format: (xmin, ymin, xmax, ymax).
                                        If None, window correspond to the
                                        entire model domain.
                                        Default is None.
+
+        masked_values (list, optional) : field values to ignore.
+                                         Default is [-9999., 0., 9999].
+
+        basemap (dict/bool, optional) : add base map to AxesSubplot.
+                                        /!/ Required python `contextily` module /!/
+                                        Can be:
+                                            - `False` : not adding any basemap
+                                            - `True` : add standard basemap.
+                                                       -> provider: Stamen Terrain web tiles.
+                                                       -> crs: Spherical Mercator projection (EPSG:3857)
+                                            - dict() : contextily.add_basemap() arguments.
+                                                       Format:
+                                                            {'source':TileProvider object, 
+                                                             zoom:'auto',
+                                                             ... ,
+                                                             'crs': 'EPSG:2154'}
+                                        Default is False.
+
         **kwargs (optional) : matplotlib.PathCollection arguments.
                               (ex: cmap, lw, ls, edgecolor, ...)
 
@@ -833,6 +855,20 @@ class MartheField():
                                    norm=norm)
         label = f'log({self.field})' if log else self.field
         plt.colorbar(sm, ax=ax, label=label)
+
+        # ---- Add basemap if required
+        if basemap is True or isinstance(basemap, dict):
+            # -- Try to import contextily
+            try:
+                import contextily as ctx
+            except:
+                ImportError('Could not import `contextily` module to add basemap.')
+            if basemap is True:
+                # -- Add standard basemap (Stamen Terrain, EPSG:3857)
+                ctx.add_basemap(ax)
+            else:
+                provider = basemap.pop('source', ctx.providers.OpenStreetMap.Mapnik)
+                ctx.add_basemap(ax, source=provider, **basemap)
 
         # ---- Return axe
         return ax
