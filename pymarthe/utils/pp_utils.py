@@ -365,13 +365,16 @@ class PilotPoints():
                 fig, ax = plt.subplots(figsize=(8,6))
 
         # -- Plot pilot point active zone(s) exterior line
-        ax.plot(*polygon.exterior.xy, **zone_kwargs)
-        ax.fill(*polygon.exterior.xy, facecolor='lightgrey')
+        geoms = [polygon] if isinstance(polygon, self.Polygon) else [g for g in polygon.geoms]
+        for g in geoms:
+            ax.plot(*g.exterior.xy, **zone_kwargs)
+            ax.fill(*g.exterior.xy, facecolor='lightgrey')
 
         # -- Plot pilot point active zone(s) interior line(s)
-        for hole in polygon.interiors:
-            ax.plot(*hole.xy, **{k:v for k,v in zone_kwargs.items() if k != 'label'})
-            ax.fill(*hole.xy, facecolor='white')
+        for g in geoms:
+            for hole in g.interiors:
+                ax.plot(*hole.xy, **{k:v for k,v in zone_kwargs.items() if k != 'label'})
+                ax.fill(*hole.xy, facecolor='white')
 
         # -- Plot buffer zone if required
         if buffer != 0:
