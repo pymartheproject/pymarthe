@@ -110,7 +110,7 @@ def spatial_aggregation(mm, x, y, layer, value, agg = 'sum', trans ='none', only
 
 
 
-def extract_model_geology(mm, shpout, epsg=2154, on_grid=False):
+def write_model_geology(mm, shpout, epsg=2154, on_grid=False):
     """
     Extract geology on a projected Marthe Model extension from BRGM 
     BDCharm50 data base.
@@ -136,7 +136,7 @@ def extract_model_geology(mm, shpout, epsg=2154, on_grid=False):
     Examples
     --------
     mm = MartheModel('mymodel.rma')
-    extract_model_geology(mm, 'Lambert_3_model_geol.shp', epsg=27572, on_grid=True)
+    write_model_geology(mm, 'Lambert_3_model_geol.shp', epsg=27572, on_grid=True)
 
     """
     # ---- Import all additional required python modules
