@@ -136,7 +136,7 @@ def extract_model_geology(mm, shpout, epsg=2154, on_grid=False):
     Examples
     --------
     mm = MartheModel('mymodel.rma')
-    write_model_geology(mm, 'Lambert_3_model_geol.shp', epsg=27572, on_grid=True)
+    extract_model_geology(mm, 'Lambert_3_model_geol.shp', epsg=27572, on_grid=True)
 
     """
     # ---- Import all additional required python modules
