@@ -948,7 +948,7 @@ class MartheOptim():
 
         # ---- Iterate over parmeters to use the internal method .write_kfac()
         for pn in parnames:
-            self.param[pn].write_kfac(vgm_range, krig_transform = krig_transform, save_cov = False)
+            self.param[pn].write_kfac(vgm_range, krig_transform = krig_transform, save_cov = save_cov)
 
 
 
