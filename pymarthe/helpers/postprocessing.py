@@ -111,11 +111,11 @@ class PestPostProcessing():
             ax1.set_ylabel('Regularization objective function ($\Phi_r$)', color='tab:orange')
             # -- Add PHIMLIM
             if phimlim:
-                ax.hlines(pst.reg_data.phimlim, 0, len(it)-1, 
+                ax.hlines(self.pst.reg_data.phimlim, 0, len(it)-1, 
                           colors='navy', linestyles='solid', label='$\Phi_{limit}$')
             # -- Add PHIMACCEPT
             if phimaccept:
-                ax.hlines(pst.reg_data.phimaccept, 0, len(it)-1, 
+                ax.hlines(self.pst.reg_data.phimaccept, 0, len(it)-1, 
                           colors='darkblue', linestyles='dotted', label='$\Phi_{accept}$')
         # ---- Add log scale if required
         if log:
