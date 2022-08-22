@@ -1,10 +1,5 @@
 
 [![GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com)
-![GitHub watchers](https://img.shields.io/github/watchers/badges/shields.svg?style=social&logo=github&label=Watch)
-![Visitors](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fapryet%2Fadeqwat%2F&label=Visitors&labelColor=%23697689&countColor=%232ccce4&style=plastic)
-![GitHub repo file count](https://img.shields.io/github/directory-file-count/apryet/adeqwat)
-![GitHub contributors](https://img.shields.io/github/contributors/apryet/adeqwat?style=plastic)
-[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 [![Open Source? Yes!](https://badgen.net/badge/Open%20Source%20%3F/Yes%21/blue?icon=github)](https://github.com/Naereen/badges/)
 [![Awesome Badges](https://img.shields.io/badge/badges-awesome-green.svg)](https://github.com/Naereen/badges)
 
@@ -27,8 +22,9 @@
   <img 
   src="assets/PyMarthe_v1.0_general.png"
   alt="PyMarthe v1.0" 
-  width="350"
-  height="265"
+  width="6
+  50"
+  height="415"
   >
 </p>
 
@@ -88,6 +84,7 @@ ax = mf.plot(ax=ax, layer=6, log=True,
              lw=0.3, cmap='jet', zorder=10)
 ax.set_title('MONA - Permeability (layer = 6)',
              fontsize = 12, fontweight="bold")
+
 ```
 
 <p align="center">
@@ -139,6 +136,14 @@ mopt.add_param(parname = 'soil',
                kmi = soil_kmi,
                value_col = 'value')
 
+# -- Add array-like parameters (based on izone)
+mopt.add_param(parname='cf', mobj=mm.prop['emmca'],
+               izone=None, pp_data=None,
+               trans='log10', btrans='lambda x: 10**x',
+               parlbnd=1e-15, parubnd=1e1, defaultvalue=1e-5) 
+
+
+
 # -- Manage transformations
 mopt.set_obs_trans(trans = 'log', datatype = 'head')
 mopt.set_param_trans(trans = 'lambda x: np.log10(-x + 1)',
@@ -146,13 +151,22 @@ mopt.set_param_trans(trans = 'lambda x: np.log10(-x + 1)',
                      parname= 'pumping')
 
 # -- Write PEST files
+mopt.write_insfile()
+mopt.write_simfile()
 mopt.write_parfile()
 mopt.write_tplfile()
-mopt.write_insfile()
-pst = mopt.build_pst(add_reg0=True, write=True, noptmax = -1, phimlim=0)
 
-# -- Save/write parametrization configuration
+# -- Save parametrization (for forward run usage)
 mopt.write_config()
+
+# -- Build Pest Control File (.pst)
+pst = mopt.build_pst(add_reg0= True,
+                     write_pst= True,
+                     write_config= True,
+                     write_fr= True,
+                     noptmax=0,
+                     phimlim=5)
+
 ```
 
 
@@ -183,5 +197,5 @@ Ressources
 Disclaimer
 ----------
 
-This software is totally experimental and is subject to revision. 
+This software is experimental and is subject to revision. 
 
