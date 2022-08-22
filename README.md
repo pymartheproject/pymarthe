@@ -22,8 +22,7 @@
   <img 
   src="assets/PyMarthe_v1.0_general.png"
   alt="PyMarthe v1.0" 
-  width="6
-  50"
+  width="650"
   height="415"
   >
 </p>
