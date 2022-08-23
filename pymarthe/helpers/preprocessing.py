@@ -110,7 +110,7 @@ def spatial_aggregation(mm, x, y, layer, value, agg = 'sum', trans ='none', only
 
 
 
-def write_model_geology(mm, shpout, epsg=2154, on_grid=False):
+def extract_model_geology(mm, shpout, epsg=2154, on_grid=False):
     """
     Extract geology on a projected Marthe Model extension from BRGM 
     BDCharm50 data base.
@@ -136,7 +136,7 @@ def write_model_geology(mm, shpout, epsg=2154, on_grid=False):
     Examples
     --------
     mm = MartheModel('mymodel.rma')
-    write_model_geology(mm, 'Lambert_3_model_geol.shp', epsg=27572, on_grid=True)
+    extract_model_geology(mm, 'Lambert_3_model_geol.shp', epsg=27572, on_grid=True)
 
     """
     # ---- Import all additional required python modules
@@ -164,7 +164,7 @@ def write_model_geology(mm, shpout, epsg=2154, on_grid=False):
     #     (since `bbox` and mask attribut doesn't work on 0.11.0)
     print('Read geological data ...')
     data = "zip://_temp_/_temp_.zip!FR_vecteur/GEO001M_CART_FR_S_FGEOL_2154.shp"
-    gdf = gpd.read_file(data).to_crs(epsg)
+    gdf = gpd.read_file(data).to_crs(f'epsg:{epsg}')
 
     # ---- Manage whatever set geological data on grid
     if on_grid:
@@ -188,8 +188,160 @@ def write_model_geology(mm, shpout, epsg=2154, on_grid=False):
     out.columns = out.columns.str.lower()
 
     # ---- Export to shapefile
-    out.drop(columns='vertices').to_file(shpout, index=False)
+    out.drop(columns='vertices', errors='ignore').to_file(shpout, index=False)
     print(f'Shapefile {shpout} have been written successfully!')
 
     # ---- Remove temporary folder
     shutil.rmtree('_temp_')
+
+
+
+
+
+def extract_Hubeau_stations(mm, epsg, only_active=True):
+    """
+
+    Helper function to extract available observation points (stations) in a Marthe model extension.
+    Perform a requests to the French Hubeau API.
+
+    Specific python module required:
+        - pyproj
+        - requests
+        - shapely
+        - geopandas
+
+    Inspired by Guillaume Attard
+    https://guillaumeattard.com/exploring-hydro-geological-data-of-france-with-python/
+
+    Parameters:
+    ----------
+    mm (MartheModel) : MartheModel instance.
+                       Note: model must be (1) projected
+                                           (2) located on French territory
+    epsg (int) : Geodetic Parameter Dataset.
+    only_active (bool) : keep only stations located in model active domain.
+                         Default is True.
+
+    Returns:
+    --------
+    stations (GeoDataFrame) : available stations. 
+
+    Examples:
+    --------
+    mm = MartheModel('my_projected_model.rma')
+    stations = extract_Hubeau_stations(mm, epsg=2154)
+
+    """
+    # ---- Import all additional required python modules
+    try:
+        from pyproj import Transformer
+        import requests
+        from shapely.geometry import Polygon
+        import geopandas as gpd
+    except:
+        pcks = ['pyproj', 'requests', 'shapely','geopandas']
+        err_msg = 'Could not import all the required python module(s):\n\t- '
+        err_msg += '\n\t- '.join(pcks)
+        ImportError(err_msg)
+
+    # ---- Build modelgrid if required
+    if mm.modelgrid is None:
+        mm.build_modelgrid()
+
+    # ---- Build long/lat transformer
+    tfm = Transformer.from_crs( f'epsg:{epsg}', 'epsg:4326')
+    llc = tfm.transform(*mm.get_extent()[:2])   # Lower Left Corner
+    urc = tfm.transform(*mm.get_extent()[2:])   # Upper Right Corner
+    bbox = np.ravel([np.flip(p) for p in [llc, urc]])   # Bounding Box
+
+    # ---- Build Hubeau url
+    url_root = "https://hubeau.eaufrance.fr/api/v1/niveaux_nappes/stations?"
+    url_bbox = "bbox=" + "%2C".join([str(round(coord, 4)) for coord in bbox])
+    url_date = "&date_recherche=" + str(mm.get_time_window()[0].date())
+    url_tail = "&format=json&size=20000"
+    url = url_root + url_bbox + url_date + url_tail
+
+    # ---- Request web data from Hubeau API
+    r = requests.get(url)
+    df = pd.DataFrame.from_dict(r.json()["data"])
+
+    # ---- Convert to GeoDataFrame and change 
+    stations = gpd.GeoDataFrame(df, 
+                        geometry=gpd.points_from_xy(df.x, df.y),
+                        crs = 'epsg:4326'
+                    ).to_crs(f'epsg:{epsg}')
+
+    # ---- Return Hubeau stations as GeoDataFrame
+    if only_active:
+        # -- Keep only stations that fall in model active domain
+        active_domain = gpd.GeoDataFrame(
+                    geometry= mm.query_grid(active=1)['vertices'].apply(Polygon),
+                    crs=epsg
+                ).drop_duplicates('geometry'
+                ).unary_union
+        # -- Return subset stations
+        return stations[stations.within(active_domain)]
+
+    else:
+        # -- Return all stations
+        return stations
+
+
+
+
+
+def extract_Hubeau_head_records(code_bss, start_date, end_date):
+    """
+    Helper function to extract water table/head records at a observation point (station)
+    referenced by it's BSS id.
+    Perform a requests to the French Hubeau API.
+
+    Specific python module required:
+        - requests
+
+    Inspired by Guillaume Attard
+    https://guillaumeattard.com/exploring-hydro-geological-data-of-france-with-python/
+
+    Parameters:
+    ----------
+    code_bss (str) : normalized station name (ex: '07334X0540/F')
+    start_date, end_date (str) : required time window (ex: '2021-03-04')
+
+    Returns:
+    --------
+    df (DataFrame) : available data between required time window.
+                     Note: water table <=> 'profondeur_nappe'
+                           head <=> 'niveau_nappe_eau'
+
+    Examples:
+    --------
+    mm = MartheModel('my_projected_model.rma')
+    start_date, end_date = [str(ts.date()) for ts in mm.get_time_window()]
+    df = extract_Hubeau_head_records('07334X0579/F', '2003-01-01', '2008-02-01')
+
+    """
+    # ---- Import additional required python module
+    try:
+        import requests
+    except:
+        err_msg = 'Could not import `requests` python module.'
+        ImportError(err_msg)
+        
+    # ---- Build Hubeau url
+    url_root = "https://hubeau.eaufrance.fr/api/v1/niveaux_nappes/chroniques?"
+    url_code = "code_bss=" + code_bss.replace("/","%2F")
+    url_date = "&date_debut_mesure=" + start_date + "&date_fin_mesure=" + end_date
+    url_tail = "&size=20000&sort=asc"
+    url = url_root + url_code + url_date + url_tail
+
+    # ---- Request web data from Hubeau API
+    r = requests.get(url)
+    df = pd.DataFrame.from_dict(r.json()["data"])
+
+    # ---- Set DateTimeIndex
+    df['date'] = pd.to_datetime(df['date_mesure'])
+    df.set_index('date', inplace=True)
+
+    # ---- Return DataFrame
+    return df
+
