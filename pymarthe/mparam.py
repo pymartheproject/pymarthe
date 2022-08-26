@@ -1039,10 +1039,10 @@ class MartheGridParam():
                 path = self.parpath if parpath is None else parpath
                 kfac_file = os.path.join(path, '{0}_pp_l{1:02d}_z{2:02d}.fac'.format(self.parname, ilay, zone))
                 ok.to_grid_factors_file(kfac_file, ncol=len(kfac_df)) # ncol needed for unstructured pp
-                # -- Write covariance matrices if required
+                # -- Write covariance matrices (as binary) if required
                 if save_cov:
                     cov = gs.covariance_matrix(zpp_df.x, zpp_df.y, zpp_df.parname)
-                    cov.to_binary(kfac_file.replace('.fac', '.jcb'))
+                    cov.to_coo(kfac_file.replace('.fac', '.jcb')) # Format = `coo` to avoid 12 char length limit
 
 
 
