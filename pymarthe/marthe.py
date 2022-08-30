@@ -1462,7 +1462,14 @@ class MartheModel():
         df = marthe_utils.get_run_times(lf)
 
         # -- Print on console
-        print(df.to_markdown(tablefmt=tablefmt, colalign=("left", "right")))
+        try:
+            # -- Fancier table print
+            import tabulate
+            print(df.to_markdown(tablefmt=tablefmt, colalign=("left", "right")))
+        except:
+            # -- Classic table print
+            print(df)
+        
 
 
 
