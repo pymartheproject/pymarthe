@@ -1199,6 +1199,7 @@ class MartheOptim():
             # ---- Write extra functions
             ext_func = marthe_utils.make_iterable(extra_functions)
             # -- Assert that all items are functions
+            err_msg = 'ERROR: all extra functions must be callable objects.'
             assert all(callable(obj) for obj in ext_func), err_msg
             if len(ext_func) > 0:
                 # -- Try to import inspect module
@@ -1212,7 +1213,7 @@ class MartheOptim():
                     err_msg = 'ERROR : All single items in `extra_functions` must be callable. ' \
                               f'Given : {type(func)}' 
                     assert callable(func), err_msg
-                    f.write(f"# -- Extra function n°{i}\n")
+                    f.write(f"# -- Extra function n°{i+1}\n")
                     # -- Get source code of the function
                     f.write(inspect.getsource(func))
                     f.write('\n')
