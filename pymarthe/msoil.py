@@ -405,7 +405,7 @@ class MartheSoil():
         """
 
         # ---- Set global usefull regex
-        re_num = r"[-+]?\d*\.?\d+|\d+"
+        re_num = r"\s*[-+]?\d*\.?\d+|\d+"
         from_istep = r"\*{3}\s*Le pas|Début"
 
         # ---- Write data in .pastp file
@@ -455,14 +455,14 @@ class MartheSoil():
             # ---- Iterate over each soil DataFrame line
             for d in self.data.itertuples():
                 # ---- Regex to match
-                re_match = r"\/{0}\/ZONE_SOL\s*Z=\s*{1}V=\s*({2});".format(
+                re_match = r"\/{0}\/ZONE_SOL\s*Z=\s*{1}V=*({2});".format(
                                                                 d.soilprop.upper(),
                                                                 d.zone, 
                                                                 re_num)
                 # ---- Search pattern
                 match = re.search(re_match, mart_content)
                 # ---- Replace by new value
-                repl = re.sub(match.group(1), str(d.value), match.group(0))
+                repl = re.sub(match.group(1), "{:10d}".format(int(d.value)), match.group(0))
                 # --- Replace inplace in file content
                 mart_content = re.sub(match.group(0), repl, mart_content)
             # ---- Write new content
