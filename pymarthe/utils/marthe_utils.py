@@ -1579,7 +1579,7 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
 
     get_re_zb = lambda z: ''.join(
                             [ re_zone.replace(r'(\d+)', str(z)),
-                              r"(.+?)\n(Bilan|Zone|Légende)" ]
+                              r"(.+?)\n(Bilan|Zone|Débits|Légende)" ]
                         )
 
     # ---- Extract zone budget for each zones
