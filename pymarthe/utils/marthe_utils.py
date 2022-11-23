@@ -847,6 +847,7 @@ def read_prn(prnfile = 'historiq.prn'):
     msg = f'{prnfile} file not found.'
     assert file in os.listdir(os.path.normpath(path)), msg
     # ---- Build Multiple index columns
+    add_skip = 1
     with open(prnfile, 'r', encoding=encoding) as f:
         # ----Fetch 5 first lines of prn file 
         flines_arr = np.array([f.readline().split('\t')[:-1] for i in range(5)], dtype=list)
@@ -861,6 +862,9 @@ def read_prn(prnfile = 'historiq.prn'):
             # -- Add -gigone- boolean to mask
             mask[-1] = nest
         else:
+            if any('Niveau_Lac' in elem for elem in flines_arr[-4]):
+                flines_arr[-2] = flines_arr[-1]
+                add_skip = 2
             nest = False
         # ---- Fetch headers
         headers = list(flines_arr[mask])
@@ -874,9 +878,8 @@ def read_prn(prnfile = 'historiq.prn'):
     # ---- Build multi-index
     midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
     # ---- Read prn file without headers (with date format)
-    skiprows = mask.count(True) + 1
     df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
-                     skiprows=mask.count(True) + 1, index_col = 0,
+                     skiprows=mask.count(True) + add_skip, index_col = 0,
                      parse_dates = True, dayfirst=True)
     df.drop(df.columns[0], axis=1,inplace=True)
     df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
