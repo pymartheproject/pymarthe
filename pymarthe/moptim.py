@@ -642,7 +642,7 @@ class MartheOptim():
 
 
 
-    def add_fluc(self, locnme=None, tag= '', on = 'mean'):
+    def add_fluc(self, locnme=None, tag= '', on = 'mean', **kwargs):
         """
         Add fluctuations to a existing observation set.
 
@@ -661,6 +661,8 @@ class MartheOptim():
                                          Function names can be 'min', 'max', 'mean', 'std', etc. 
                                          See pandas.core.groupby.GroupBy documentation for more.
 
+        weight (list, kwargs): weight per each observations
+
         Returns:
         --------
         Write and add a new set of observation as
@@ -677,26 +679,27 @@ class MartheOptim():
             locnmes = locnme if marthe_utils.isiterable(locnme) else [locnme]
 
         # ---- Avoid multiple fluctuation calculation
-        locnmes = [ln for ln in locnmes if not ln.endswith('fluc')]
-
+        # locnmes = [ln for ln in locnmes if not ln.endswith('fluc')]
+        locnmes = [ln for ln in locnmes if not ln.endswith('f')]
         # ----- Iterate over locnmes
         for ln in locnmes:
             # -- Avoid non existing locnmes
             if ln in self.obs.keys():
                 # ---- Define new locnme
-                new_locnme = ln + tag + 'fluc'
+                new_locnme = ln + tag + 'f'
                 # ---- Get DataFrame of the source observation
                 df = self.obs[ln].obs_df.set_index('date').rename({'obsval':'value'}, axis=1)
                 # ---- Infer fluctuation manipulation to perform
-                s = df['value'].replace(self.nodata, pd.NA)  # replace nodata values by NaN
+                s = df.loc[df['weight'] != 0, 'value'].replace(self.nodata, pd.NA)  # replace nodata values by NaN and remove obs with 0 weight for fluct calculation
                 sub_val = s.agg(on) if isinstance(on, str) else on
                 # ---- Get fluctuation by substraction
                 df['value'] = [x - sub_val if not x in self.nodata else x for x in df['value']]
                 # ---- Add fluctuation observation
-                new_dt = self.obs[ln].datatype + tag + 'fluc'
+                new_dt = self.obs[ln].datatype + tag + 'f'
                 self.add_obs(data = df, locnme = new_locnme,
                              datatype = new_dt, check_loc = False,
-                             fluc_dic = {'tag':tag,'on':on})
+                             fluc_dic = {'tag':tag,'on':on}, 
+                            **kwargs)
             else:
                 warn_msg = f"WARNING : could not found observation with `locnme` = {ln}. " \
                            "Fluctuation observation set will not be added."

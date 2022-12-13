@@ -443,7 +443,7 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
         suffix = ''
         validity = name in prn_df.columns.get_level_values('name')
     else:
-        suffix, on = fluc_dic['tag'] + 'fluc', fluc_dic['on']
+        suffix, on = fluc_dic['tag'] + 'f', fluc_dic['on']
         validity = name.replace(suffix,'') in prn_df.columns.get_level_values('name')
     
     # -- Assert that the required name is in prn
