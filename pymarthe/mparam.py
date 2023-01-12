@@ -126,13 +126,22 @@ class MartheListParam():
         self.scale = kwargs.get('scale', 1) 
         self.offset = kwargs.get('offset', 0)
         self.dercom = kwargs.get('dercom', 1) 
+        
         # ---- Build parameter DataFrame
-        self.param_df = pd.DataFrame(index = self.parnmes)
-        self.param_df[base_param] = [ self.parnmes, self.trans,
-                                          self.btrans, self.parchglim,
-                                          self.defaultvalue, self.parlbnd,
-                                          self.parubnd, self.pargp,
-                                          self.scale, self.offset, self.dercom ]
+        self.param_df = pd.DataFrame({
+                'parnme':self.parnmes,
+                'trans':self.trans,
+                'btrans':self.btrans,
+                'parchglim':self.parchglim,
+                'defaultvalue':self.defaultvalue,
+                'parlbnd':self.parlbnd,
+                'parubnd':self.parubnd,
+                'pargp':self.pargp,
+                'scale':self.scale,
+                'offset':self.offset,
+                'dercom':self.dercom
+            },index = self.parnmes)
+        
         # ---- Manage files io
         self.parpath = kwargs.get('parpath', '.')
         self.tplpath = kwargs.get('tplpath', '.')
@@ -1078,12 +1087,21 @@ class MartheGridParam():
         concat['pargp'] = concat.parname.apply(
                             lambda s: f"{self.pargp}_zpc" if 'zpc' in s else f"{self.pargp}_pp")
         # ---- Build standard parameter data
-        par_df = pd.DataFrame(index = concat.parname)
-        par_df[base_param] = [ concat['parname'], self.trans,
-                                  self.btrans, self.parchglim,
-                                  concat['value'], self.parlbnd,
-                                  self.parubnd, concat['pargp'],
-                                  self.scale, self.offset, self.dercom ]
+        par_df = pd.DataFrame({
+            'parnme':concat['parname'],
+            'trans':self.trans,
+            'btrans':self.btrans,
+            'parchglim':self.parchglim,
+            'defaultvalue':concat['value'],
+            'parlbnd':self.parlbnd,
+            'parubnd':self.parubnd,
+            'pargp':concat['pargp'],
+            'scale':self.scale,
+            'offset':self.offset,
+            'dercom':self.dercom},
+            index =concat['parname']
+                              )
+
         # ---- Transform values if required
         if transformed:
             cols = ['defaultvalue', 'parlbnd', 'parubnd']
