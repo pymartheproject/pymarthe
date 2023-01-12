@@ -421,7 +421,7 @@ class PilotPoints():
 
         """
         pp_data = {layer:{zone:None if mp is None
-                                    else [[p.x,p.y] for p in mp['pp']]}
+                                    else [[p.x,p.y] for p in mp['pp'].geoms]}
                                     for layer, d in self.data.items()
                                     for zone, mp in d.items()}
         return pp_data

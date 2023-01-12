@@ -172,7 +172,7 @@ class MartheField():
                     idx.append(hit[0])
 
         # ---- Convert nodes/indexes to boolean mask
-        mask = np.zeros(len(self.data), dtype=np.bool)
+        mask = np.zeros(len(self.data), dtype=bool)
         mask[idx] = True
 
         # ---- Return as required
