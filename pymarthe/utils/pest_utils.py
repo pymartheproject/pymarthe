@@ -54,22 +54,12 @@ def write_mgp_parfile(parfile, param_df, trans, ptype='zpc'):
     # ---- Manage zpc parameter file (own writer)
     elif ptype == 'pp':
         cols = ['parname', 'x', 'y', 'zone', 'transformed']
-    # ---- Write parameyter file with correct formatted columns
+    # ---- Write parameter file with correct formatted columns
     with open(parfile, 'w', encoding=encoding) as f:
             f.write(df.to_string( col_space=0, columns=cols,
                                   formatters=FMT_DIC, justify="left",
                                   header=False, index=False, index_names=False,
                                   max_rows = len(df), min_rows = len(df) ) )
-
-
-
-# def read_mgp_parfile(parfile):
-#     """
-#     """
-#     par_df = pd.read_csv(parfile, header=None,
-#                                   delim_whitespace=True,
-#                                   names = ['parname', 'x', 'y', 'zone', 'value'])
-#     return par_df
 
 
 
@@ -93,7 +83,7 @@ def parse_mgp_parfile(parfile, btrans):
         par_df['bvalue'] = transform(par_df['value'], btrans)
         # -- Parse names adding new columns
         parse_df = par_df.parname.str.extract(re_lz)
-        par_df['layer'] = parse_df.iloc[:,0].astype(int)
+        par_df['layer'] = parse_df.iloc[:,0].astype(int)-1 # back to 0-based
         par_df['zone'] = parse_df.iloc[:,1].astype(int).mul(-1) # zpc zone must be negative
         # -- Transform to records to iteration process easier
         rec = par_df[['layer','zone', 'bvalue']].to_records(index=False)
@@ -108,6 +98,8 @@ def parse_mgp_parfile(parfile, btrans):
                                   names = ['parname', 'x', 'y', 'zone', 'value'])
         # -- Parse parameter file name
         ilay, zone = map(int, re.search(re_lz, f).groups())
+        # back to 0-based
+        ilay+=-1
         # -- Passing from factors to real field values (wrapper to pyemu .fac2real())
         values = pyemu.utils.geostats.fac2real(
                                 pp_file = parfile,

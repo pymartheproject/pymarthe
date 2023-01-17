@@ -17,8 +17,8 @@ from copy import deepcopy
 
 
 # ---- SET UP FORMATTERS ---- #
-
-ZPCFMT = lambda name, lay, zone: '{0}_zpc_l{1:02d}_z{2:02d}'.format(name,int(lay),int(abs(zone)))
+# ZPC name format (layer are 0-based within Python ; 1-based out of Python)
+ZPCFMT = lambda name, lay, zone: '{0}_zpc_l{1:02d}_z{2:02d}'.format(name,int(lay)+1,int(abs(zone)))
 FFMT = lambda x: "{0:<20.10E} ".format(float(x))
 IFMT = lambda x: "{0:<10d} ".format(int(x))
 def SFMT(item):

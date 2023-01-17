@@ -17,7 +17,8 @@ Set some usefull fixed elements
 '''
 
 PP_NAMES = ["parname","x","y","zone","value"]
-PPFMT = lambda name, lay, zone, ppid, digit: '{0}_l{1:02d}_z{2:02d}_{3}'.format(name,int(lay),int(zone), str(int(ppid)).zfill(digit))
+# pilot point name format (layer number is 0-based within Python ; 1-based out of Python)
+PPFMT = lambda name, lay, zone, ppid, digit: '{0}_l{1:02d}_z{2:02d}_{3}'.format(name,int(lay)+1,int(zone), str(int(ppid)).zfill(digit))
 ZONE_KWARGS = {'color':'black', 'lw':1.5, 'label':'pilot points active zone'}
 BUFFER_KWARGS = {'color':'green', 'ls':'--', 'lw':1.2, 'label':'pilot points active zone (buffer)'}
 PP_KWARGS = {'s':20, 'marker':'+','lw':0.8 , 'color':'red', 'zorder':50, 'label':'pilot points'}
