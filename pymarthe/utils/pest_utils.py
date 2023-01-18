@@ -84,8 +84,8 @@ def parse_mgp_parfile(parfile, btrans):
         # -- Parse names adding new columns
         parse_df = par_df.parname.str.extract(re_lz)
         par_df['layer'] = parse_df.iloc[:,0].astype(int)-1 # back to 0-based
-        par_df['zone'] = parse_df.iloc[:,1].astype(int).mul(-1) # zpc zone must be negative
-        # -- Transform to records to iteration process easier
+        par_df['zone'] = parse_df.iloc[:,1].astype(int).mul(-1) # zpc negative for ZPCs
+        # -- Transform to records to iteration process easielayer are r
         rec = par_df[['layer','zone', 'bvalue']].to_records(index=False)
         # -- Return zpc parsed as recarray
         return ptype, rec

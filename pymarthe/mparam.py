@@ -862,8 +862,8 @@ class MartheGridParam():
                 # ---- Write 1 parameter file per layer and zone
                 for ilay, pp_df in self.pp_dic.items():
                     for zone, zpp_df in pp_df.groupby('zone'):
-                        # -- Build parameter filename
-                        f = '{0}_{1}_l{2:02d}_z{3:02d}.dat'.format(self.parname, ptype, ilay, zone)
+                        # -- Build parameter filename (layer back to 1-based)
+                        f = '{0}_{1}_l{2:02d}_z{3:02d}.dat'.format(self.parname, ptype, ilay+1, zone)
                         pf = os.path.join(path, f)
                         # -- Write parameter file
                         pest_utils.write_mgp_parfile(pf, zpp_df, trans= self.trans, ptype=ptype)
@@ -924,8 +924,8 @@ class MartheGridParam():
                 # ---- Write 1 parameter file per layer and zone
                 for ilay, pp_df in self.pp_dic.items():
                     for zone, zpp_df in pp_df.groupby('zone'):
-                        # -- Build parameter filename
-                        f = '{0}_{1}_l{2:02d}_z{3:02d}.tpl'.format(self.parname, ptype, ilay, zone)
+                        # -- Build parameter filename (layer back to 1-based)
+                        f = '{0}_{1}_l{2:02d}_z{3:02d}.tpl'.format(self.parname, ptype, ilay+1, zone)
                         pf = os.path.join(path, f)
                         # -- Write parameter file
                         pest_utils.write_mgp_tplfile(pf, zpp_df, ptype=ptype)
@@ -1046,13 +1046,12 @@ class MartheGridParam():
                 kfac_df = ok.calc_factors(x_interp, y_interp, pt_zone=zone, num_threads=4)
                 # -- Write kriging factors to file
                 path = self.parpath if parpath is None else parpath
-                kfac_file = os.path.join(path, '{0}_pp_l{1:02d}_z{2:02d}.fac'.format(self.parname, ilay, zone))
+                kfac_file = os.path.join(path, '{0}_pp_l{1:02d}_z{2:02d}.fac'.format(self.parname, ilay+1, zone))
                 ok.to_grid_factors_file(kfac_file, ncol=len(kfac_df)) # ncol needed for unstructured pp
                 # -- Write covariance matrices (as binary) if required
                 if save_cov:
                     cov = gs.covariance_matrix(zpp_df.x, zpp_df.y, zpp_df.parname)
                     cov.to_coo(kfac_file.replace('.fac', '.jcb')) # Format = `coo` to avoid 12 char length limit
-
 
 
 
