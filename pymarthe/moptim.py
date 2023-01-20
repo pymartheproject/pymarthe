@@ -631,7 +631,7 @@ class MartheOptim():
             err_msg = "ERROR : Some provided `locnme` not added yet: {}.".format(', '.join(not_found))
             assert len(not_found) == 0, err_msg
 
-        # ---- Get simalated value as DataFrame
+        # ---- Get simulated value as DataFrame
         prnfile = os.path.join(self.mm.mldir, 'historiq.prn') if prnfile is None else prnfile
         prn_df = marthe_utils.read_prn(prnfile)
 
@@ -1427,10 +1427,11 @@ class MartheOptim():
         # -- Disable parameter transformation (already done by pyMarthe)
         param_df['partrans'] = 'none'
 
-        # -- Push to Pst 'parameter_data' section
+        # -- Push to Pst 'parameter_data' section and update parameter groups
         pst.parameter_data.loc[param_df.index] = param_df[pst.par_fieldnames]
+        pst.rectify_pgroups()
 
-        # -- Get clean DataFrame of all parameters
+        # -- Get clean DataFrame of all observations 
         obs_df = self.get_obs_df(transformed=True)
 
         # -- Push to Pst 'observation_data' section

@@ -536,7 +536,7 @@ class MartheModel():
                                                     keys = pdic['keys'].split(','),
                                                     value_col = pdic['value_col'],
                                                     btrans = pdic['btrans'])
-            # -- Set list-like properties
+            # -- Set grid-like properties
             elif pdic['type'] == 'grid':
                 # -- Get izone as MartheField instance
                 izone = MartheField(f'i{prop}', os.path.normpath(pdic['izone']), mm)
@@ -548,7 +548,6 @@ class MartheModel():
 
         # -- Return MartheModel instance
         return mm
-
 
 
     def get_extent(self):

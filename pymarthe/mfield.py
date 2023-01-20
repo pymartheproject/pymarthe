@@ -20,10 +20,6 @@ encoding = 'latin-1'
 dmv = [-9999., 0., 9999] # Default field masked values
 
 
-
-
-
-
 class MartheField():
     """
     Wrapper Marthe --> python
@@ -364,7 +360,7 @@ class MartheField():
             mask = self.mm.imask.get_data(masked_values=self.dmv, as_mask=True)
             mrec['value'][mask] = rec['value'][mask]
 
-        # -- Independant grid (contains value and geometry)
+        # -- Independent grid (contains value and geometry)
         else:
             mrec = rec
 
