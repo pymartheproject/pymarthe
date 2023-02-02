@@ -260,7 +260,7 @@ class MartheField():
 
     def set_data(self, data, layer=None, inest=None):
         """
-        Function to set field data.
+        Set field data for active cells (where imask is 1).
 
         Parameters:
         ----------
@@ -288,7 +288,7 @@ class MartheField():
         mf.set_data(2.3e-3, layer=2, inest=3) # one nest
 
         """
-        # ---- Set all usefull conditions
+        # ---- Set all useful conditions
         _none = all(x is None for x in [layer, inest])
         _str = isinstance(data, str)
         _num = isinstance(data, (int, float))
