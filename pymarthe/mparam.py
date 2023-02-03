@@ -25,7 +25,7 @@ def SFMT(item):
     try:
         s = "{0:<20s} ".format(item.decode())
     except:
-        s = "{0:<20s} ".format(str(item))
+         s = "{0:<20s} ".format(str(item))
     return s
 
 PP_NAMES = ["name","x","y","zone","value"]
@@ -286,21 +286,11 @@ class MartheListParam():
 
 
 
-
-
-
-
-
-
-
-
-
-
 class MartheGridParam():
     """
     Class for handling Marthe grid-like properties.
     """
-    def __init__(self, parname, mobj, izone=None, pp_data=None, trans = 'none', 
+    def __init__(self, parname, mobj, izone=None,  pp_data=None, trans = 'none', 
                        btrans = 'none', defaultvalue=None, **kwargs):
         """
         Generator of grid parameter instance base on `izone` (field id zones).
@@ -436,7 +426,7 @@ class MartheGridParam():
             msg += " (in active cells) for each layer."
             warnings.warn(msg)
             # -- Build default MartheField instance from .imask with -1 value (zpc) for all layers
-            izone = MartheField(f'i{self.parname}', -1, self.mobj.mm)
+            izone = MartheField(f'i{self.parname}', -1, self.mobj.mm, use_imask=self.mobj.use_imask)
             # -- Write on disk
             f = os.path.join(self.mobj.mm.mldir,
                              f'{self.mobj.mm.mlname}.{izone.field}')
@@ -458,7 +448,7 @@ class MartheGridParam():
         # ---- Manage string izone
         elif isinstance(izone, str):
             # -- Set izone attributs
-            self.izone = MartheField(f'i{self.parname}', izone, self.mobj.mm)
+            self.izone = MartheField(f'i{self.parname}', izone, self.mobj.mm, use_imask=self.mobj.use_imask)
             self.izone_file = izone
 
         # ---- Initialize zpc/pp data
@@ -1139,6 +1129,7 @@ class MartheGridParam():
             'type= {}'.format(self.type),
             'class= {}'.format(str(self.mobj)),
             'property name= {}'.format(self.mobj.field),
+            'use_imask= {}'.format(self.mobj.use_imask),
             'izone= {}'.format(self.izone_file),
             'trans= {}'.format(self.trans),
             'btrans= {}'.format(self.btrans),

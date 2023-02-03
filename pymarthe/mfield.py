@@ -45,7 +45,7 @@ class MartheField():
                         - List of MartheGrid instance
         mm (MartheModel) : parent Marthe model.
 
-        use_imask (bool, optional) : whatever masking the field data with related
+        use_imask (bool, optional) : mask (or not) the field data with related
                                      model active cells (`.imask`). 
                                      If True, only data on layer active domain will
                                      be considered (works as model related field).
@@ -340,7 +340,7 @@ class MartheField():
         """
         Return field data (`rec.array`) after masking with model active cells (`.imask`).
         Note : if the field is not related to the model (`use_imask`=False) then return
-               the inputed data.
+               the input data.
 
         Parameters:
         ----------

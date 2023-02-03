@@ -776,6 +776,7 @@ class MartheOptim():
                                     - izone < 0  ==> zone of piecewise constancy
                                     - izone > 0  ==> zone with pilot points
                                     - izone = -9999, 0, 9999  ==> inactive zone
+                                    
 
             - globals ('list'): based on `kmi` (KeysMultiIndex) which represent the 
                                 referenced DataFrame columns names to be included in
@@ -792,6 +793,7 @@ class MartheOptim():
                             - MartheField instance (grid)
                             - MartheSoil instance  (list)
                             - MarthePump instance  (list)
+
 
 
         Examples

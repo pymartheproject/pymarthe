@@ -419,7 +419,7 @@ class MartheModel():
                         - 't_demi_percol'
                         - 'rumax'
                         - ...
-        **kwargs : additional arguments of property classes.
+        **kwargs : additional arguments of property classes (e.g. use_imask for MartheField)
 
         Returns:
         --------
@@ -527,19 +527,22 @@ class MartheModel():
         for pdic in pdics:
             # -- Load property by name
             prop = pdic['property name']
-            if not prop in mm.prop.keys():
-                mm.load_prop(prop)
 
             # -- Set list-like properties
             if pdic['type'] == 'list':
+                #if not prop in mm.prop.keys():
+                mm.load_prop(prop)
                 mm.prop[prop].set_data_from_parfile(parfile = os.path.normpath(pdic['parfile']),
                                                     keys = pdic['keys'].split(','),
                                                     value_col = pdic['value_col'],
                                                     btrans = pdic['btrans'])
             # -- Set grid-like properties
             elif pdic['type'] == 'grid':
+                #if not prop in mm.prop.keys():
+                use_imask = pdic['use_imask']=='True'
+                mm.load_prop(prop,use_imask=use_imask)
                 # -- Get izone as MartheField instance
-                izone = MartheField(f'i{prop}', os.path.normpath(pdic['izone']), mm)
+                izone = MartheField(f'i{prop}', os.path.normpath(pdic['izone']), mm, use_imask=use_imask)
                 # -- Set all field values (zpc and pp)
                 for pf in  pdic['parfile'].split(','):
                     mm.prop[prop].set_data_from_parfile(parfile= os.path.normpath(pf),
