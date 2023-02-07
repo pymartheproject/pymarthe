@@ -183,7 +183,7 @@ class MartheField():
 
     def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values= list()):
         """
-        Function to select/subset data.
+        Function to select/subset NON-masked values.
 
         Parameters:
         ----------
@@ -260,7 +260,7 @@ class MartheField():
 
     def set_data(self, data, layer=None, inest=None):
         """
-        Set field data for active cells (where imask is 1).
+        Set field data for active cells (where imask is 1) and NON-masked values (see dmv)
 
         Parameters:
         ----------
