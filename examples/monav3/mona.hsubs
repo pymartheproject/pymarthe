@@ -1,7 +1,7 @@
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     1
 [Infos]
-Field=
+Field=hsub
 Type=
 Elem_Number=0
 Name=
