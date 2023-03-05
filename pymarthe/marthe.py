@@ -375,7 +375,10 @@ class MartheModel():
             mf = self.geometry[g]
             arr_dc = deepcopy(mf.data['value'])
             # -- Reshape as (nlay, ncpl)
-            arr = np.broadcast_to(arr_dc, (self.nlay, self.ncpl))
+            if g == 'topog':
+                arr = np.broadcast_to(arr_dc, (self.nlay, self.ncpl))
+            else:
+                arr= arr_dc.reshape((self.nlay, self.ncpl))
             # -- Set masked values to nan
             arr.setflags(write=1) # turn to mutable array
             arr[np.isin(arr, mv)] = np.nan
@@ -806,23 +809,26 @@ class MartheModel():
             return outcrop.astype(int)
 
         else:
-            # ---- Fetch DataFrame data from imask (as deepcopy)
-            rec = deepcopy(self.imask.data)
-            df = pd.DataFrame.from_records(rec)
-            # ---- Replace default masked values by NaN and mask it
-            df['value'].replace(self.imask.dmv, np.nan, inplace=True)
-            mask = df['value'].notnull()
-            # ---- Raplace imask boolean value by the layer id
-            df.loc[mask,'value'] = df.loc[mask,'layer']
-            # ---- Set a unique id for each cell
-            ncell = len(rec[rec['layer'] == 0])
-            df.index = np.tile(np.arange(0, ncell), self.nlay)
-            # ---- Group cells by id and perform minimum avoiding NaN values
-            df['value'] = df.groupby(df.index)['value'].apply(list).apply(np.fmin.reduce)
-            # ---- Set Nan values to -9999 (not 0) and convert back to recarray
-            rec = df.fillna(-9999).to_records(index=False)
-            # ---- Return outcrop layers as MartheField instance
-            return MartheField('outcrop', rec , self)
+            # -- Extract mask on active cells
+            mask = ~np.isin(mm.imask.data['value'], mm.imask.dmv)
+            # -- Extrcat outcrop for all active cell on first layer
+            oc = (
+                pd.DataFrame.from_records(mm.imask.data)
+                # -- Giving similar node ids for each layer (from 0 to ncpl) 
+                .assign(node=np.tile(np.arange(0, mm.ncpl), mm.nlay))
+                # -- Mask active cell only
+                .loc[mask]
+                # -- Compute minimum layer id per node 
+                .groupby('node')
+                .min()['layer']
+            )
+            # -- Building Marthefield object response
+            outcrop =  MartheField('outcrop', 9999, mm)
+            # -- Set layer ids values previously calculated
+            outcrop.data['value'][oc.index] = oc.values
+            # -- Set inactive cell to 9999 instead of 0 for plotting (and understanding) purpose 
+            outcrop.data['value'][~mask] = 9999
+            return outcrop
 
 
 

@@ -41,10 +41,10 @@ import matplotlib.pyplot as plt
 
 
 # ---- Set model's relative paths
-mona_ws = os.path.join('monav3_pm', 'mona.rma')
-mona_si = os.path.join('monav3_pm', 'mona_si')
-lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
-lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
+mona_ws = os.path.join('examples', 'monav3', 'mona.rma')
+mona_si = os.path.join('examples', 'monav3', 'mona_si')
+lizonne_ws = os.path.join('examples', 'lizonne_v0', 'Lizonne.rma')
+lizonne_si = os.path.join('examples', 'lizonne_v0', 'Lizonne_si')
 
 
 
@@ -134,12 +134,28 @@ variables and the target required grid informations to extract (=columns).
 The `.query_grid()` perform some checking on query variables and targets to
 avoid invalid inputs.
 Note: The `modelgrid` do not required a spatial index to be created, but 
-      remember taht the grid queries can not perform sampling or intersection
+      remember that the grid queries can not perform sampling or intersection
       processes. 
 Let's load the model with modelgrid.
 '''
 mm = MartheModel(mona_ws, spatial_index = mona_si, modelgrid=True)
 mm.modelgrid.head()
+
+'''
+Each row represent a cell with the following informations (columns):
+    - 'node' : cell unique id
+    - 'layer': layer id
+    - 'inest': nested grid id
+    - 'i'    : row number
+    - 'j'    : column number
+    - 'xcc'  : x-coordinate of the cell centroid
+    - 'ycc'  : y-coordinate of the cell centroid
+    - 'dx'   : cell width
+    - 'dy'   : cell height
+    - 'area' : cell area
+    - 'vertices': cell vertices
+    - 'ative': cell activity (0=inactive, 1=active)
+'''
 
 # -- Invalid query examples
 # Invalid target columns names
@@ -159,6 +175,22 @@ mm.query_grid(layer=[0,1], active = [1,1] , target='node')
 # Get superficie of layer 4
 mm.query_grid(layer=4, active = 1)['area'].sum()
 
+'''
+By default, the `.modelgrid` is 2D-focused (xy-informations). If the user wants
+to access the full xyz-cell information, there is an `add_z` boolean arguments
+for that. It will add the following columns:
+    - 'zcc'     : z-coordinate of the cell centroid
+    - 'dz'      : cell thickness
+    - 'bottom'  : cell bottom altitud
+    - 'top'     : cell top altitud
+    - 'volume'  : cell volume ([L^3])
+
+Note: this process can take a while since z-dimension informations has to be 
+      extracted from 'topog', 'hsubs' and even 'sepon' fields for old model
+      (implicit)
+'''
+mm.build_modelgrid(add_z=True)
+mm.modelgrid.head()
 
 '''
 The .imask attribute based on permh property correspond to a simple MartheField
