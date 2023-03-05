@@ -248,18 +248,15 @@ class MartheModel():
 
         Parameters:
         ----------
-        name (str) : filename of output spatial index files.
-                     If None, name is .mlname + '_si'.
-                     Default is None.
-        only_active (bool) : enable/disable inactive cell consideration.
+        name (str, optional) : filename of output spatial index files.
+                               If None, name is .mlname + '_si'.
+                               Default is None.
+        only_active (bool, optional) : enable/disable inactive cell consideration.
 
-        Returns:
-        --------
-        spatial_index (rtree.index.Index)
 
         Examples:
         --------
-        si = mm.modelgrid.build_spatial_idx()
+        mm..build_spatial_idx()
 
         """
         # -- Activate iterator by setting spatial index to 1
@@ -290,7 +287,7 @@ class MartheModel():
 
 
 
-    def build_modelgrid(self):
+    def build_modelgrid(self, add_z=False):
         """
         Build an large pandas.DataFrame and store it in .modelgrid attribute.
         Each row represent a cell with the following informations (columns):
@@ -306,23 +303,128 @@ class MartheModel():
             - 'area' : cell area
             - 'vertices': cell vertices
             - 'ative': cell activity (0=inactive, 1=active)
+
+        Parameters:
+        ----------
+        add_z (bool, optional): whatever add informations about z-dimension such as:
+                                    - 'zcc'     : z-coordinate of the cell centroid
+                                    - 'dz'      : cell thickness
+                                    - 'bottom'  : cell bottom altitud
+                                    - 'top'     : cell top altitud
+                                    - 'volume'  : cell volume ([L^3])
+                                Default is False.
+                                Note: this process can take a while since z-dimension
+                                      informations has to be extracted from 'topog', 'hsubs'
+                                      and even 'sepon' fields.
+
+        Examples:
+        --------
+        mm.build_modelgrid(add_z=True)
+        xyzcellcenter = mm.modelgrid[[f'{dir}cc' for dir in list('xyz')]].values
         """
-        # ---- Get full data for each MartheGrid
-        dfs = []
-        for mg in self.imask.to_grids():
-            df = pd.DataFrame.from_records(mg.to_records(fmt='full'))
-            dfs.append(df)
+        # -- Build main table from .imask object
+        df = (
+            # ---- Get full data for each MartheGrid
+            pd.concat(
+                [pd.DataFrame.from_records(
+                    mg.to_records(fmt='full')
+                    )
+                for mg in self.imask.to_grids()],
+                ignore_index=True
+                )
+            # -- Rename few columns 
+            .rename(columns=dict(x='xcc', y='ycc', value='active'))
+        )
+        # -- Insert node ids
+        df.insert(0, 'node', np.arange(self.nlay*self.ncpl))
+        df.set_index('node', drop=False)
 
-        # ---- Concatenate grid data
-        rename_dic = {'x':'xcc', 'y': 'ycc', 'value':'active'}
-        df = pd.concat(dfs, ignore_index=True).rename(columns=rename_dic)
-
-        # ---- Insert node numbers at column n°0
-        df.insert(0, 'node', df.index)
+        # -- Add vertical dimension information
+        if add_z:
+            # -- Extract geometry top/bottom
+            top, botm = map(np.ravel, self._get_top_bottom_arrays())
+            # -- Insert z geometry informations in modelgrid
+            df.insert(df.columns.get_loc('ycc') + 1, 'zcc', (top-((top-botm)/2)))
+            df.insert(df.columns.get_loc('dy') + 1, 'dz', (top-botm))
+            df.insert(df.columns.get_loc('area') + 1, 'bottom', botm)
+            df.insert(df.columns.get_loc('area') + 1, 'top', top)
+            df.insert(df.columns.get_loc('area') + 1, 'volume', df.dx * df.dy * df.dz)
 
         # -- Set DataFrame to .modelgrid attribute
-        self.modelgrid = df.set_index('node', drop=False)
+        self.modelgrid = df
 
+
+
+    def _get_top_bottom_arrays(self):
+        """
+        Function to extract altitude of top and bottom
+        of whole model cells in array (nlay, ncpl)
+        """
+        # -- Set masked values
+        mv = [9999, 8888, 0, -9999]
+
+        # -- Load basic geometry field if not already
+        #    and reshape field value as (nlay, ncpl)
+        #    (Marthe masked values will be set to nan)
+        geom_arrs = []
+        for g in ['topog', 'hsubs']:
+            # -- Load geometry if not already
+            if self.geometry[g] is None:
+                self.load_geometry(g)
+            # -- Extract geometry value as 1D-array
+            mf = self.geometry[g]
+            arr_dc = deepcopy(mf.data['value'])
+            # -- Reshape as (nlay, ncpl)
+            arr = np.broadcast_to(arr_dc, (self.nlay, self.ncpl))
+            # -- Set masked values to nan
+            arr.setflags(write=1) # turn to mutable array
+            arr[np.isin(arr, mv)] = np.nan
+            # -- Fill 2-items list
+            geom_arrs.append(arr)
+        # -- Store topography and bottom layers
+        _topog, _hsubs = geom_arrs
+
+        # -- Infer altitude of each cell top for explicit
+        #    hanging wall : top[i] = hsubs[i-1]
+        #                   with top[0] = topog[0]
+        if self.hws == 'explicit':
+            _top = np.vstack((_topog[0], _hsubs[:-1]))
+
+        # -- Infer altitude of each cell top for implicit
+        #    hanging wall : top[i] = altitude minimum above hsubs[i]
+        if self.hws == 'implicit':
+            # -- Load hanging wall geometry
+            if self.geometry['sepon'] is None:
+                self.load_geometry('sepon')
+            arr_dc = deepcopy(self.geometry['sepon'].data['value'])
+            _sepon = arr_dc.reshape((self.nlay, self.ncpl))
+            _sepon[np.isin(_sepon, mv)] = np.nan
+            # -- Load outcrop layer ids
+            _outcrop = self.get_outcrop().data['value'].reshape((self.nlay, self.ncpl)) # outcrop array
+            _outcrop[np.isin(_outcrop,  [9999, -9999])] = np.nan
+            _top = np.empty((self.nlay, self.ncpl))    # empty top array
+            for icell in range(self.ncpl):
+                for ilay in range(self.nlay):
+                    # -- Compute z minimum above substratum
+                    ztop = np.fmin.reduce(
+                                np.concatenate( [ _hsubs[:ilay, icell],
+                                                  _sepon[:ilay+1, icell],
+                                                  _topog[:1, icell]       ] )
+                                                    )
+                    # -- If current cell's top is outcroping
+                    if np.isnan(ztop):
+                        oc = np.fmax.reduce(_outcrop[:ilay+1, icell])
+                        if np.isnan(oc):
+                            ztop = np.nan
+                        elif ilay <= int(oc):
+                            ztop = _hsubs[int(oc), icell]
+                    # -- Store cell top
+                    _top[ilay, icell] = ztop
+            # -- Rectify first layer by topog
+            _top = np.vstack((_topog[0], _top[1:]))
+
+        # -- Return top and botm arrays
+        return _top, _hsubs
 
 
 

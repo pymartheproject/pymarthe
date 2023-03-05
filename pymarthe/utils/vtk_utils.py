@@ -4,7 +4,6 @@ This script was higly inspired by the flopy package.
 https://github.com/modflowpy/flopy
 """
 
-
 import os
 import numpy as np
 from copy import deepcopy
@@ -356,79 +355,6 @@ def to_cvfd(vertdict, nodestart=None, nodestop=None,
 
 
 
-def get_top_botm(mm, hws='explicit'):
-    """
-    Function to extract altitude of top and bottom
-    of each layer of a MartheModel instance
-    """
-    # -- Infer/set nlay, ncpl, mv
-    nlay = mm.nlay
-    ncpl = mm.ncpl
-    mv = [9999,8888,0,-9999]
-
-    # -- Load basic geometry field if not already
-    #    and reshape field value as (nlay, ncpl)
-    #    (Marthe masked values will be set to nan)
-    geom_arrs = []
-    for g in ['topog','hsubs']:
-        if mm.geometry[g] is None:
-            mm.load_geometry(g)
-        mf = mm.geometry[g]
-        arr_dc = deepcopy(mf.data['value'])
-        arr = arr_dc.reshape((nlay,ncpl))
-        arr[np.isin(arr, mv)] = np.nan
-        geom_arrs.append(arr)
-
-    _topog, _hsubs = geom_arrs
-
-    # -- Infer altitude of each cell top for explicit
-    #    hanging wall : top[i] = hsubs[i-1]
-    #                   with top[0] = topog[0]
-    if hws == 'explicit':
-        _top = np.vstack((_topog[0], _hsubs[:-1]))
-
-    # -- Infer altitude of each cell top for implicit
-    #    hanging wall : top[i] = altitude minimum above hsubs[i]
-    if hws == 'implicit':
-        # -- Load hanging wall geometry
-        if mm.geometry['sepon'] is None:
-            mm.load_geometry('sepon')
-        arr_dc = deepcopy(mm.geometry['sepon'].data['value'])
-        _sepon = arr_dc.reshape((nlay,ncpl))
-        _sepon[np.isin(_sepon, mv)] = np.nan
-        # -- Load outcrop layer ids
-        _outcrop = mm.get_outcrop().data['value'].reshape((nlay,ncpl)) # outcrop array
-        _outcrop[np.isin(_outcrop,  [9999,-9999])] = np.nan
-        _top = np.empty((nlay,ncpl))    # empty top array
-        for icell in range(ncpl):
-            marthe_utils.progress_bar((icell+1)/ncpl)
-            for ilay in range(nlay):
-                # -- Compute z minimum above substratum
-                ztop = np.fmin.reduce(
-                            np.concatenate( [ _hsubs[:ilay,icell],
-                                              _sepon[:ilay+1,icell],
-                                              _topog[:1,icell]       ] )
-                                                )
-                # -- If current cell's top is outcroping
-                if np.isnan(ztop):
-                    oc = np.fmax.reduce(_outcrop[:ilay+1,icell])
-                    if np.isnan(oc):
-                        ztop = np.nan
-                    elif ilay <= int(oc):
-                        ztop = _hsubs[int(oc), icell]
-                # -- Store cell top
-                _top[ilay,icell] = ztop
-
-        # -- Rectify first layer by topog
-        _top = np.vstack((_topog[0], _top[1:]))
-
-    # -- Return top and botm arrays
-    return _top, _hsubs
-
-
-
-
-
 
 
 
@@ -515,7 +441,7 @@ class Vtk:
         # -- Advance extraction of top and botm of each layer
         #    according to hanging wall state
         print(f'Extracting model {self.hws} top/bottom for each layer ...')
-        self.top, self.botm = get_top_botm(self.mm, hws=self.hws)
+        self.top, self.botm = self.mm._get_top_bottom_arrays()
 
         # -- Build grid geometry
         print('\nBuilding 3D geometry ...')
