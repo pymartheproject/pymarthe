@@ -354,11 +354,10 @@ class MartheModel():
         self.modelgrid = df
 
 
-
     def _get_top_bottom_arrays(self):
         """
         Function to extract altitude of top and bottom
-        of whole model cells in array (nlay, ncpl)
+        of whole model cells in array with shape (nlay, ncpl)
         """
         # -- Set masked values
         mv = [9999, 8888, 0, -9999]
@@ -375,10 +374,10 @@ class MartheModel():
             mf = self.geometry[g]
             arr_dc = deepcopy(mf.data['value'])
             # -- Reshape as (nlay, ncpl)
-            if g == 'topog':
+            try:
                 arr = np.broadcast_to(arr_dc, (self.nlay, self.ncpl))
-            else:
-                arr= arr_dc.reshape((self.nlay, self.ncpl))
+            except:
+                arr = arr_dc.reshape((self.nlay, self.ncpl))
             # -- Set masked values to nan
             arr.setflags(write=1) # turn to mutable array
             arr[np.isin(arr, mv)] = np.nan
@@ -387,48 +386,45 @@ class MartheModel():
         # -- Store topography and bottom layers
         _topog, _hsubs = geom_arrs
 
-        # -- Infer altitude of each cell top for explicit
-        #    hanging wall : top[i] = hsubs[i-1]
-        #                   with top[0] = topog[0]
-        if self.hws == 'explicit':
-            _top = np.vstack((_topog[0], _hsubs[:-1]))
-
-        # -- Infer altitude of each cell top for implicit
-        #    hanging wall : top[i] = altitude minimum above hsubs[i]
+        # -- Extract sepon geometry for 'implicit' models
         if self.hws == 'implicit':
-            # -- Load hanging wall geometry
             if self.geometry['sepon'] is None:
                 self.load_geometry('sepon')
             arr_dc = deepcopy(self.geometry['sepon'].data['value'])
             _sepon = arr_dc.reshape((self.nlay, self.ncpl))
             _sepon[np.isin(_sepon, mv)] = np.nan
-            # -- Load outcrop layer ids
-            _outcrop = self.get_outcrop().data['value'].reshape((self.nlay, self.ncpl)) # outcrop array
-            _outcrop[np.isin(_outcrop,  [9999, -9999])] = np.nan
-            _top = np.empty((self.nlay, self.ncpl))    # empty top array
-            for icell in range(self.ncpl):
-                for ilay in range(self.nlay):
-                    # -- Compute z minimum above substratum
-                    ztop = np.fmin.reduce(
-                                np.concatenate( [ _hsubs[:ilay, icell],
-                                                  _sepon[:ilay+1, icell],
-                                                  _topog[:1, icell]       ] )
-                                                    )
-                    # -- If current cell's top is outcroping
-                    if np.isnan(ztop):
-                        oc = np.fmax.reduce(_outcrop[:ilay+1, icell])
-                        if np.isnan(oc):
-                            ztop = np.nan
-                        elif ilay <= int(oc):
-                            ztop = _hsubs[int(oc), icell]
-                    # -- Store cell top
-                    _top[ilay, icell] = ztop
-            # -- Rectify first layer by topog
-            _top = np.vstack((_topog[0], _top[1:]))
+
+        # -- Load outcrop layer ids
+        _outcrop = self.get_outcrop().data['value'].reshape((self.nlay, self.ncpl)) # outcrop array
+        _outcrop[np.isin(_outcrop,  [9999, -9999])] = np.nan
+
+        # -- Build a empty top array with right shape 
+        _top = np.empty((self.nlay, self.ncpl))
+        # -- Iterate 
+        for icell in range(self.ncpl):
+            for ilay in range(self.nlay):
+
+                # -- Set arrays to concatenate according to model explicity on geometry
+                if self.hws == 'explicit':
+                    arrs = [_hsubs[:ilay, icell], _topog[:1, icell]]
+                else:
+                    arrs = [ _hsubs[:ilay, icell], _sepon[:ilay+1, icell], _topog[:1, icell]]
+                # -- Compute z minimum above substratum
+                ztop = np.fmin.reduce(np.concatenate(arrs))
+                # -- If current cell's top is outcroping
+                if np.isnan(ztop):
+                    oc = np.fmax.reduce(_outcrop[:ilay+1, icell])
+                    if np.isnan(oc):
+                        ztop = np.nan
+                    elif ilay <= int(oc):
+                        ztop = _hsubs[int(oc), icell]
+                # -- Store cell top
+                _top[ilay, icell] = ztop
+        # -- Rectify first layer by topog
+        _top = np.vstack((_topog[0], _top[1:]))
 
         # -- Return top and botm arrays
         return _top, _hsubs
-
 
 
 
@@ -770,16 +766,19 @@ class MartheModel():
 
 
 
-    def get_outcrop(self, as_2darray=False):
+    def get_outcrop(self, as_2darray=False, base=0):
         """
         Function to get outcropping layer number
         (integer) as MartheField instance or 2D-array.
 
         Parameters:
         ----------
-        as_2darray (bool) : return 2D-array of outcroping layer.
-                            Only available for non nested model.
-                            Default is False
+        as_2darray (bool, optional) : return 2D-array of outcroping layer.
+                                      Only available for non nested model.
+                                      Default is False
+        base (int, optional) : output layer id n-base.
+                               Marthe is 1-based (base=1), PyMarthe is 0-based (base=0).
+                               Default is 0.
 
         Returns:
         --------
@@ -794,42 +793,43 @@ class MartheModel():
             err_msg = "ERROR : cannot return a 2D-array for nested model."
             assert self.nnest == 0, err_msg
             # ---- Set list of arrays with layer number on active cell
-            layers = [ilay * imask for ilay, imask in enumerate(self.imask.as_3darray())]
+            layers = [ilay + base * imask for ilay, imask in enumerate(self.imask.as_3darray())]
             # ---- Transform 0 to NaN
             nanlayers = []
             for layer in layers:
                 arr = layer.astype('float')
-                arr[arr == 0] = np.nan
+                arr[np.isin(arr, self.imask.dmv)] = np.nan
                 nanlayers.append(arr)
             # ---- Get minimum layer number excluding NaNs
             outcrop = np.fmin.reduce(nanlayers)
             # # ---- Back transform inactive zone to 0
-            outcrop[np.isnan(outcrop)] = -9999
+            outcrop[np.isnan(outcrop)] = 9999
             # ---- Return outcrop layers as 2D-array
             return outcrop.astype(int)
-
         else:
             # -- Extract mask on active cells
             mask = ~np.isin(self.imask.data['value'], self.imask.dmv)
             # -- Extrcat outcrop for all active cell on first layer
             oc = (
                 pd.DataFrame.from_records(self.imask.data)
+                # -- Adoptaing layer number to user demand
+                .apply(lambda x: x + base if x.name == 'layer' else x)
                 # -- Giving similar node ids for each layer (from 0 to ncpl) 
-                .assign(node=np.tile(np.arange(0, self.ncpl), self.nlay))
+                .assign(inpl=np.tile(np.arange(self.ncpl), self.nlay))
                 # -- Mask active cell only
                 .loc[mask]
                 # -- Compute minimum layer id per node 
-                .groupby('node')
+                .groupby('inpl')
                 .min()['layer']
             )
             # -- Building Marthefield object response
             outcrop =  MartheField('outcrop', 9999, self)
-            # -- Set layer ids values previously calculated
-            outcrop.data['value'][oc.index] = oc.values
             # -- Set inactive cell to 9999 instead of 0 for plotting (and understanding) purpose 
             outcrop.data['value'][~mask] = 9999
+            # -- Set layer ids values previously calculated
+            outcrop.data['value'][oc.index] = oc.values
+            # -- Return MartheField instance
             return outcrop
-
 
 
 
