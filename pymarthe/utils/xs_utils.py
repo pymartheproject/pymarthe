@@ -452,7 +452,7 @@ class CrossSection():
 
 		if by_layer:
 			# -- Set layer ids as array
-			collection.set_array(xs_df['layer'].values)
+			collection.set_array(self.xs_df['layer'].values)
 
 			# -- Set cmap
 			cm = kwargs.pop('cmap', 'tab20')
@@ -469,10 +469,10 @@ class CrossSection():
 			ax.set_ylim(*extent[1::2])
 		else:
 			# -- Extract xz-limits
-			xmin = np.min(xs_df[['x_curv0', 'x_curv1']].values)
-			xmax = np.max(xs_df[['x_curv0', 'x_curv1']].values)
-			zmin = np.min(xs_df[['top', 'bottom']].values)
-			zmax = np.max(xs_df[['top', 'bottom']].values)
+			xmin = np.min(self.xs_df[['x_curv0', 'x_curv1']].values)
+			xmax = np.max(self.xs_df[['x_curv0', 'x_curv1']].values)
+			zmin = np.min(self.xs_df[['top', 'bottom']].values)
+			zmax = np.max(self.xs_df[['top', 'bottom']].values)
 			# -- Set xz-limits 
 			ax.set_xlim(xmin, xmax)
 			ax.set_ylim(zmin, zmax)
@@ -603,10 +603,10 @@ class CrossSection():
 			ax.set_ylim(*extent[1::2])
 		else:
 			# -- Extract xz-limits
-			xmin = np.min(xs_df[['x_curv0', 'x_curv1']].values)
-			xmax = np.max(xs_df[['x_curv0', 'x_curv1']].values)
-			zmin = np.min(xs_df[['top', 'bottom']].values)
-			zmax = np.max(xs_df[['top', 'bottom']].values)
+			xmin = np.min(self.xs_df[['x_curv0', 'x_curv1']].values)
+			xmax = np.max(self.xs_df[['x_curv0', 'x_curv1']].values)
+			zmin = np.min(self.xs_df[['top', 'bottom']].values)
+			zmax = np.max(self.xs_df[['top', 'bottom']].values)
 			# -- Set xz-limits 
 			ax.set_xlim(xmin, xmax)
 			ax.set_ylim(zmin, zmax)

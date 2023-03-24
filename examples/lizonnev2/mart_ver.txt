@@ -1,0 +1,435 @@
+ Logiciel : Marthe, Version : 7.8a  (Juin 2021)
+     J /M/ Ann
+ le 26/08/2022 à  9h05
+
+ Fichier Projet : Lizonne.rma
+
+ Projet Modifié
+ 
+
+ *** La Maille : Couche = 1 , Col = 24 , Lig = 49                           ***
+     du réseau de Rivières
+     a un Numéro de Tronçon = 24 mais pas de numéro d'Affluent
+     Cet élément de réseau sera ignoré
+
+ *** La Maille : Couche = 1 , Col = 32 , Lig = 49                           ***
+     du réseau de Rivières
+     a un Numéro de Tronçon = 11 mais pas de numéro d'Affluent
+     Cet élément de réseau sera ignoré
+
+ *** La Maille : Couche = 1 , Col = 7 , Lig = 72                            ***
+     du réseau de Rivières
+     a un Numéro de Tronçon = 7 mais pas de numéro d'Affluent
+     Cet élément de réseau sera ignoré
+ 
+   Précision = 15 chiffres
+
+ ** Affl. :  420 Tronç:    4  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   142.000 < Subs_Nappe =   148.400 >>> Diff =     6.400
+ ** Affl. :  420 Tronç:    3  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   149.000 < Subs_Nappe =   160.700 >>> Diff =    11.700
+ ** Affl. :  420 Tronç:    5  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   150.000 >>> Diff =    14.000
+ ** Affl. :  413 Tronç:    2  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   166.000 < Subs_Nappe =   182.900 >>> Diff =    16.900
+ ** Affl. :  420 Tronç:    7  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   138.100 >>> Diff =     5.100
+ ** Affl. :  420 Tronç:    8  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   134.300 >>> Diff =     6.300
+ ** Affl. :  413 Tronç:    6  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   135.000 < Subs_Nappe =   137.000 >>> Diff =     2.000
+ ** Affl. :  413 Tronç:    5  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   140.000 < Subs_Nappe =   167.800 >>> Diff =    27.800
+ ** Affl. :  420 Tronç:    9  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   127.000 < Subs_Nappe =   147.000 >>> Diff =    20.000
+ ** Affl. :  413 Tronç:    7  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   148.000 >>> Diff =    22.000
+ ** Affl. :  420 Tronç:   10  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   120.000 < Subs_Nappe =   128.000 >>> Diff =     8.000
+ ** Affl. :  420 Tronç:   11  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   118.000 < Subs_Nappe =   142.000 >>> Diff =    24.000
+ ** Affl. :  420 Tronç:   12  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   118.000 >>> Diff =     2.000
+ ** Affl. :  420 Tronç:   15  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   113.200 >>> Diff =     7.200
+ ** Affl. :  420 Tronç:   16  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   102.000 < Subs_Nappe =   133.000 >>> Diff =    31.000
+ ** Affl. :  420 Tronç:   17  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =    97.500 >>> Diff =     1.500
+ ** Affl. :  420 Tronç:   18  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    98.000 < Subs_Nappe =   100.000 >>> Diff =     2.000
+ ** Affl. :  420 Tronç:   19  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   116.700 >>> Diff =    20.700
+ ** Affl. :  410 Tronç:   46  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   110.900 >>> Diff =     4.900
+ ** Affl. :  412 Tronç:   57  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   101.800 >>> Diff =     5.800
+ ** Affl. :  410 Tronç:   49  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   110.000 >>> Diff =     4.000
+ ** Affl. :  410 Tronç:   48  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   124.000 >>> Diff =    18.000
+ ** Affl. :  410 Tronç:   45  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   126.700 >>> Diff =    20.700
+ ** Affl. :  420 Tronç:   22  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    91.000 < Subs_Nappe =    95.000 >>> Diff =     4.000
+ ** Affl. :  421 Tronç:   23  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    90.000 < Subs_Nappe =   102.000 >>> Diff =    12.000
+ ** Affl. :  412 Tronç:   60  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    95.000 < Subs_Nappe =    98.900 >>> Diff =     3.900
+ ** Affl. :  412 Tronç:   59  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    97.000 < Subs_Nappe =   101.600 >>> Diff =     4.600
+ ** Affl. :  412 Tronç:   55  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   105.300 >>> Diff =     9.300
+ ** Affl. :  410 Tronç:   51  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   100.000 < Subs_Nappe =   116.600 >>> Diff =    16.600
+ ** Affl. :  410 Tronç:   41  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   115.000 < Subs_Nappe =   139.500 >>> Diff =    24.500
+ ** Affl. :  410 Tronç:   39  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   116.800 >>> Diff =     0.800
+ ** Affl. :  419 Tronç:    1  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   109.100 >>> Diff =     0.100
+ ** Affl. :  419 Tronç:    2  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   104.000 < Subs_Nappe =   111.000 >>> Diff =     7.000
+ ** Affl. :  421 Tronç:   63  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    87.000 < Subs_Nappe =   113.000 >>> Diff =    26.000
+ ** Affl. :  411 Tronç:   40  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    99.000 < Subs_Nappe =   108.700 >>> Diff =     9.700
+ ** Affl. :  410 Tronç:   37  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   121.500 >>> Diff =     5.500
+ ** Affl. :  421 Tronç:   64  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    86.000 < Subs_Nappe =    94.000 >>> Diff =     8.000
+ ** Affl. :  411 Tronç:   38  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   103.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   37  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   113.100 >>> Diff =    17.100
+ ** Affl. :  410 Tronç:   36  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   133.000 >>> Diff =    17.000
+ ** Affl. :  410 Tronç:   32  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   121.000 >>> Diff =     5.000
+ ** Affl. :  410 Tronç:   31  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   121.000 < Subs_Nappe =   141.400 >>> Diff =    20.400
+ ** Affl. :  410 Tronç:    1  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   198.000 < Subs_Nappe =   200.100 >>> Diff =     2.100
+ ** Affl. :  411 Tronç:   36  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    97.000 < Subs_Nappe =   104.000 >>> Diff =     7.000
+ ** Affl. :  410 Tronç:   34  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   122.800 >>> Diff =     6.800
+ ** Affl. :  410 Tronç:   33  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   128.300 >>> Diff =    12.300
+ ** Affl. :  410 Tronç:   30  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   123.000 < Subs_Nappe =   131.700 >>> Diff =     8.700
+ ** Affl. :  410 Tronç:   29  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   132.500 >>> Diff =     6.500
+ ** Affl. :  410 Tronç:   28  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   131.100 >>> Diff =     5.100
+ ** Affl. :  410 Tronç:   27  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   127.700 >>> Diff =     1.700
+ ** Affl. :  410 Tronç:   26  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   156.200 >>> Diff =    30.200
+ ** Affl. :  410 Tronç:   25  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   136.300 >>> Diff =     3.300
+ ** Affl. :  410 Tronç:   24  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   150.600 >>> Diff =    14.600
+ ** Affl. :  410 Tronç:   23  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   139.000 >>> Diff =     3.000
+ ** Affl. :  410 Tronç:   22  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   139.000 >>> Diff =     3.000
+ ** Affl. :  410 Tronç:   21  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   138.000 < Subs_Nappe =   140.000 >>> Diff =     2.000
+ ** Affl. :  410 Tronç:   17  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   143.000 < Subs_Nappe =   171.300 >>> Diff =    28.300
+ ** Affl. :  421 Tronç:   70  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    86.000 < Subs_Nappe =   114.500 >>> Diff =    28.500
+ ** Affl. :  411 Tronç:   35  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   102.000 < Subs_Nappe =   123.000 >>> Diff =    21.000
+ ** Affl. :  411 Tronç:   34  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   103.000 < Subs_Nappe =   117.000 >>> Diff =    14.000
+ ** Affl. :  410 Tronç:   20  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   165.900 >>> Diff =    29.900
+ ** Affl. :  410 Tronç:   19  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   140.000 < Subs_Nappe =   167.700 >>> Diff =    27.700
+ ** Affl. :  410 Tronç:   16  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   143.000 < Subs_Nappe =   153.000 >>> Diff =    10.000
+ ** Affl. :  410 Tronç:   13  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   149.000 < Subs_Nappe =   171.000 >>> Diff =    22.000
+ ** Affl. :  410 Tronç:   12  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   153.000 < Subs_Nappe =   172.700 >>> Diff =    19.700
+ ** Affl. :  421 Tronç:   73  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    88.000 < Subs_Nappe =    89.000 >>> Diff =     1.000
+ ** Affl. :  421 Tronç:   72  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    88.000 < Subs_Nappe =   102.600 >>> Diff =    14.600
+ ** Affl. :  411 Tronç:   32  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   133.800 >>> Diff =    27.800
+ ** Affl. :  411 Tronç:   30  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   107.000 < Subs_Nappe =   108.000 >>> Diff =     1.000
+ ** Affl. :  411 Tronç:   29  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   116.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   28  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   120.000 >>> Diff =    11.000
+ ** Affl. :  411 Tronç:   27  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   107.000 < Subs_Nappe =   112.000 >>> Diff =     5.000
+ ** Affl. :  411 Tronç:   26  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   108.000 < Subs_Nappe =   124.000 >>> Diff =    16.000
+ ** Affl. :  411 Tronç:   25  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   120.000 >>> Diff =    11.000
+ ** Affl. :  411 Tronç:   24  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   111.000 < Subs_Nappe =   118.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   23  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   115.000 < Subs_Nappe =   124.000 >>> Diff =     9.000
+ ** Affl. :  411 Tronç:   20  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   118.000 < Subs_Nappe =   134.000 >>> Diff =    16.000
+ ** Affl. :  411 Tronç:   19  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   119.000 < Subs_Nappe =   122.000 >>> Diff =     3.000
+ ** Affl. :  411 Tronç:   18  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   124.000 < Subs_Nappe =   128.000 >>> Diff =     4.000
+ ** Affl. :  411 Tronç:   17  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   125.000 < Subs_Nappe =   130.000 >>> Diff =     5.000
+ ** Affl. :  411 Tronç:   15  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   129.000 >>> Diff =     1.000
+ ** Affl. :  411 Tronç:   14  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   143.800 >>> Diff =    17.800
+ ** Affl. :  411 Tronç:   13  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   138.500 >>> Diff =    10.500
+ ** Affl. :  411 Tronç:   12  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   130.000 < Subs_Nappe =   137.900 >>> Diff =     7.900
+ ** Affl. :  411 Tronç:   10  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   137.000 >>> Diff =     4.000
+
+  ** Pas de temps n° 0 ; Date = 212.000 :
+ ==> 85 Tronçon(s) avec Niveau Rivière < Altitude du fond de la rivière
+                       ou Altitude fond < Substratum  nappe
+                       ou Altitude fond > Topographie nappe
+                       ou Perméabilité Lit > 0. +  Épaisseur Lit = 0.
+                       ou          Largeur = 0. ou      Longueur = 0.
+                       ou Manning  +   Rugosité = 0. ou Pente du lit = 0.
+
+ ** Affl. :  420 Tronç:    4  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   142.000 < Subs_Nappe =   148.400 >>> Diff =     6.400
+ ** Affl. :  420 Tronç:    3  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   149.000 < Subs_Nappe =   160.700 >>> Diff =    11.700
+ ** Affl. :  420 Tronç:    5  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   150.000 >>> Diff =    14.000
+ ** Affl. :  413 Tronç:    2  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   166.000 < Subs_Nappe =   182.900 >>> Diff =    16.900
+ ** Affl. :  420 Tronç:    7  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   138.100 >>> Diff =     5.100
+ ** Affl. :  420 Tronç:    8  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   134.300 >>> Diff =     6.300
+ ** Affl. :  413 Tronç:    6  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   135.000 < Subs_Nappe =   137.000 >>> Diff =     2.000
+ ** Affl. :  413 Tronç:    5  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   140.000 < Subs_Nappe =   167.800 >>> Diff =    27.800
+ ** Affl. :  420 Tronç:    9  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   127.000 < Subs_Nappe =   147.000 >>> Diff =    20.000
+ ** Affl. :  413 Tronç:    7  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   148.000 >>> Diff =    22.000
+ ** Affl. :  420 Tronç:   10  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   120.000 < Subs_Nappe =   128.000 >>> Diff =     8.000
+ ** Affl. :  420 Tronç:   11  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   118.000 < Subs_Nappe =   142.000 >>> Diff =    24.000
+ ** Affl. :  420 Tronç:   12  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   118.000 >>> Diff =     2.000
+ ** Affl. :  420 Tronç:   15  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   113.200 >>> Diff =     7.200
+ ** Affl. :  420 Tronç:   16  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   102.000 < Subs_Nappe =   133.000 >>> Diff =    31.000
+ ** Affl. :  420 Tronç:   17  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =    97.500 >>> Diff =     1.500
+ ** Affl. :  420 Tronç:   18  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    98.000 < Subs_Nappe =   100.000 >>> Diff =     2.000
+ ** Affl. :  420 Tronç:   19  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   116.700 >>> Diff =    20.700
+ ** Affl. :  410 Tronç:   46  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   110.900 >>> Diff =     4.900
+ ** Affl. :  412 Tronç:   57  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   101.800 >>> Diff =     5.800
+ ** Affl. :  410 Tronç:   49  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   110.000 >>> Diff =     4.000
+ ** Affl. :  410 Tronç:   48  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   124.000 >>> Diff =    18.000
+ ** Affl. :  410 Tronç:   45  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   126.700 >>> Diff =    20.700
+ ** Affl. :  420 Tronç:   22  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    91.000 < Subs_Nappe =    95.000 >>> Diff =     4.000
+ ** Affl. :  421 Tronç:   23  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    90.000 < Subs_Nappe =   102.000 >>> Diff =    12.000
+ ** Affl. :  412 Tronç:   60  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    95.000 < Subs_Nappe =    98.900 >>> Diff =     3.900
+ ** Affl. :  412 Tronç:   59  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    97.000 < Subs_Nappe =   101.600 >>> Diff =     4.600
+ ** Affl. :  412 Tronç:   55  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   105.300 >>> Diff =     9.300
+ ** Affl. :  410 Tronç:   51  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   100.000 < Subs_Nappe =   116.600 >>> Diff =    16.600
+ ** Affl. :  410 Tronç:   41  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   115.000 < Subs_Nappe =   139.500 >>> Diff =    24.500
+ ** Affl. :  410 Tronç:   39  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   116.800 >>> Diff =     0.800
+ ** Affl. :  419 Tronç:    1  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   109.100 >>> Diff =     0.100
+ ** Affl. :  419 Tronç:    2  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   104.000 < Subs_Nappe =   111.000 >>> Diff =     7.000
+ ** Affl. :  421 Tronç:   63  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    87.000 < Subs_Nappe =   113.000 >>> Diff =    26.000
+ ** Affl. :  411 Tronç:   40  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    99.000 < Subs_Nappe =   108.700 >>> Diff =     9.700
+ ** Affl. :  410 Tronç:   37  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   121.500 >>> Diff =     5.500
+ ** Affl. :  421 Tronç:   64  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    86.000 < Subs_Nappe =    94.000 >>> Diff =     8.000
+ ** Affl. :  411 Tronç:   38  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   103.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   37  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    96.000 < Subs_Nappe =   113.100 >>> Diff =    17.100
+ ** Affl. :  410 Tronç:   36  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   133.000 >>> Diff =    17.000
+ ** Affl. :  410 Tronç:   32  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   121.000 >>> Diff =     5.000
+ ** Affl. :  410 Tronç:   31  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   121.000 < Subs_Nappe =   141.400 >>> Diff =    20.400
+ ** Affl. :  410 Tronç:    1  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   198.000 < Subs_Nappe =   200.100 >>> Diff =     2.100
+ ** Affl. :  411 Tronç:   36  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    97.000 < Subs_Nappe =   104.000 >>> Diff =     7.000
+ ** Affl. :  410 Tronç:   34  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   122.800 >>> Diff =     6.800
+ ** Affl. :  410 Tronç:   33  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   116.000 < Subs_Nappe =   128.300 >>> Diff =    12.300
+ ** Affl. :  410 Tronç:   30  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   123.000 < Subs_Nappe =   131.700 >>> Diff =     8.700
+ ** Affl. :  410 Tronç:   29  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   132.500 >>> Diff =     6.500
+ ** Affl. :  410 Tronç:   28  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   131.100 >>> Diff =     5.100
+ ** Affl. :  410 Tronç:   27  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   127.700 >>> Diff =     1.700
+ ** Affl. :  410 Tronç:   26  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   156.200 >>> Diff =    30.200
+ ** Affl. :  410 Tronç:   25  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   136.300 >>> Diff =     3.300
+ ** Affl. :  410 Tronç:   24  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   150.600 >>> Diff =    14.600
+ ** Affl. :  410 Tronç:   23  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   139.000 >>> Diff =     3.000
+ ** Affl. :  410 Tronç:   22  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   139.000 >>> Diff =     3.000
+ ** Affl. :  410 Tronç:   21  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   138.000 < Subs_Nappe =   140.000 >>> Diff =     2.000
+ ** Affl. :  410 Tronç:   17  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   143.000 < Subs_Nappe =   171.300 >>> Diff =    28.300
+ ** Affl. :  421 Tronç:   70  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    86.000 < Subs_Nappe =   114.500 >>> Diff =    28.500
+ ** Affl. :  411 Tronç:   35  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   102.000 < Subs_Nappe =   123.000 >>> Diff =    21.000
+ ** Affl. :  411 Tronç:   34  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   103.000 < Subs_Nappe =   117.000 >>> Diff =    14.000
+ ** Affl. :  410 Tronç:   20  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   136.000 < Subs_Nappe =   165.900 >>> Diff =    29.900
+ ** Affl. :  410 Tronç:   19  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   140.000 < Subs_Nappe =   167.700 >>> Diff =    27.700
+ ** Affl. :  410 Tronç:   16  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   143.000 < Subs_Nappe =   153.000 >>> Diff =    10.000
+ ** Affl. :  410 Tronç:   13  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   149.000 < Subs_Nappe =   171.000 >>> Diff =    22.000
+ ** Affl. :  410 Tronç:   12  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   153.000 < Subs_Nappe =   172.700 >>> Diff =    19.700
+ ** Affl. :  421 Tronç:   73  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    88.000 < Subs_Nappe =    89.000 >>> Diff =     1.000
+ ** Affl. :  421 Tronç:   72  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =    88.000 < Subs_Nappe =   102.600 >>> Diff =    14.600
+ ** Affl. :  411 Tronç:   32  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   106.000 < Subs_Nappe =   133.800 >>> Diff =    27.800
+ ** Affl. :  411 Tronç:   30  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   107.000 < Subs_Nappe =   108.000 >>> Diff =     1.000
+ ** Affl. :  411 Tronç:   29  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   116.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   28  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   120.000 >>> Diff =    11.000
+ ** Affl. :  411 Tronç:   27  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   107.000 < Subs_Nappe =   112.000 >>> Diff =     5.000
+ ** Affl. :  411 Tronç:   26  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   108.000 < Subs_Nappe =   124.000 >>> Diff =    16.000
+ ** Affl. :  411 Tronç:   25  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   109.000 < Subs_Nappe =   120.000 >>> Diff =    11.000
+ ** Affl. :  411 Tronç:   24  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   111.000 < Subs_Nappe =   118.000 >>> Diff =     7.000
+ ** Affl. :  411 Tronç:   23  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   115.000 < Subs_Nappe =   124.000 >>> Diff =     9.000
+ ** Affl. :  411 Tronç:   20  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   118.000 < Subs_Nappe =   134.000 >>> Diff =    16.000
+ ** Affl. :  411 Tronç:   19  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   119.000 < Subs_Nappe =   122.000 >>> Diff =     3.000
+ ** Affl. :  411 Tronç:   18  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   124.000 < Subs_Nappe =   128.000 >>> Diff =     4.000
+ ** Affl. :  411 Tronç:   17  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   125.000 < Subs_Nappe =   130.000 >>> Diff =     5.000
+ ** Affl. :  411 Tronç:   15  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   129.000 >>> Diff =     1.000
+ ** Affl. :  411 Tronç:   14  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   126.000 < Subs_Nappe =   143.800 >>> Diff =    17.800
+ ** Affl. :  411 Tronç:   13  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   128.000 < Subs_Nappe =   138.500 >>> Diff =    10.500
+ ** Affl. :  411 Tronç:   12  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   130.000 < Subs_Nappe =   137.900 >>> Diff =     7.900
+ ** Affl. :  411 Tronç:   10  Gig:** Couc:***  Col:   0 Lig:****            **
+    Altitude Fond Riv =   133.000 < Subs_Nappe =   137.000 >>> Diff =     4.000
+
+  ** Pas de temps n° 1 ; Date = 213.000 :
+ ==> 85 Tronçon(s) avec Niveau Rivière < Altitude du fond de la rivière
+                       ou Altitude fond < Substratum  nappe
+                       ou Altitude fond > Topographie nappe
+                       ou Perméabilité Lit > 0. +  Épaisseur Lit = 0.
+                       ou          Largeur = 0. ou      Longueur = 0.
+                       ou Manning  +   Rugosité = 0. ou Pente du lit = 0.
+
+
+ *** Attention :       Convergence !                                        ***
+
+=====================================================================================
+ Au cours de toute la simulation hydrodynamique (calcul de la charge hydraulique) :
+ Erreur relative maximale de volume fluide (ou masse gaz) =     13.769 %
+                      correspondant à une erreur de débit =    -0.1435
+                                               à la date  =    253.000 <=> 10/09/2003
+                                  au pas de temps numéro  =         41
+=====================================================================================
+
+ *** Attention :       Convergence !                                        ***
+
+===========================================================================================
+ Au cours de toute la simulation hydrodynamique (calcul de la charge hydraulique) :
+               Taux maximal de Non-Convergence Interne  =      9.969 %
+                     correspondant à un écart de débit  =     0.5635
+           (y compris les éventuels sous-pas de temps)
+       correspondant à un écart de volume (ou de masse) =    -0.5541 dans le pas de temps
+                                            à la date   =   2166.000 <=> 05/12/2008
+                               au pas de temps numéro   =       1954
+===========================================================================================
+
+                Fin normale du calcul             
+
+     Temps écoulé pour le calcul                       =     27.29 mn
+
+     Temps CPU pour initialisat. en début des pas temps=       8.1
+     (Somme des init. en début de chaque pas de temps)
+     Temps CPU pour calcul de la Charge hydraulique    =    1558.4
+     Temps CPU pour bilans Climatologiques             =       0.0
+     Temps CPU pour Routage Rivières                   =       4.4
+     Temps CPU pour bilans de débit                    =      50.5
+     Temps CPU pour sauvegarde des grilles calculées   =       0.3
+     Temps CPU solveur hydrodynamique                  =     211.8
+     Temps CPU pour calcul total (hors initialisation) =    1637.1
+
+    (Temps CPU pour calcul total                       =    1637.3)
+    ==========================================================================
+    *  Les fichiers suivants ont été créés :
+    *  mart_ver.txt  = Vérifications ou Erreurs
+    *  bilandeb.txt  = Bilans de Débit, de Masse, de Chaleur
+    *  historiq.prn  = Historiques (format compatible Excel)
+    *  histobil_debit.prn  = Historique de bilan de débit (compatible Excel)
+    *  histobil_riv_dra_lac.prn = Historique de bilans de débit de rivières,
+                                  de drains, de lacs
+    *  chasim.out    = Grilles de champs calculés
+    *                  (charge, concentration, température etc.)
+    *  debsim.out    = Grille du débit calculé
+    *  reseau_riv_drains_lacs.txt = Réseau de Rivières, de Drains, Lacs
+    ==========================================================================
