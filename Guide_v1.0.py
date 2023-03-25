@@ -383,7 +383,7 @@ requires 2 input objects:
 The user can define a cross section line through multiple and flexible ways giving a:
     - path to a shapefile (unique line geometry)
     - list of points coordinates forming a line
-    - model colum/row number (not available for nested models)
+    - model column/row number (not available for nested models)
     - x/y coordinates  
 Then, the user can use the internal `.plot()` method, to visualize the right position
 of the current cross section line according to the model active domain.
