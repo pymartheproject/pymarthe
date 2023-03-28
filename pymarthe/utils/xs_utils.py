@@ -331,7 +331,7 @@ class CrossSection():
 			.apply(
 				lambda p: (
 					LineString(p.exterior.coords)
-					.intersection(translate(xs.xsline, xoff=self.offset, yoff=self.offset))
+					.intersection(translate(self.xsline, xoff=self.offset, yoff=self.offset))
 					)
 				)
 			# -- Manage different intersection objects (Point, MultiPoint)
@@ -460,6 +460,13 @@ class CrossSection():
         ax = xs.plot_xs(by_layer=True, ec='white', lw=.3)
         plt.show()
 		"""
+		# -- Check number of layer
+		if (by_layer) & (self.mm.nlay == 1):
+			warnings.warn(
+				'Argument `by_layer` cannot be pass to `True` for single layer models. '\
+				'It will automatically be set to `False` anyway.'
+				)
+
 		# -- Extract patches
 		patches = self.xs_df['zvertices'].apply(Path)
 
