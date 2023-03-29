@@ -20,15 +20,11 @@ The script use 2 existing Marthe models modified for this guide:
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 '''
 
-# ---- Put your dev branch path here
-import os, sys
-# dev_ws = os.path.normpath(r"E:\EauxSCAR\pymarthe_dev")
 
 # ---- Import usefull modules
-
+import os, sys
 import pandas as pd
 import numpy as np
-# sys.path.append(dev_ws)
 from pymarthe import MartheModel
 from pymarthe.utils import marthe_utils, shp_utils, pest_utils
 from pymarthe.mfield import MartheField, MartheFieldSeries
