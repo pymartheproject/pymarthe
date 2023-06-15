@@ -342,8 +342,8 @@ class MartheOptim():
             # -- Get DataFrame
             df = data
             # -- Perform some checks (date and value)
-            err_msg = 'ERROR: `data` must contain a `value` column and a DatetimeIndex index.'
-            assert ('value' in data.columns) & isinstance(df.index, pd.DatetimeIndex), err_msg
+            err_msg = 'ERROR: `data` must contain a `value` column.'
+            assert ('value' in data.columns), err_msg
             # -- Get locnme if not provided
             locnme = f'loc{str(self.get_nlocs()).zfill(3)}' if locnme is None else locnme
         
@@ -361,21 +361,25 @@ class MartheOptim():
             self.check_loc(locnme)
 
         # ---- Avoid observations out of model actual time window
-        df_tw = df.loc[self.tw_min:self.tw_max]
+        # only applicable when a Datetime format is used 
+        try :
+            df_tw = df.loc[self.tw_min:self.tw_max]
 
-        if df_tw.empty:
-            # -- Raise warning message
-            warn_msg = 'WARNING : no observation data within the model time window was found. ' \
-                       f'{locnme} observation set will not be added.'
-            warnings.warn(warn_msg)
-
-        else:
-            if len(df) > len(df_tw):
+            if df_tw.empty:
                 # -- Raise warning message
-                warn_msg = f'WARNING : some observation data of `locnme` = {locnme} ' \
-                           f'are out of actual model time window ({self.tw_min} - {self.tw_max}). ' \
-                           'They will not be considered.'
+                warn_msg = 'WARNING : no observation data within the model time window was found. ' \
+                           f'{locnme} observation set will not be added.'
                 warnings.warn(warn_msg)
+
+            else:
+                if len(df) > len(df_tw):
+                    # -- Raise warning message
+                    warn_msg = f'WARNING : some observation data of `locnme` = {locnme} ' \
+                               f'are out of actual model time window ({self.tw_min} - {self.tw_max}). ' \
+                               'They will not be considered.'
+                    warnings.warn(warn_msg)
+        except : # no date format 
+            df_tw = df
 
             # ---- Build MartheObs instance from data input
             insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))

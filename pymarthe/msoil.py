@@ -277,7 +277,7 @@ class MartheSoil():
         assert not marthe_utils.isiterable(istep), err_msg
         # ---- Getting required data
         rec = self.get_data(soilprop, istep=istep, force=True, as_style='array-like')
-        mf = MartheField(f'{soilprop}_{istep}', rec, self.mm)
+        mf = MartheField(f'{soilprop}_{istep}', rec, self.mm, use_imask=False)
         ax = mf.plot(**kwargs)
         return ax
 

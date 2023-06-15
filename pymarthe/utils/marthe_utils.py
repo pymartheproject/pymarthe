@@ -868,24 +868,35 @@ def read_prn(prnfile = 'historiq.prn'):
             nest = False
         # ---- Fetch headers
         headers = list(flines_arr[mask])
-    # ---- Get all headers as tuple
-    tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
     # ---- Set multi-index names
     if nest:
         idx_names = ['type', 'inest', 'name']
     else:
         idx_names = ['type', 'name']
-    # ---- Build multi-index
-    midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
-    # ---- Read prn file without headers (with date format)
-    df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
-                     skiprows=mask.count(True) + add_skip, index_col = 0,
-                     parse_dates = True, dayfirst=True)
-    df.drop(df.columns[0], axis=1,inplace=True)
+    # identify whether a date columns is provided in addition to simulation time
+    # (this implies 2 subsequent '#_Date' columns in the prn)
+    date_col = headers[0][0].strip(' ')==headers[0][1].strip(' ')
+    # remove time column and parse dates when date column is present
+    if date_col:
+        # ---- Get all headers as tuple
+        tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
+        # ---- Read prn file without headers (with date format)
+        df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
+                         skiprows=mask.count(True) + add_skip, index_col = 0,
+                         parse_dates = True, dayfirst=True)
+        df.drop(df.columns[0], axis=1,inplace=True)
+    else :
+        # ---- Get all headers as tuple
+        tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][1:]
+        # ---- Read prn file without headers (time is not a date)
+        df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
+                         skiprows=mask.count(True) + add_skip, index_col = 0,
+                         )
     df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
-    # ---- Format DateTimeIndex
+    # ---- Format DateTimeIndex or float
     df.index.name = 'date'
     # ---- Set columns as multi-index as columns
+    midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
     df.columns = midx
     # ---- Trandform inest id to integer
     if nest:

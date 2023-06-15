@@ -487,9 +487,15 @@ def run_from_config(configfile, **kwargs):
     prn = marthe_utils.read_prn(os.path.join(mm.mldir,'historiq.prn'))
     hdic, _, odics = read_config(configfile)
     for odic in odics:
+        # try to parse dates 
+        # NOTE : this is NOT a decent way...
+        try : 
+            dates_out = pd.DatetimeIndex(odic['dates_out'].split('|'))
+        except : 
+            dates_out = np.array(odic['dates_out'].split('|'),dtype=float)
         extract_prn(prn= prn, 
                     name= odic['locnme'],
-                    dates_out= pd.DatetimeIndex(odic['dates_out'].split('|')),
+                    dates_out= dates_out,
                     trans= odic['trans'],
                     interp_method= odic['interp_method'],
                     fluc_dic= eval(odic['fluc_dic']),
