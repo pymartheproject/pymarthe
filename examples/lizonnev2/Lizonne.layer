@@ -1,0 +1,20 @@
+ *** Description des couches aquifères               ***
+Cou=  1;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Eponte au sommet du Coniacien-Santonien (EPCS)
+Cou=  2;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Coniacien-Santonien (COST)
+Cou=  3;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Eponte au sommet du Turonien (EPTU)
+Cou=  4;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Turonien (TURO)
+Cou=  5;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Eponte au sommet du Cenomanien (EPCE)
+Cou=  6;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Cénomanien (CENO)
+Cou=  7;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Eponte au sommet du Tithonien (EPTI)
+Cou=  8;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Tithonien (TITH)
+Cou=  9;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Eponte au sommet du Kimméridgien (EPKI)
+Cou= 10;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Kimméridgien (KIMM)
+Cou= 11;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Eponte au sommet du Bathonien-Callovo-Oxfordien (EPCX)
+Cou= 12;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Bathonien-Callovo-Oxfordien (BACX)
+Cou= 13;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Eponte au sommet du Bajocien (EPBJ)
+Cou= 14;Épais=    50;Épon Sup =0;//////////=     0;Uni Ke=      1;Anisot=      0; Name= Bajocien (BAJO)
+ *** Sous-maillages Gigognes, Coupe, Radial          ***
+         0=Nombre de sous-maillages Gigognes
+         0=Coupe Verticale à Substratums Irréguliers (0=Non ; 1=Oui)
+         0=Maillage Radial [Rayon , Angle] (0=Non ; 1=Oui)
+ *** Fin du fichier 'Description des couches'        ***

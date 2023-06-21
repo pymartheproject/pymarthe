@@ -1,7 +1,7 @@
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     1
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -159,7 +159,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     2
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -317,7 +317,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     3
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -475,7 +475,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     4
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -633,7 +633,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     5
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -791,7 +791,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     6
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -949,7 +949,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     7
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -1107,7 +1107,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     8
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -1265,14 +1265,14 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT     9
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
 Time_Step=-9999
 Time=0
-Layer=0
-Max_Layer=9
+Layer=9
+Max_Layer=15
 Nest_grid=0
 Max_NestG=0
 [Structure]
@@ -1423,7 +1423,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT    10
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -1581,7 +1581,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT    11
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -1739,7 +1739,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT    12
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -1897,7 +1897,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT    13
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -2055,7 +2055,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT    14
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=
@@ -2213,7 +2213,7 @@ Nrows=128
 Marthe_Grid Version=9.0
 Title=mona1                                                          H_SU   RH_SUBSTRAT    15
 [Infos]
-Field=
+Field=hsubs
 Type=
 Elem_Number=0
 Name=

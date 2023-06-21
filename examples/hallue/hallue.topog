@@ -1,14 +1,14 @@
 Marthe_Grid Version=9.0
 Title=modelisation du bassin de la somme                                     H_TOPOGR       1
 [Infos]
-Field=
+Field=topog
 Type=
 Elem_Number=0
 Name=
 Time_Step=-9999
 Time=0
-Layer=0
-Max_Layer=0
+Layer=1
+Max_Layer=1
 Nest_grid=0
 Max_NestG=0
 [Structure]

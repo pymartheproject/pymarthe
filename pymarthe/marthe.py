@@ -248,18 +248,15 @@ class MartheModel():
 
         Parameters:
         ----------
-        name (str) : filename of output spatial index files.
-                     If None, name is .mlname + '_si'.
-                     Default is None.
-        only_active (bool) : enable/disable inactive cell consideration.
+        name (str, optional) : filename of output spatial index files.
+                               If None, name is .mlname + '_si'.
+                               Default is None.
+        only_active (bool, optional) : enable/disable inactive cell consideration.
 
-        Returns:
-        --------
-        spatial_index (rtree.index.Index)
 
         Examples:
         --------
-        si = mm.modelgrid.build_spatial_idx()
+        mm..build_spatial_idx()
 
         """
         # -- Activate iterator by setting spatial index to 1
@@ -290,7 +287,7 @@ class MartheModel():
 
 
 
-    def build_modelgrid(self):
+    def build_modelgrid(self, add_z=False):
         """
         Build an large pandas.DataFrame and store it in .modelgrid attribute.
         Each row represent a cell with the following informations (columns):
@@ -306,24 +303,128 @@ class MartheModel():
             - 'area' : cell area
             - 'vertices': cell vertices
             - 'ative': cell activity (0=inactive, 1=active)
+
+        Parameters:
+        ----------
+        add_z (bool, optional): whatever add informations about z-dimension such as:
+                                    - 'zcc'     : z-coordinate of the cell centroid
+                                    - 'dz'      : cell thickness
+                                    - 'bottom'  : cell bottom altitud
+                                    - 'top'     : cell top altitud
+                                    - 'volume'  : cell volume ([L^3])
+                                Default is False.
+                                Note: this process can take a while since z-dimension
+                                      informations has to be extracted from 'topog', 'hsubs'
+                                      and even 'sepon' fields.
+
+        Examples:
+        --------
+        mm.build_modelgrid(add_z=True)
+        xyzcellcenter = mm.modelgrid[[f'{dir}cc' for dir in list('xyz')]].values
         """
-        # ---- Get full data for each MartheGrid
-        dfs = []
-        for mg in self.imask.to_grids():
-            df = pd.DataFrame.from_records(mg.to_records(fmt='full'))
-            dfs.append(df)
+        # -- Build main table from .imask object
+        df = (
+            # ---- Get full data for each MartheGrid
+            pd.concat(
+                [pd.DataFrame.from_records(
+                    mg.to_records(fmt='full')
+                    )
+                for mg in self.imask.to_grids()],
+                ignore_index=True
+                )
+            # -- Rename few columns 
+            .rename(columns=dict(x='xcc', y='ycc', value='active'))
+        )
+        # -- Insert node ids
+        df.insert(0, 'node', np.arange(self.nlay*self.ncpl))
+        df.set_index('node', drop=False)
 
-        # ---- Concatenate grid data
-        rename_dic = {'x':'xcc', 'y': 'ycc', 'value':'active'}
-        df = pd.concat(dfs, ignore_index=True).rename(columns=rename_dic)
-
-        # ---- Insert node numbers at column n°0
-        df.insert(0, 'node', df.index)
+        # -- Add vertical dimension information
+        if add_z:
+            # -- Extract geometry top/bottom
+            top, botm = map(np.ravel, self._get_top_bottom_arrays())
+            # -- Insert z geometry informations in modelgrid
+            df.insert(df.columns.get_loc('ycc') + 1, 'zcc', (top-((top-botm)/2)))
+            df.insert(df.columns.get_loc('dy') + 1, 'dz', (top-botm))
+            df.insert(df.columns.get_loc('area') + 1, 'bottom', botm)
+            df.insert(df.columns.get_loc('area') + 1, 'top', top)
+            df.insert(df.columns.get_loc('area') + 1, 'volume', df.dx * df.dy * df.dz)
 
         # -- Set DataFrame to .modelgrid attribute
-        self.modelgrid = df.set_index('node', drop=False)
+        self.modelgrid = df
 
 
+    def _get_top_bottom_arrays(self):
+        """
+        Function to extract altitude of top and bottom
+        of whole model cells in array with shape (nlay, ncpl)
+        """
+        # -- Set masked values
+        mv = [9999, 8888, 0, -9999]
+
+        # -- Load basic geometry field if not already
+        #    and reshape field value as (nlay, ncpl)
+        #    (Marthe masked values will be set to nan)
+        geom_arrs = []
+        for g in ['topog', 'hsubs']:
+            # -- Load geometry if not already
+            if self.geometry[g] is None:
+                self.load_geometry(g)
+            # -- Extract geometry value as 1D-array
+            mf = self.geometry[g]
+            arr_dc = deepcopy(mf.data['value'])
+            # -- Reshape as (nlay, ncpl)
+            try:
+                arr = np.broadcast_to(arr_dc, (self.nlay, self.ncpl))
+            except:
+                arr = arr_dc.reshape((self.nlay, self.ncpl))
+            # -- Set masked values to nan
+            arr.setflags(write=1) # turn to mutable array
+            arr[np.isin(arr, mv)] = np.nan
+            # -- Fill 2-items list
+            geom_arrs.append(arr)
+        # -- Store topography and bottom layers
+        _topog, _hsubs = geom_arrs
+
+        # -- Extract sepon geometry for 'implicit' models
+        if self.hws == 'implicit':
+            if self.geometry['sepon'] is None:
+                self.load_geometry('sepon')
+            arr_dc = deepcopy(self.geometry['sepon'].data['value'])
+            _sepon = arr_dc.reshape((self.nlay, self.ncpl))
+            _sepon[np.isin(_sepon, mv)] = np.nan
+
+        # -- Load outcrop layer ids
+        _outcrop = self.get_outcrop().data['value'].reshape((self.nlay, self.ncpl)) # outcrop array
+        _outcrop[np.isin(_outcrop,  [9999, -9999])] = np.nan
+
+        # -- Build a empty top array with right shape 
+        _top = np.empty((self.nlay, self.ncpl))
+        # -- Iterate 
+        for icell in range(self.ncpl):
+            for ilay in range(self.nlay):
+
+                # -- Set arrays to concatenate according to model explicity on geometry
+                if self.hws == 'explicit':
+                    arrs = [_hsubs[:ilay, icell], _topog[:1, icell]]
+                else:
+                    arrs = [ _hsubs[:ilay, icell], _sepon[:ilay+1, icell], _topog[:1, icell]]
+                # -- Compute z minimum above substratum
+                ztop = np.fmin.reduce(np.concatenate(arrs))
+                # -- If current cell's top is outcroping
+                if np.isnan(ztop):
+                    oc = np.fmax.reduce(_outcrop[:ilay+1, icell])
+                    if np.isnan(oc):
+                        ztop = np.nan
+                    elif ilay <= int(oc):
+                        ztop = _hsubs[int(oc), icell]
+                # -- Store cell top
+                _top[ilay, icell] = ztop
+        # -- Rectify first layer by topog
+        _top = np.vstack((_topog[0], _top[1:]))
+
+        # -- Return top and botm arrays
+        return _top, _hsubs
 
 
 
@@ -665,16 +766,19 @@ class MartheModel():
 
 
 
-    def get_outcrop(self, as_2darray=False):
+    def get_outcrop(self, as_2darray=False, base=0):
         """
         Function to get outcropping layer number
         (integer) as MartheField instance or 2D-array.
 
         Parameters:
         ----------
-        as_2darray (bool) : return 2D-array of outcroping layer.
-                            Only available for non nested model.
-                            Default is False
+        as_2darray (bool, optional) : return 2D-array of outcroping layer.
+                                      Only available for non nested model.
+                                      Default is False
+        base (int, optional) : output layer id n-base.
+                               Marthe is 1-based (base=1), PyMarthe is 0-based (base=0).
+                               Default is 0.
 
         Returns:
         --------
@@ -689,39 +793,43 @@ class MartheModel():
             err_msg = "ERROR : cannot return a 2D-array for nested model."
             assert self.nnest == 0, err_msg
             # ---- Set list of arrays with layer number on active cell
-            layers = [ilay * imask for ilay, imask in enumerate(self.imask.as_3darray())]
+            layers = [ilay + base * imask for ilay, imask in enumerate(self.imask.as_3darray())]
             # ---- Transform 0 to NaN
             nanlayers = []
             for layer in layers:
                 arr = layer.astype('float')
-                arr[arr == 0] = np.nan
+                arr[np.isin(arr, self.imask.dmv)] = np.nan
                 nanlayers.append(arr)
             # ---- Get minimum layer number excluding NaNs
             outcrop = np.fmin.reduce(nanlayers)
             # # ---- Back transform inactive zone to 0
-            outcrop[np.isnan(outcrop)] = -9999
+            outcrop[np.isnan(outcrop)] = 9999
             # ---- Return outcrop layers as 2D-array
             return outcrop.astype(int)
-
         else:
-            # ---- Fetch DataFrame data from imask (as deepcopy)
-            rec = deepcopy(self.imask.data)
-            df = pd.DataFrame.from_records(rec)
-            # ---- Replace default masked values by NaN and mask it
-            df['value'].replace(self.imask.dmv, np.nan, inplace=True)
-            mask = df['value'].notnull()
-            # ---- Raplace imask boolean value by the layer id
-            df.loc[mask,'value'] = df.loc[mask,'layer']
-            # ---- Set a unique id for each cell
-            ncell = len(rec[rec['layer'] == 0])
-            df.index = np.tile(np.arange(0, ncell), self.nlay)
-            # ---- Group cells by id and perform minimum avoiding NaN values
-            df['value'] = df.groupby(df.index)['value'].apply(list).apply(np.fmin.reduce)
-            # ---- Set Nan values to -9999 (not 0) and convert back to recarray
-            rec = df.fillna(-9999).to_records(index=False)
-            # ---- Return outcrop layers as MartheField instance
-            return MartheField('outcrop', rec , self)
-
+            # -- Extract mask on active cells
+            mask = ~np.isin(self.imask.data['value'], self.imask.dmv)
+            # -- Extrcat outcrop for all active cell on first layer
+            oc = (
+                pd.DataFrame.from_records(self.imask.data)
+                # -- Adoptaing layer number to user demand
+                .apply(lambda x: x + base if x.name == 'layer' else x)
+                # -- Giving similar node ids for each layer (from 0 to ncpl) 
+                .assign(inpl=np.tile(np.arange(self.ncpl), self.nlay))
+                # -- Mask active cell only
+                .loc[mask]
+                # -- Compute minimum layer id per node 
+                .groupby('inpl')
+                .min()['layer']
+            )
+            # -- Building Marthefield object response
+            outcrop =  MartheField('outcrop', 9999, self)
+            # -- Set inactive cell to 9999 instead of 0 for plotting (and understanding) purpose 
+            outcrop.data['value'][~mask] = 9999
+            # -- Set layer ids values previously calculated
+            outcrop.data['value'][oc.index] = oc.values
+            # -- Return MartheField instance
+            return outcrop
 
 
 
@@ -1167,75 +1275,50 @@ class MartheModel():
         as_list (bool): whatever returning only list of layer ids or 
                         whole Dataframe with x,y,depth,layer,name.
                         Default is True.
-
-        Returns:
-        --------
-        ilays (list) : 
+        
 
         Examples:
         --------
         mm = MartheModel('mymodel.rma')
         x, y = [456788.78, 459388.78], [6789567.2, 6789569.89]
-        layers = mm.get_layer_from_depth(x,y,depth=[223.1, 568])
+        layers = mm.get_layer_from_depth(x,y,depth=[223.1, 368])
 
         """
-        # ---- Set all grid masked value
-        mv = [9999,8888,0,-9999]
-        # ---- Get topography and substratum altitude as array
-        #      with shape (nlay, ncpl)
-        geom_arrs = []
-        for g in ['topog', 'hsubs']:
-            if self.geometry[g] is None:
-                self.load_geometry(g)
-            # -- Convert to reshaped array
-            mf = self.geometry[g]
-            arr = mf.data['value'].reshape((self.nlay,self.ncpl))
-            # -- Convert masked grid value to nan
-            arr[np.isin(arr, mv)] = np.nan
-            geom_arrs.append(arr)
-
-        _topog, _hsubs = geom_arrs
-
-        # ---- Make coordinates iterables
-        _x, _y, _d = [marthe_utils.make_iterable(var) for var in [x,y,depth]]
-
-        # -- Initialized output lists
-        altitudes = []
-        target_layers = []
-
-        # -- Iterate over xy points
-        for ix, iy, d in zip(_x,_y,_d):
-            # -- Get mask of current point by layer (same for all layer)
-            cmask = self.imask.sample(ix,iy, layer=0, as_mask=True)[:self.ncpl]
-            # -- Detect if topography correspond to the top altitude
-            alti = _topog[0][cmask][0] if ~np.isnan(_topog[0][cmask]) else None
-            # -- Compute altitude as first not null substratum  - depth 
-            ilay = 0
-            while alti is None:
-                # -- Detect if substratum at this point is defined
-                if ~np.isnan(_hsubs[ilay][cmask]):
-                    alti = _hsubs[ilay][cmask] - d
-                    alti = alti[0]
-                # -- Pass to next layer
-                ilay += 1
-            # -- Store altitude of point
-            altitudes.append(alti)
-            # -- Extract target id layer
-            target = ilay + np.argmin(np.ravel(_hsubs[ilay:,cmask] < alti))
-            target_layers.append(target)
-
-        # ---- Return
-        if as_list:
-            return target_layers
+        # -- Load modelgrid with vertical information
+        if self.modelgrid is None:
+            self.build_modelgrid(add_z=True)
         else:
-            dic = {'x': _x,
-                   'y': _y,
-                   'depth':_d,
-                   'altitude': altitudes,
-                   'layer': target_layers,
-                   'name':  self.layers_infos.loc[target_layers,'name']}
-            return pd.DataFrame.from_dict(dic).reset_index(drop=True)
+            if 'dz' not in self.modelgrid.columns:
+                self.build_modelgrid(add_z=True)
 
+        # -- Make inputs iterables
+        _x, _y, _d = [marthe_utils.make_iterable(var) for var in [x, y, depth]]
+
+        # -- Infer z-intersected layer
+        layers = []
+        for nodes, depth in zip(self.get_node(_x, _y), _d):
+            # -- Subset by intersected nodes
+            df = self.modelgrid.loc[nodes]
+            # -- Search for top nearest lower index
+            idx = df.top[df.top > (df.top.max() - depth)].idxmin()
+            # -- Extract layer id
+            layer = df.loc[idx, 'layer']
+            # -- Store in main list
+            layers.append(layer)
+
+        # -- Return as required format
+        if as_list:
+            return layers
+        else:
+            return (
+                pd.DataFrame.from_dict(
+                    dict(x=_x,
+                         y=_y,
+                         depth=_d,
+                         layer=layers,
+                         name=self.layers_infos.loc[layers, 'name'])
+                    )
+                )
 
 
 

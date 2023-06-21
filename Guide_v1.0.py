@@ -12,7 +12,6 @@ The script use 2 existing Marthe models modified for this guide:
 
 '''
 
-
 '''
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
@@ -22,15 +21,10 @@ The script use 2 existing Marthe models modified for this guide:
 '''
 
 
-# ---- Put your dev branch path here
-import os, sys
-#dev_ws = os.path.normpath(r"E:\EauxSCAR\pymarthe_dev")
-
 # ---- Import usefull modules
-
+import os, sys
 import pandas as pd
 import numpy as np
-#sys.path.append(dev_ws)
 from pymarthe import MartheModel
 from pymarthe.utils import marthe_utils, shp_utils, pest_utils
 from pymarthe.mfield import MartheField, MartheFieldSeries
@@ -39,15 +33,11 @@ from pymarthe.msoil import MartheSoil
 from pymarthe.moptim import MartheOptim
 import matplotlib.pyplot as plt
 
-
 # ---- Set model's relative paths
-mona_ws = os.path.join('monav3_pm', 'mona.rma')
-mona_si = os.path.join('monav3_pm', 'mona_si')
-lizonne_ws = os.path.join('lizonne_v0', 'Lizonne.rma')
-lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
-
-
-
+mona_ws = os.path.join('examples', 'monav3', 'mona.rma')
+mona_si = os.path.join('examples', 'monav3', 'mona_si')
+lizonne_ws = os.path.join('examples', 'lizonnev2', 'Lizonne.rma')
+lizonne_si = os.path.join('examples', 'lizonnev2', 'Lizonne_si')
 
 '''
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -56,9 +46,6 @@ lizonne_si = os.path.join('lizonne_v0', 'Lizonne_si')
 
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 '''
-
-
-
 
 # --------------------------------------------------------
 # ---- MartheModel instance
@@ -70,7 +57,6 @@ It allows the user to read/store a Marthe model into a python object.
 
 # -- Load mona.rma 
 mm = MartheModel(mona_ws)
-
 
 '''
 The MartheModel instance provided the creation of a spatial index based on `rtree` 
@@ -114,15 +100,15 @@ Let's have a look on the spatial index management from MartheModel class.
 '''
 # -- Load mona.rma with spatial index
 # -- Default (light process)
-mm = MartheModel(mona_ws, spatial_index = False)
+mm = MartheModel(mona_ws, spatial_index=False)
 # -- Generic spatial index (filename = modelname_si)
-mm = MartheModel(mona_ws, spatial_index = True)
+mm = MartheModel(mona_ws, spatial_index=True)
 # -- Custom filename spatial index
 custom_si = {'name': mona_ws.replace('.rma', '_custom_si'),
-             'only_active' : True}
-mm = MartheModel(mona_ws, spatial_index = custom_si)
+             'only_active': True}
+mm = MartheModel(mona_ws, spatial_index=custom_si)
 # -- From an existing spatial index
-mm = MartheModel(mona_ws, spatial_index = mona_si)
+mm = MartheModel(mona_ws, spatial_index=mona_si)
 
 '''
 The MartheModel can also store grid cell informations in a large DataFrame
@@ -132,33 +118,68 @@ to perform some queries on grid data with the high level integrated method
 named `.query_grid()`. This method allows the user to pass some 'query'
 variables and the target required grid informations to extract (=columns).
 The `.query_grid()` perform some checking on query variables and targets to
-avoid invalid inputs.
+avoid invalid inputs. If the user want to perform some more complex queries,
+without any internal checks, it is better using the pandas DataFrame `.query()`
+method instead (much faster).
 Note: The `modelgrid` do not required a spatial index to be created, but 
-      remember taht the grid queries can not perform sampling or intersection
+      remember that the grid queries can not perform sampling or intersection
       processes. 
 Let's load the model with modelgrid.
 '''
-mm = MartheModel(mona_ws, spatial_index = mona_si, modelgrid=True)
+mm = MartheModel(mona_ws, spatial_index=mona_si, modelgrid=True)
 mm.modelgrid.head()
+
+'''
+Each row represent a cell with the following informations (columns):
+    - 'node' : cell unique id
+    - 'layer': layer id
+    - 'inest': nested grid id
+    - 'i'    : row number
+    - 'j'    : column number
+    - 'xcc'  : x-coordinate of the cell centroid
+    - 'ycc'  : y-coordinate of the cell centroid
+    - 'dx'   : cell width
+    - 'dy'   : cell height
+    - 'area' : cell area
+    - 'vertices': cell vertices
+    - 'ative': cell activity (0=inactive, 1=active)
+'''
 
 # -- Invalid query examples
 # Invalid target columns names
-mm.query_grid(node=[45,678,3578], target=['i','j','DX','verts'])
+mm.query_grid(node=[45, 678, 3578], target=['i', 'j', 'DX', 'verts'])
 # Invalid query variable names
-mm.query_grid(NoDeS=[45,678,3578], target=['i','j'])
+mm.query_grid(NoDeS=[45, 678, 3578], target=['i', 'j'])
 # Invalid length of query variables
-mm.query_grid(i = [34,67], j = [45,65], layer=2)
+mm.query_grid(i=[34, 67], j=[45, 65], layer=2)
 
 # -- Example of some valid grid queries
 # Get cell vertices from cell nodes
-mm.query_grid(node=[45,678,3578], target='vertices')
+mm.query_grid(node=[45, 678, 3578], target='vertices')
 # Get cell xy resolution from row,column,layer 
-mm.query_grid(i=34,j=65,layer=4, target=['dx','dy'])
+mm.query_grid(i=34, j=65, layer=4, target=['dx', 'dy'])
 # Get all active nodes of the first 2 layers
-mm.query_grid(layer=[0,1], active = [1,1] , target='node')
+mm.query_grid(layer=[0, 1], active=[1, 1], target='node')
 # Get superficie of layer 4
-mm.query_grid(layer=4, active = 1)['area'].sum()
+mm.query_grid(layer=4, active=1)['area'].sum()
+# Faster query without internal checks
+mm.modelgrid.query("layer == 4 & active == 1")['area'].sum()
 
+'''
+By default, the `.modelgrid` is 2D-focused (xy-informations). If the user wants
+to access the full xyz-cell information, there is an `add_z` boolean arguments
+for that. It will add the following columns:
+    - 'zcc'     : z-coordinate of the cell centroid
+    - 'dz'      : cell thickness
+    - 'bottom'  : cell bottom altitud
+    - 'top'     : cell top altitud
+    - 'volume'  : cell volume ([L^3])
+
+Note: this process can take a while since z-dimension informations has to be 
+      extracted from 'topog', 'hsubs' and even 'sepon' fields for implicit model
+'''
+mm.build_modelgrid(add_z=True)
+mm.modelgrid.head()
 
 '''
 The .imask attribute based on permh property correspond to a simple MartheField
@@ -166,17 +187,16 @@ delimiting aquifer extensions by binary values (0 inactive cell, 1 active cell).
 '''
 mm.imask
 
-
 '''
 Let's begin with some of additional attributes of this brand new 1.0 version of pymarthe
 '''
 # -- Model name and path
-print(f'Model directory :\t {mm.mldir}')
-print(f'Model name :\t {mm.mlname}')
+print(f'Model directory: {mm.mldir}')
+print(f'Model name: {mm.mlname}')
 
 # -- Number of timestep and  nested grids
-print(f'Number of timestep :\t {mm.nstep}')
-print(f'Number of nested grids :\t {mm.nnest}')
+print(f'Number of timestep: {mm.nstep}')
+print(f'Number of nested grids: {mm.nnest}')
 
 # -- All the Marthe files pointed in the main .rma file are stored in .mlfiles attribute
 mm.mlfiles
@@ -184,9 +204,9 @@ mm.mlfiles
 # -- All the available units converters are stored in .units attribute
 mm.units
 # For example:
-print(f"Model flow unit :\t {str(mm.units['flow'])} m/s")
-print(f"Model distance unit :\t {mm.units['modeldist']} m")
-print(f"Model time unit :\t {mm.units['modeltime']} (=years)")
+print(f"Model flow unit: {str(mm.units['flow'])} m/s")
+print(f"Model distance unit: {mm.units['modeldist']} m")
+print(f"Model time unit: {mm.units['modeltime']} (=years)")
 
 '''
 All the information stored in the .layer file is now also stored in MartheMode
@@ -236,8 +256,8 @@ The high level function `.get_node()` can simplify this process with a battery o
 checks to avoid bad inputs.
 '''
 # -- Setting some xy-coordinates to extract node id(s)
-x = [323.1,333.4,346.7]
-y = [277.1,289.3,289.5]
+x = [323.1, 333.4, 346.7]
+y = [277.1, 289.3, 289.5]
 # without layer informations
 mm.get_node(x, y)
 # without layer but active cell only
@@ -245,11 +265,22 @@ mm.get_node(x, y, only_active=True)
 # with same layer for all points
 mm.get_node(x, y, layer=4)
 # with different layer for each points
-mm.get_node(x, y, layer=[0,3,2])
-
+mm.get_node(x, y, layer=[0, 3, 2])
 
 '''
-The MartheModel instance has a .prop attribute, it is a dictionary of Marthe model 
+the `MartheModel` instance, paired with the modelgrid object, also provide a build-in
+method to extract the layer ids from a bunch of xy-points and corresponding research depths.
+It will perform a sampling process to extract the node at a given depth and return 
+the corresponding layer id.
+Note: this method is still experimental and requires the spatial index for sampling.
+'''
+x = [323.1, 333.4, 346.7]
+y = [277.1, 289.3, 289.5]
+d = [96.2, 223.1, 368]  # in meters
+layers = mm.get_layer_from_depth(x, y, depth=d, as_list=True)
+
+'''
+The MartheModel instance has a `.prop` attribute, it is a dictionary of Marthe model 
 properties. For now the only supported properties are:
     - gridded properties (MartheField() class):
         - permh
@@ -279,18 +310,15 @@ props = ['emmca', 'emmli', 'kepon', 'aqpump']
 for prop in props:
     mm.load_prop(prop)
 
-
 # -- Loaded properties
 mm.prop
-
 
 '''
 The .get_outcrop() method (only available for structured grid) return a 2D-array 
 of the number of the outcropping layers.
 '''
-mm.get_outcrop().plot(cmap='tab20', masked_values=[-9999])
+mm.get_outcrop().plot(cmap='tab20', masked_values=[9999])
 plt.show()
-
 
 '''
 PyMarthe has a Vtk class (pymarthe.utils.vtk_utils.Vtk) base on a MartheModel input
@@ -311,9 +339,12 @@ Note: This operation can take a while for large model. Some informations and
       progress bars will be printed to help the user to identify the state
       of the operation progress.
 '''
-vtk = mm.get_vtk(vertical_exageration=0.02, hws = 'implicit',
-                 smooth=False, binary=True,
-                 xml=False, shared_points=False)
+vtk = mm.get_vtk(vertical_exageration=0.02,
+                 hws='implicit',
+                 smooth=False,
+                 binary=True,
+                 xml=False,
+                 shared_points=False)
 
 '''
 In order to facilitate visualisation we will use the `pyvista` package.
@@ -333,8 +364,188 @@ conn = ugrid.connectivity()
 
 # -- pyvista plot
 from matplotlib.colors import ListedColormap
+
 cmap = ListedColormap(plt.cm.tab20(np.arange(mm.nlay)))
 _ = conn.plot(cmap=cmap, show_edges=True)
+
+
+'''
+PyMarthe also provide utility tools to visualize a cross section of a `MartheModel`
+object. It can be usefull when working on large multi-layer models. The refered class
+names `CrossSection`, can be find in the `pymarthe.utils.xs_utils` file. This tool
+requires 2 input objects:
+    - `mm`: the refered `MartheModel` object.
+    - `cross_section_line`: cross line definition
+The user can define a cross section line through multiple and flexible ways giving a:
+    - path to a shapefile (unique line geometry)
+    - list of points coordinates forming a line
+    - model column/row number (not available for nested models)
+    - x/y coordinates  
+Then, the user can use the internal `.plot()` method, to visualize the right position
+of the current cross section line according to the model active domain.
+Let's give some random examples of cross section generation.
+'''
+# -- Import the cross section facility
+from pymarthe.utils.xs_utils import CrossSection
+
+# -- Building cross section line:
+
+# -> from shapefile
+shp_path = os.path.join('examples', 'monav3', 'gis', 'cross_section_line.shp')
+xs = CrossSection(mm, cross_section_line=shp_path)
+ax = xs.plot(lw=1.7, c='red')
+ax.set_title('Cross section from shapefile',
+             fontsize=12, fontweight='bold')
+plt.show()
+
+# -> from points sequence
+points = [(330.1, 294.3), (414.2, 212.8), (467.1, 209.2)]
+xs.set_cross_section_line(points)
+ax = xs.plot(lw=1.7, c='green')
+ax.set_title('Cross section from points',
+             fontsize=12, fontweight='bold')
+plt.show()
+
+# -> from model row number
+xs.set_cross_section_line({'row': 38}) # or {'i': 38}
+ax = xs.plot(lw=1.7, c='orange')
+ax.set_title('Cross section from row number',
+             fontsize=12, fontweight='bold')
+plt.show()
+
+# -> from model column
+xs.set_cross_section_line({'column': 45}) # or {'j': 45}
+ax = xs.plot(lw=1.7, c='orange')
+ax.set_title('Cross section from column number',
+             fontsize=12, fontweight='bold')
+plt.show()
+
+# -> from x-coordinates
+xs.set_cross_section_line({'x': 351.3})
+ax = xs.plot(lw=1.7, c='navy')
+ax.set_title('Cross section from x coordinate',
+             fontsize=12, fontweight='bold')
+plt.show()
+
+# -> from x-coordinates
+xs.set_cross_section_line({'y': 245.7})
+ax = xs.plot(lw=1.7, c='navy')
+ax.set_title('Cross section from y coordinate',
+             fontsize=12, fontweight='bold')
+plt.show()
+
+'''
+Going further, the `CrossSection` instance can plot the model cells intercepted
+by the cross line and plot them in a 2D-xz plan to visualize the existing layer
+geometries along the cross section line. The `.plot_xs()` method allows the user
+to access this plot easily. Custom arguments can be added to change some esthetic
+setting of the grid, vertical exageration, the extension... 
+Moreover, setting the `by_layer` argument to `True` will give a different color
+to each individual crossed layer with the implementation of a annoted colorbar. 
+Let's try it out.
+'''
+# -- Initialize cross section object
+shp_path = os.path.join('examples', 'monav3', 'gis', 'cross_section_line.shp')
+xs = CrossSection(mm, cross_section_line=shp_path)
+
+# -- Basic cross section plot
+xs.plot_xs()
+plt.show()
+
+# -- Customized cross section plot
+ax = xs.plot_xs(vertical_ratio=1/40, fc='bisque',
+           ec='darkgrey', lw=.4, alpha=.9)
+ax.set_title("Classic Cross Section Example", fontsize=14, fontweight='bold')
+ax.patch.set_facecolor('lightgrey')
+ax.patch.set_alpha(.22)
+plt.tight_layout()
+plt.show()
+
+# -- Cross section plot by layer
+ax = xs.plot_xs(vertical_ratio=1/33, by_layer=True)
+plt.show()
+
+'''
+Instead of plotting basic cross section, it is also possible to set field values
+in each crossed cell using the `.plot_xs_field()` method.
+'''
+# -- Basic 'permh' cross section plot
+xs.plot_xs_field(vertical_ratio=1/33, log=True)
+plt.show()
+
+# -- Cutomized field cross section plot
+cb, ax = xs.plot_xs_field(
+    field='emmca',
+    log=True,
+    vertical_ratio=1/33,
+    cb_kwargs=dict(
+        fraction=.06,
+        location='right',
+        shrink=0.85,
+        cmap='plasma',
+        alpha=.7),
+    cmap='plasma',
+    alpha=.7)
+ax.get_figure().axes[1].set_xlabel('Log(emmca)', fontweight='bold')
+ax.get_figure().axes[1].set_ylabel('')
+ax.set_title('Customized Field Cross Section Example',
+             fontsize=13, fontweight='bold')
+plt.tight_layout()
+plt.show()
+
+
+'''
+When plotting along the cross section line, it can be tricky to localize ourself
+on the xy-dimension. Frecuently in geology, there are some key locations synbolized
+by a vertical line to refer to a known place nearby. The `.add_location()` method
+can help the user to add some of these referencing places.
+There is an example below to add the city of 'Bordeaux' in France in a mona cross
+section plot.
+'''
+# -- Basic cross section plot
+ax = xs.plot_xs(vertical_ratio=1/30)
+
+# -- Set city information
+city = dict(location=(355.1, 291.2), name='Bordeaux')
+
+# -- Add city location in plot
+xs.add_location(
+    ax,
+    loc=city['location'],
+    tolerance=None,
+    text_kws=dict(
+        y=105,
+        s=city['name'],
+        color='red',
+        va='center',
+        ha='center',
+        fontsize=14,
+        fontstyle='italic'
+        ),
+    lw=1.1,
+    color='red')
+plt.tight_layout()
+plt.show()
+
+'''
+Another usefull method attached to the added lacations is the `.add_vertices_lacations()`.
+This allows plotting a vertical line on each vertices of the cross section line. It can
+sometimes explain a weird behaviour in cross section cell plot since it can correspond
+to a cross line 'breaking' point(s) (point in where the cross section line is changing
+direction).
+'''
+# -- Basic vertices locations
+ax = xs.plot_xs()
+xs.add_vertices_locations(ax)
+plt.show()
+
+# -- Customized vertices locations
+ax = xs.plot_xs(by_layer=True, vertical_ratio=1/33)
+xs.add_vertices_locations(ax,
+    text_kws=dict(color='red', fontweight = 'bold'),
+    color='red',
+    prefix="AA'")
+plt.show()
 
 
 '''
@@ -350,11 +561,10 @@ of your computer, there is no need to provided the full path, the executable
 name is enough.
 '''
 # -- Launch model run
-mm.run_model(exe_name = 'Marth_R8', silent=True, verbose=False)
+mm.run_model(exe_name='Marth_R8', silent=True, verbose=False)
 
 # -- Get run times summary
 mm.show_run_times()
-
 
 '''
 PyMarthe provide some built-in utils to read output budget files about:
@@ -394,7 +604,7 @@ zb_df = marthe_utils.read_zonebudget(filename)
 
 # -- Examples of basic slicing on MultiIndex zone budget DataFrame
 # - Get budget of zone n° 401
-zb_df.xs(key=401, level= 'zone')
+zb_df.xs(key=401, level='zone')
 zb_df.head()
 
 # - Get in/out limited flow of zone n°401 on a specific time window
@@ -403,7 +613,7 @@ end = '1981-12-31'
 cols = ['Entr_Limit_Zon', 'Sort_Limit_Zon']
 
 # 1) "Cross-section" way (worst, works for only for single unique key)
-zb_401_df = zb_df.xs(key=401, level= 'zone')
+zb_401_df = zb_df.xs(key=401, level='zone')
 zb_401_df.loc[start:end, cols]
 
 # 2) "Classic" way (good)
@@ -423,13 +633,12 @@ zones = [200, 201, 202, 204, 205]
 rec_df = zb_df.loc[(zones, slice(None)), 'Recharge_Maill'].reset_index()
 
 # -- Plot records for each zones
-rec_df.pivot( 'date', 'zone'
-            ).droplevel(0, axis=1
-            ).plot( title= 'Recharge records',
-                    figsize=(8,4),
-                    lw=0.8)
+rec_df.pivot('date', 'zone'
+             ).droplevel(0, axis=1
+                         ).plot(title='Recharge records',
+                                figsize=(8, 4),
+                                lw=0.8)
 plt.show()
-
 
 # --------------------------------------------------------
 # ---- MartheField instance
@@ -451,11 +660,10 @@ Note :  an "independent" field contains both the field data and active domain (g
 '''
 
 # -- Build MartheField instance externaly
-mf = MartheField(field = 'permh', data = mm.mlfiles['permh'], mm=mm)
+mf = MartheField(field='permh', data=mm.mlfiles['permh'], mm=mm)
 
 # -- Fetch MartheField instance from a parent MartheModel instance property
 mf = mm.prop['permh']
-
 
 '''
 MartheField instance has a very flexible getters/setters (arguments can
@@ -472,25 +680,24 @@ mf.get_data()
 
 # -- Subset by layer
 mf.get_data(layer=0)
-mf.get_data(layer=[0,9])
+mf.get_data(layer=[0, 9])
 mf.get_data(layer=np.arange(5))
-mf.get_data(layer=(1,5,9))
+mf.get_data(layer=(1, 5, 9))
 
 # -- Subset by layer and inest
-mf.get_data(layer=[1,5,6,8], inest= 0)   # mona model has no nested grid
+mf.get_data(layer=[1, 5, 6, 8], inest=0)  # mona model isn't nested
 
 # -- Getting data as boolean mask
-mf.get_data(layer=[1,5,6,8],  as_mask=True)
+mf.get_data(layer=[1, 5, 6, 8], as_mask=True)
 
 # -- Get data as 3D-array
-mf.get_data(inest= 0, as_array=True).shape
-mf.get_data(layer = 0, as_array=True).shape
-mf.get_data(layer=[1,5],  as_array=True).shape
+mf.get_data(inest=0, as_array=True).shape
+mf.get_data(layer=0, as_array=True).shape
+mf.get_data(layer=[1, 5], as_array=True).shape
 
-# -- .as_array() method. Simple wrapper of get_data(inest=0, as_array=True)
+# -- .as_3array() method. Simple wrapper of get_data(inest=0, as_array=True)
 #    raising an error if the model is nested.
 mf.as_3darray()
-
 
 # --> Setter
 
@@ -529,9 +736,9 @@ there correspond to edges of a more complex geometry like lines or polygons.
 If the model is nested, the intersection will be performed on all cell but only
 the one with higher inest will be returned.
 '''
-x = [323.1,333.4,346.7]
-y = [277.11,289.3,289.5]
-mf.sample(x, y, layer=[1,4,6])
+x = [323.1, 333.4, 346.7]
+y = [277.11, 289.3, 289.5]
+mf.sample(x, y, layer=[1, 4, 6])
 mf.sample(x, y, layer=2)
 
 '''
@@ -562,14 +769,13 @@ the polygon intersection. This will be fix soon.
 shpname = os.path.join(mm.mldir, 'gis', 'zones.shp')
 shp_df = shp_utils.read_shapefile(shpname)
 # -- Set required statistics
-stats = ['mean','max','min','median','count']
+stats = ['mean', 'max', 'min', 'median', 'count']
 # -- Perform zonal statistics method
 zstats_df = mf.zonal_stats(stats=stats,
                            polygons=shp_df['coords'],
                            names=shp_df['zname'],
                            trans='log10')
 print(zstats_df)
-
 
 '''
 The MartheField instance has a internal .plot() method to see gridded property values.
@@ -581,40 +787,36 @@ transformation and other collections arguments to perform a prettier plot.
 # -- Basic plot (single layer)
 mf.plot(layer=6, log=True)
 plt.show()
- 
 
 # -- Custom plot (single layer)
 plt.rc('font', family='serif', size=8)
-fig, ax = plt.subplots(figsize=(10,6))
-extent = (300,205,490,380)
+fig, ax = plt.subplots(figsize=(10, 6))
+extent = (300, 205, 490, 380)
 ax = mf.plot(ax=ax, layer=6, log=True,
-             extent= extent, edgecolor='black', 
+             extent=extent, edgecolor='black',
              lw=0.3, cmap='jet', zorder=10)
-ax.set_title('MONA - Permeability (layer = 6)', fontsize = 12, fontweight="bold")
+ax.set_title('MONA - Permeability (layer = 6)', fontsize=12, fontweight='bold')
 ax.grid('lightgrey', lw=0.5, zorder=50)
 fig.delaxes(fig.axes[1])
 cb = fig.colorbar(ax.collections[0], shrink=0.9)
 cb.set_label('log(permh) $[m/s]$', size=13)
 plt.show()
 
-
 # -- Complex custom plot (multiple layers)
 plt.rc('font', family='serif', size=6)
-fig, axs = plt.subplots(figsize=(18,18), nrows = 4, ncols = 4,
+fig, axs = plt.subplots(figsize=(18, 18), nrows=4, ncols=4,
                         sharex=True, sharey=True,
-                        gridspec_kw={'wspace':0.02, 'hspace':0.05})
+                        gridspec_kw={'wspace': 0.02, 'hspace': 0.05})
 
 for ilay, iax in zip(range(mm.nlay), axs.ravel()[:-1]):
-    ax = mf.plot(ax= iax, layer=ilay, log=True, zorder=10)
-    ax.set_title(f'layer = {ilay+1}', x=0.85, y=-0.01, fontsize = 10)
+    ax = mf.plot(ax=iax, layer=ilay, log=True, zorder=10)
+    ax.set_title(f'layer = {ilay + 1}', x=0.85, y=-0.01, fontsize=10)
     ax.grid('lightgrey', lw=0.3, zorder=50)
 
-axs[-1,-1].set_axis_off()
+axs[-1, -1].set_axis_off()
 fig.suptitle('MONA v.3 - Permability field', y=0.93, fontsize=16, fontweight="bold")
 
 plt.show()
-
-
 
 # -- Write data as Marthe grid file (Don't do it if you want to keep original data)
 # mf.write_data()
@@ -631,11 +833,11 @@ Note: the filename has to be provided without any extension, the adequate extens
 ('.vtu' or '.vtk') will be infered from the `.xml` argument.
 Let's export the based 10 logarithm of 'permh' field to vtk file. 
 '''
-mm.prop['permh'].to_vtk(filename = os.path.join('monav3_pm', 'vtk_permh'),
-                        trans = 'log10',
+mm.prop['permh'].to_vtk(filename=os.path.join('monav3_pm', 'vtk_permh'),
+                        trans='log10',
                         vertical_exageration=0.02,
-                        smooth=False, binary=True)
-
+                        smooth=False,
+                        binary=True)
 
 # --------------------------------------------------------
 # ---- MartheFieldSeries
@@ -648,7 +850,7 @@ the simulated fields and collect all MartheGrid for a given field.
 Let's try to load simulated heads from the MONA model.
 '''
 chasim = os.path.join('monav3_pm', 'chasim_cal_histo.out')
-mfs = MartheFieldSeries(mm=mm, field = 'charge', simfile=chasim)
+mfs = MartheFieldSeries(mm=mm, field='charge', simfile=chasim)
 
 '''
 The MartheFieldSeries object store data all data in a dictionary with format:
@@ -669,30 +871,32 @@ shp_df = shp_utils.read_shapefile(shpname)
 x, y = zip(*shp_df.coords.explode())
 
 # -- Get time series
-df = mfs.get_tseries(x,y, layer=5)
+df = mfs.get_tseries(x, y, layer=5)
 print(df)
 
 '''
 If `names` arguments are not provided, generic names are created according to points row, column, layer
 with format: f'{row}i_{col}j_{layer}k'. Let's try again providing points names and a different index.
 '''
-df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'istep')
+df = mfs.get_tseries(x, y, layer=5, names=shp_df['ID'], index='istep')
 print(df)
-df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'date')
+df = mfs.get_tseries(x, y, layer=5, names=shp_df['ID'], index='date')
 print(df)
-df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'], index = 'both')
+df = mfs.get_tseries(x, y, layer=5, names=shp_df['ID'], index='both')
 print(df)
 
 '''
 One of the main advantage of the DataFrame output is the pandas plot support to visualize field time series.
 Let's make a example
 '''
-df = mfs.get_tseries(x,y, layer=5, names = shp_df['ID'])
+df = mfs.get_tseries(x, y, layer=5, names=shp_df['ID'])
 plt.rc('font', family='serif', size=7)
-df[['rec_8','rec_9','rec_10']].plot(figsize = (8,4), title = 'Simulated heads',
-                                    lw = 0.8, xlabel ='', ylabel ='Hydraulic heads [m]')
+df[['rec_8', 'rec_9', 'rec_10']].plot(figsize=(8, 4),
+                                      title='Simulated heads',
+                                      lw=0.8,
+                                      xlabel='',
+                                      ylabel='Hydraulic heads [m]')
 plt.show()
-
 
 '''
 Another post-processing tool of MartheFieldSeries named .save_animation() allows to save .gif animation
@@ -705,10 +909,9 @@ This method have a additional dependency to `imageio` python package.
 It may be quite slow for model with large number of cells, layers and time steps.
 '''
 gif = os.path.join('monav3_pm', 'export', 'heads5_animation.gif')
-mfs.save_animation(gif, dpf = 0.2, dpi=200, 
-                        layer=5, vmin=-50, vmax=150,
-                        extent=(300,210,490,380), cmap = 'jet')
-
+mfs.save_animation(gif, dpf=0.2, dpi=200,
+                   layer=5, vmin=-50, vmax=150,
+                   extent=(300, 210, 490, 380), cmap='jet')
 
 '''
 MartheFieldSeries allows the vectorial exports of a simulated fiel in shapefile format for a given layer.
@@ -720,8 +923,6 @@ Note: column names can be truncated if field name is too long.
 
 filename = os.path.join('monav3_pm', 'export', 'heads_09.shp')
 mfs.to_shapefile(filename, layer=9)
-
-
 
 # --------------------------------------------------------
 # ---- MartheSoil instance
@@ -794,9 +995,9 @@ So, it is possible to fetch complete cell-by-cell soil data as recarray turning 
 (MartheField) with the value of a given soil property.
 Note: soil properties are defined only on the first layer, others are set to 0.
 '''
-ms.get_data(soilprop = 'cap_sol_progr', zone=[1,8])
-ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=1)    # Constant value (=0)
-ms.get_data(soilprop = 'cap_sol_progr', as_style = 'array-like', layer=0)
+ms.get_data(soilprop='cap_sol_progr', zone=[1, 8])
+ms.get_data(soilprop='cap_sol_progr', as_style='array-like', layer=1)  # Constant value (=0)
+ms.get_data(soilprop='cap_sol_progr', as_style='array-like', layer=0)
 
 '''
 Even if it's not explicitly written in the .mart or .pastp file and store in `ms.data`,
@@ -807,9 +1008,9 @@ Let's extract the property `cap_sol_progr` for the istep 10 to 15 (must be the s
 the first timestep because soil properties are constant). 
 '''
 # --- Without forcing
-ms.get_data(soilprop = 'cap_sol_progr', istep = np.arange(10,16), force=False)
+ms.get_data(soilprop='cap_sol_progr', istep=np.arange(10, 16), force=False)
 # --- With forcing
-ms.get_data(soilprop = 'cap_sol_progr', istep = np.arange(10,16), force=True)
+ms.get_data(soilprop='cap_sol_progr', istep=np.arange(10, 16), force=True)
 
 '''
 Moreover, some wrappers of usefull functionalities of MartheField instance can be 
@@ -817,19 +1018,19 @@ use on soil properties.
 '''
 # ---- Sampling (from points shapefile)
 shpname = os.path.join(mm.mldir, 'export', 'points.shp')
-x,y = shp_utils.shp2points(shpname, stack=False)
+x, y = shp_utils.shp2points(shpname, stack=False)
 ms.sample('cap_sol_progr', x, y)
 
 # ---- Ploting
 plt.rc('font', family='serif', size=9)
-fig, ax = plt.subplots(figsize=(8,6))
+fig, ax = plt.subplots(figsize=(8, 6))
 ax.set_title('Zonal progressive soil capacity',
-              fontsize=12, fontweight="bold")
+             fontsize=12, fontweight="bold")
 ms.plot('cap_sol_progr', ax=ax, cmap='Paired')
 plt.show()
 
 # ---- Exporting
-filename = os.path.join(mm.mldir, 'export','cap_sol_progr.shp')
+filename = os.path.join(mm.mldir, 'export', 'cap_sol_progr.shp')
 ms.to_shapefile('cap_sol_progr', filename=filename, epsg=2154)
 
 '''
@@ -838,8 +1039,8 @@ method with the required value.
 
 '''
 # ---- Changing data
-ms.set_data('cap_sol_progr', value = 125, zone = [1,2])
-ms.set_data('equ_ruis_perc', value = 17, zone = 8)
+ms.set_data('cap_sol_progr', value=125, zone=[1, 2])
+ms.set_data('equ_ruis_perc', value=17, zone=8)
 print(ms.data.to_markdown(tablefmt='github', index=False))
 
 '''
@@ -848,8 +1049,7 @@ The soil property data has to be write in .mart/.pastp file with the
 (Don't do it if you want to keep original data)
 '''
 
-#ms.write_data('Lizonnetest.mart')
-
+# ms.write_data('Lizonnetest.mart')
 
 
 # --------------------------------------------------------
@@ -870,8 +1070,8 @@ Let's see these changes.
 '''
 
 # -- Build MarthePump instance externaly
-mm = MartheModel(mona_ws, spatial_index = mona_ws.replace('.rma', '_si'))
-mp = MarthePump(mm, mode = 'aquifer')
+mm = MartheModel(mona_ws, spatial_index=mona_ws.replace('.rma', '_si'))
+mp = MarthePump(mm, mode='aquifer')
 
 # -- Fetch pumping property from main model
 mm.load_prop('aqpump')
@@ -891,7 +1091,6 @@ mp.data
 # -- Internal pumping metadata
 mp._data
 
-
 '''
 Like the MartheField instance, MarthePump has very flexible getters/setters methods.
 The user can subset data by istep, node, layer, row (i), column (j) or boundname.
@@ -902,12 +1101,12 @@ mp.get_data()
 
 # -- Subset by timestep
 mp.get_data(istep=2)
-mp.get_data(istep=[3,6,9,14])
-mp.get_data(istep=np.arange(0,mm.nstep,4))
+mp.get_data(istep=[3, 6, 9, 14])
+mp.get_data(istep=np.arange(0, mm.nstep, 4))
 
 # -- Subset by timestep and layer
 mp.get_data(istep=3, layer=3)
-mp.get_data(istep=3, layer=[5,8])
+mp.get_data(istep=3, layer=[5, 8])
 
 # -- Subset by timestep, layer and i, j
 mp.get_data(istep=3, layer=3, i=102)
@@ -915,8 +1114,7 @@ mp.get_data(istep=3, layer=3, j=71)
 mp.get_data(istep=3, layer=3, i=102, j=71)
 
 # -- Subset by boundname
-mp.get_data(istep=3, boundname = 'aqpump_020720')
-
+mp.get_data(istep=3, boundname='aqpump_020720')
 
 '''
 Note:
@@ -931,13 +1129,12 @@ on Lizonne model for well generic name 'aqpump_07346'.
 liz_mm.load_prop('aqpump')
 liz_mp = liz_mm.prop['aqpump']
 # -- Return empty DataFrame 
-liz_mp.get_data(istep= np.arange(10,16), boundname='aqpump_07346')
+liz_mp.get_data(istep=np.arange(10, 16), boundname='aqpump_07346')
 # -- Force output on required time steps 
-liz_mp.get_data(istep= np.arange(10,16), boundname='aqpump_07346', force=True)
-
+liz_mp.get_data(istep=np.arange(10, 16), boundname='aqpump_07346', force=True)
 
 # -- Switch boundname by another bound names
-switch_dic = {'aqpump_046949' : 'pump1', 'aqpump_020822' : 'pump2' }
+switch_dic = {'aqpump_046949': 'pump1', 'aqpump_020822': 'pump2'}
 mp.switch_boundnames(switch_dic)
 mp.get_data(i=101, j=70)
 
@@ -969,7 +1166,6 @@ mail_df, record_df, listm_df = mp.split_qtype()
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 '''
 
-
 # --------------------------------------------------------
 # ---- MartheOptim/MartheObs instance
 
@@ -983,9 +1179,9 @@ MartheModel to link the optimisation process with the model.
 '''
 
 # -- Build a mopt instance
-dirs = {f'{f}_dir': os.path.join(mm.mldir, f) 
-          for f in ['par', 'tpl', 'ins', 'sim'] }
-mopt = MartheOptim(mm, name = 'opti_mona', **dirs)
+dirs = {f'{f}_dir': os.path.join(mm.mldir, f)
+        for f in ['par', 'tpl', 'ins', 'sim']}
+mopt = MartheOptim(mm, name='opti_mona', **dirs)
 
 print(f"My optimisation is called: {mopt.name}")
 
@@ -1001,7 +1197,6 @@ parameters and observations thanks to the tools proposed buy MartheOptim methods
 
 # -- Quick look of .obs and .param attributes ("boxes")
 mopt.obs, mopt.param
-
 
 '''
 To add a set of observation, please use the .add_obs() method. For each observation
@@ -1020,9 +1215,9 @@ Let's add a single observation.
 '''
 
 # -- Add the 07065X0002 observation well
-single_obs = os.path.join(mm.mldir, 'obs', '07065X0002.dat' )
-mopt.add_obs(data = single_obs , datatype='head')
-mopt.obs # View of the added MartheObs instance in .obs
+single_obs = os.path.join(mm.mldir, 'obs', '07065X0002.dat')
+mopt.add_obs(data=single_obs, datatype='head')
+mopt.obs  # View of the added MartheObs instance in .obs
 
 '''
 The MartheOptim instance has a method to take a look of all added observations
@@ -1039,10 +1234,10 @@ The .add_obs() function provided an warning message if the user try to add a set
 observations already added. In this case, the observations data will remove the oldest
 by overwrite it with the new one. 
 '''
-mopt.add_obs(data = single_obs, datatype='head')
+mopt.add_obs(data=single_obs, datatype='head')
 
 # -- Remove 1 added observation
-mopt.remove_obs(locnme = '07065X0002')
+mopt.remove_obs(locnme='07065X0002')
 
 # -- Remove all added observations
 mopt.remove_obs()
@@ -1058,10 +1253,9 @@ mopt.add_obs(data=invalid_obs2, check_loc=True)
 obs_ws = os.path.join(mm.mldir, 'obs')
 for dat in os.listdir(obs_ws):
     obsfile = os.path.join(obs_ws, dat)
-    mopt.add_obs(data = obsfile,  check_loc = False)
+    mopt.add_obs(data=obsfile, check_loc=False)
 
 mopt.obs
-
 
 '''
 MartheOptim supports the implementation of fluctuations for each observations set.
@@ -1074,15 +1268,15 @@ allows the user to add multiple fluctuations set on a single existing one by nam
 '''
 
 # -- Add fluc on 'mean' and 'median'
-mopt.add_fluc(locnme = '07065X0002', tag = 'mn' , on = 'mean')
-mopt.add_fluc(locnme = '07065X0002', tag = 'md' , on = 'median')
+mopt.add_fluc(locnme='07065X0002', tag='mn', on='mean')
+mopt.add_fluc(locnme='07065X0002', tag='md', on='median')
 
 df = mopt.get_obs_df().query(f"locnme.str.contains('07065X0002')", engine='python')
 df[::10]
 
 # -- Add fluctuation from a basic numeric value
-critical_head = 85 # meters
-mopt.add_fluc(locnme = '07095X0117', tag = 'crit' , on = critical_head)
+critical_head = 85  # meters
+mopt.add_fluc(locnme='07095X0117', tag='crit', on=critical_head)
 mopt.obs['07095X0117critfluc'].obs_df.tail(10)
 
 # -- add observations from a list of observations files previously created and related fluctuations
@@ -1093,12 +1287,11 @@ for obs_file in obs_listH:
     weights = pd.read_csv(single_obs, sep='\t')
     # weight shall be float !
     weight_list = [float(elt) for elt in weights.Weight]
-    mopt.add_obs(data = single_obs , datatype='head', weight = weight_list, locnme = obs_file[:-4])
+    mopt.add_obs(data=single_obs, datatype='head', weight=weight_list, locnme=obs_file[:-4])
     # Note the weight argument for fluct !!
-    mopt.add_fluc(locnme = obs_file[:-4], weight = weight_list, tag='m', on ='mean')
+    mopt.add_fluc(locnme=obs_file[:-4], weight=weight_list, tag='m', on='mean')
     # for instance the resulting fluctuation obs group name is '00001X0001mf', i.e. exactly 12 characters
     # which fits exactly within the required name length under the * observation groups section in the .pst file for the PEST_HP executable
-
 
 '''
 Some methods were added to mopt to fetch the number of locnmes, observations and 
@@ -1113,7 +1306,7 @@ mopt.get_nlocs(datatype='headmnfluc')
 
 # -- Get number of observations (for 1 or all locnames)
 mopt.get_nobs()
-mopt.get_nobs(locnme = '07065X0002', null_weight=True)
+mopt.get_nobs(locnme='07065X0002', null_weight=True)
 
 '''
 The MartheOptim instance has a integrated method to compute observations weight based on:
@@ -1126,9 +1319,9 @@ Let's try to compute observation weigths.
 '''
 
 # -- Set lambda and sigma values
-w_df = pd.DataFrame(data = [[2,5,4,7], [0.1,0.008,0.008,0.008]],
-                    index = ['lambda', 'sigma'],
-                    columns = mopt.get_obs_df().datatype.unique().T).T
+w_df = pd.DataFrame(data=[[2, 5, 4, 7], [0.1, 0.008, 0.008, 0.008]],
+                    index=['lambda', 'sigma'],
+                    columns=mopt.get_obs_df().datatype.unique().T).T
 
 print(w_df.to_markdown(tablefmt='github'))
 
@@ -1137,10 +1330,9 @@ lambda_dic, sigma_dic = [w_df[c].to_dict() for c in w_df.columns]
 mopt.compute_weights(lambda_dic, sigma_dic)
 
 # -- View of computed weights
-weights = pd.DataFrame({'weight' : [mo.weight for mo in mopt.obs.values()]},
-                       index = mopt.obs.keys())
+weights = pd.DataFrame({'weight': [mo.weight for mo in mopt.obs.values()]},
+                       index=mopt.obs.keys())
 print(weights.tail(10).to_markdown(tablefmt='github'))
-
 
 '''
 While adding a new observation, it's possible to pass a additional argument (kwargs)
@@ -1151,28 +1343,27 @@ If the transformation is not valid, a assertion error will be raised.
 mopt.remove_obs(verbose=True)
 
 # ---- Set transformation in .add_obs() constructor
-mopt.add_obs(data = single_obs, datatype='head', trans = 'lambda x: -1*x')
+mopt.add_obs(data=single_obs, datatype='head', trans='lambda x: -1*x')
 mopt.obs['07065X0002'].get_obs_df(transformed=True)
 
 # ---- Set transformation using the .set_obs_transform() method on locnme
 mopt.add_fluc()
-mopt.set_obs_trans('log10', locnme = '07065X0002fluc')
+mopt.set_obs_trans('log10', locnme='07065X0002fluc')
 mopt.obs['07065X0002fluc'].obs_df
 
 # ---- Set transformation using the .set_obs_transform() method on datatype
-mopt.set_obs_trans('none', datatype = 'headfluc')
+mopt.set_obs_trans('none', datatype='headfluc')
 mopt.obs['07065X0002fluc'].obs_df
 
 # ---- Try invalid transform
 mopt.set_obs_trans('-log(e)')
-
 
 '''
 MartheOptim also has a builtin method to write instruction files from added observation.
 Use the .write_insfile() method.
 '''
 # -- Write instruction file by locnme
-mopt.write_insfile(locnme = '07065X0002')
+mopt.write_insfile(locnme='07065X0002')
 # -- Write all instruction files
 mopt.write_insfile()
 
@@ -1185,7 +1376,6 @@ warnings. PyMarthe can avoid these by extracting required simulated data before 
 file construction thanks to the `.write_simfile()` method.
 '''
 mopt.write_simfile()
-
 
 # --------------------------------------------------------
 # ---- MartheOptim/MartheListParam instance
@@ -1224,9 +1414,9 @@ to the following keys : `istep`, `layer`, `boundname`.
 Of course, we have to specilize only the  required values of each keys
 (if it's not specilized, all values are considered).
 '''
-kmi0 = pest_utils.get_kmi( mobj = mp,
-               keys = ['boundname', 'layer', 'istep'],
-               boundname = pwnames[0], layer = 1)
+kmi0 = pest_utils.get_kmi(mobj=mp,
+                          keys=['boundname', 'layer', 'istep'],
+                          boundname=pwnames[0], layer=1)
 print(kmi0)
 
 '''
@@ -1234,10 +1424,9 @@ To add a list-like set of parameters in the main MartheOptim instance,
 use the .add_param() method. This will create a new MartheListParam 
 instance in the .param dictionary.
 '''
-mopt.add_param(parname = pwnames[0], mobj = mp, kmi = kmi0)
+mopt.add_param(parname=pwnames[0], mobj=mp, kmi=kmi0)
 print(mopt.param)
 mopt.param[pwnames[0]].get_param_df().head()
-
 
 '''
 Some others arguments (kwargs) can be implemented while adding parameters
@@ -1257,32 +1446,31 @@ the user need to apply a correct expression function.
 '''
 
 # -- Get kmi for second pumping well
-kmi1 = pest_utils.get_kmi( mobj = mp,
-                keys = ['boundname', 'layer', 'istep',],
-                layer = 1, boundname = pwnames[1])
-
+kmi1 = pest_utils.get_kmi(mobj=mp,
+                          keys=['boundname', 'layer', 'istep', ],
+                          layer=1, boundname=pwnames[1])
 
 # -- Invalid (back-)transformation(s)
-mopt.add_param(parname = pwnames[1], mobj = mp,
-                 kmi = kmi1,
-                 trans = '-log10',
-                 btrans = '-10**x')
+mopt.add_param(parname=pwnames[1], mobj=mp,
+               kmi=kmi1,
+               trans='-log10',
+               btrans='-10**x')
 
-mopt.add_param(parname = pwnames[1], mobj = mp,
-                 kmi = kmi1, value_col = 'value',
-                 trans =  'lambda x : - np.log10(x + 1)',
-                 btrans = 'lambda x : -1 * (- 10**-x + 1)')
+mopt.add_param(parname=pwnames[1], mobj=mp,
+               kmi=kmi1, value_col='value',
+               trans='lambda x : - np.log10(x + 1)',
+               btrans='lambda x : -1 * (- 10**-x + 1)')
 
 # -- Valid (back-)transformation(s)
-mopt.add_param(parname = pwnames[1], mobj = mp,
-                 kmi = kmi1, value_col = 'value',
-                 trans =  'lambda x : -1*x',
-                 btrans = 'lambda x : -1*x')
+mopt.add_param(parname=pwnames[1], mobj=mp,
+               kmi=kmi1, value_col='value',
+               trans='lambda x : -1*x',
+               btrans='lambda x : -1*x')
 
 mopt.param[pwnames[1]].get_param_df().head()
 
 # -- Set transformation after adding parameters
-mopt.set_param_trans(trans = 'lambda x : -1*x', btrans= 'lambda x : -1*x', parname = pwnames[0])
+mopt.set_param_trans(trans='lambda x : -1*x', btrans='lambda x : -1*x', parname=pwnames[0])
 mopt.param[pwnames[0]].param_df.head(5)
 
 # -- Remove parameter(s)
@@ -1299,7 +1487,6 @@ mopt.get_param_df()
 '''
 Other list-like parameters can be parametrized following the same method
 '''
-
 
 # --------------------------------------------------------
 # ---- MartheOptim/MartheGridParam instance
@@ -1355,24 +1542,23 @@ for ilay in range(mm.nlay):
         mask = ipermh.get_data(layer=ilay, masked_values=ipermh.dmv, as_mask=True)
         south, north = ipermh.data['y'] < 276, ipermh.data['y'] > 276
         west, east = ipermh.data['x'] < 451, ipermh.data['x'] > 451
-        ipermh.data['value'][np.logical_and.reduce([mask,north,west])] = -1
-        ipermh.data['value'][np.logical_and.reduce([mask,north,east])] = -2
-        ipermh.data['value'][np.logical_and.reduce([mask,south,west])] = -3
-        ipermh.data['value'][np.logical_and.reduce([mask,south,east])] = -4
+        ipermh.data['value'][np.logical_and.reduce([mask, north, west])] = -1
+        ipermh.data['value'][np.logical_and.reduce([mask, north, east])] = -2
+        ipermh.data['value'][np.logical_and.reduce([mask, south, west])] = -3
+        ipermh.data['value'][np.logical_and.reduce([mask, south, east])] = -4
     # -- Set single zpc for layer 10,11,12
-    elif ilay in [10,11,12]:
-            ipermh.set_data(-1, layer=ilay)
-
+    elif ilay in [10, 11, 12]:
+        ipermh.set_data(-1, layer=ilay)
 
 # -- Set pilot point data
 pp_shpfile = os.path.join('monav3_pm', 'gis', 'pp_l4.shp')
-pp_data = {4: {1: pp_shpfile} } # layer = 4, zone = 1
+pp_data = {4: {1: pp_shpfile}}  # layer = 4, zone = 1
 
 # -- Check `izone` creation
-x,y = shp_utils.shp2points(pp_shpfile, stack=False)
-ax = ipermh.plot(layer=4, cmap= 'nipy_spectral_r')
+x, y = shp_utils.shp2points(pp_shpfile, stack=False)
+ax = ipermh.plot(layer=4, cmap='nipy_spectral_r')
 plt.delaxes(ax.get_figure().axes[1])
-ax.scatter(x, y, s=3, color='black', label= 'Pilot Points')
+ax.scatter(x, y, s=3, color='black', label='Pilot Points')
 ax.legend()
 ax.set_title(f"Property: '{permh.field}', Layer: 4", fontweight='bold')
 plt.show()
@@ -1390,7 +1576,6 @@ Example: 'mymodel.permh'  --->    'mymodel.ipermh'
 
 # -- Write ipermh as izone file
 ipermh.write_data(mona_ws.replace('.rma', f'.{ipermh.field}'))
-
 
 '''
 To add a grid-like set of parameters in the main MartheOptim instance,
@@ -1422,7 +1607,6 @@ mopt.add_param(parname='hk', mobj=permh, izone=ipermh, pp_data=pp_data, defaultv
 # -- Adding transformations information
 mopt.add_param(parname='hk', mobj=permh, izone=ipermh, pp_data=pp_data, trans='log10', btrans='lambda x: 10**x')
 
-
 '''
 If `izone` contains pilot point zone(s), it's necessary to compute and store 
 the kriging factors in order to perform ordinary kriging between pilot points
@@ -1444,12 +1628,12 @@ mdist = dist[dist > 0].min()
 
 # -- Compute kriging factors as 2 * minimum distance between pilot points
 # Invalid range inputs
-mopt.write_kriging_factors(vgm_range={2: {1: 2*mdist}}, parname='hk')
-mopt.write_kriging_factors(vgm_range={4: {2: 2*mdist}}, parname='hk')
+mopt.write_kriging_factors(vgm_range={2: {1: 2 * mdist}}, parname='hk')
+mopt.write_kriging_factors(vgm_range={4: {2: 2 * mdist}}, parname='hk')
 # Valid range input
-mopt.write_kriging_factors(vgm_range={4: {1: 2*mdist}}, parname='hk')
-mopt.write_kriging_factors(vgm_range={4: 2*mdist}, parname='hk')
-mopt.write_kriging_factors(vgm_range=2*mdist, parname='hk')
+mopt.write_kriging_factors(vgm_range={4: {1: 2 * mdist}}, parname='hk')
+mopt.write_kriging_factors(vgm_range={4: 2 * mdist}, parname='hk')
+mopt.write_kriging_factors(vgm_range=2 * mdist, parname='hk')
 
 '''
 To write pest parameter files and template files from the MartheOptim instance
@@ -1458,17 +1642,12 @@ a group or all paramaters). The default value of each parameter will be written
 in a distinct parameter file according to the user transformation.
 '''
 # -- Writing by parname
-mopt.write_parfile(parname= pwnames)
-mopt.write_tplfile(parname = 'hk')
+mopt.write_parfile(parname=pwnames)
+mopt.write_tplfile(parname='hk')
 
 # -- Writing all parameters
 mopt.write_parfile()
 mopt.write_tplfile()
-
-
-
-
-
 
 '''
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -1477,8 +1656,6 @@ mopt.write_tplfile()
 
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 '''
-
-
 
 # --------------------------------------------------------
 # ---- Forward run (.config/.py)
@@ -1508,7 +1685,7 @@ let's write and read a config file from the current parametrization.
 '''
 
 # -- Save and Write parametrization configuration
-configfile = os.path.join(mm.mldir,'configuration.config')
+configfile = os.path.join(mm.mldir, 'configuration.config')
 mopt.write_config(configfile)
 
 # -- Quick view of config text file
@@ -1533,7 +1710,6 @@ that had been parametrized earlier.
 '''
 print(mmfrom.prop.keys())
 
-
 '''
 MartheOptim also has a built-in function to generate a standard forward run python script.
 It uses the pymarthe.utils.pest_utils.run_from_config() function but the user can also
@@ -1541,24 +1717,24 @@ provides other (extra) post-processing function to run after (re)running the mod
 Let's try this .write_forward_run() method.
 '''
 # -- Write standard forward run file
-fr_file = os.path.join(mm.mldir,'forward_run.py')
+fr_file = os.path.join(mm.mldir, 'forward_run.py')
 mopt.write_forward_run(fr_file, configfile, exe_name='Marth_R8')
+
 
 # -- Write forward run with extra basics functions
 def foo():
-    s='get upper case'
+    s = 'get upper case'
     return s.upper()
+
 
 def bar():
     return glob.glob('.')
 
+
 mopt.write_forward_run(fr_file, configfile,
-                       extra_py_imports= 'glob', # additional python package to import
-                       extra_functions = [foo, bar], # additional python functions to run 
+                       extra_py_imports='glob',  # additional python package to import
+                       extra_functions=[foo, bar],  # additional python functions to run
                        exe_name='Marth_R8')
-
-
-
 
 # --------------------------------------------------------
 # ---- Pest Control File (.pst)
@@ -1606,4 +1782,3 @@ pst = mopt.build_pst(add_reg0=True,
 # -- Check out the generate pst
 pst.parameter_data.head()
 pst.observation_data.head()
-
