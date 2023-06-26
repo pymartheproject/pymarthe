@@ -381,21 +381,21 @@ class MartheOptim():
         except : # no date format 
             df_tw = df
 
-            # ---- Build MartheObs instance from data input
-            insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))
-            simfile = kwargs.pop('simfile', os.path.join(self.sim_dir, f'{locnme}.dat'))
-            mobs = MartheObs(iloc = self.get_nlocs(),
-                             locnme = locnme,
-                             date = df_tw.index,
-                             value = df_tw['value'].values,
-                             obsfile = obsfile,
-                             insfile = insfile,
-                             simfile = simfile,
-                             datatype = datatype,
-                             **kwargs)
+        # ---- Build MartheObs instance from data input
+        insfile = kwargs.pop('insfile', os.path.join(self.ins_dir, f'{locnme}.ins'))
+        simfile = kwargs.pop('simfile', os.path.join(self.sim_dir, f'{locnme}.dat'))
+        mobs = MartheObs(iloc = self.get_nlocs(),
+                         locnme = locnme,
+                         date = df_tw.index,
+                         value = df_tw['value'].values,
+                         obsfile = obsfile,
+                         insfile = insfile,
+                         simfile = simfile,
+                         datatype = datatype,
+                         **kwargs)
 
-            # ---- Add MartheObs to main observation dictionary
-            self.obs[locnme] = mobs
+        # ---- Add MartheObs to main observation dictionary
+        self.obs[locnme] = mobs
 
 
 

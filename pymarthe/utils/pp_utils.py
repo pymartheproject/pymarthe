@@ -225,9 +225,11 @@ class PilotPoints():
         # -- Get only points taht lie in buffered polygon
         mp = bpolygon.intersection(self.MultiPoint(pp_coords))
         # -- Add to pilot point data (and metadata)
-        self.data[layer][zone] = {**metadata, 'n':len(mp.geoms), 'pp':mp}
-
-        
+        if mp.is_empty:
+            warnings.warn(f'No pilot points within zone {zone} of layer {layer}\n'\
+            'Check spatial index and zonation for this layer' )
+        else : 
+            self.data[layer][zone] = {**metadata, 'n':len(mp.geoms), 'pp':mp}
 
 
     def add_n_pp(self, layer, zone, n, tol= 50, xoffset=0, yoffset=0, buffer=0):
