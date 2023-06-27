@@ -937,6 +937,8 @@ class MartheOptim():
         """
         # -- Cleanup folder if required
         if cleanup:
+            print('Cleanup Warning : ')
+            print('Factor files from previous call to write_kriging_factors will be removed')
             files = [os.path.join(self.par_dir, f)
                      for f in os.listdir(self.par_dir)
                      if f.endswith('.fac')]

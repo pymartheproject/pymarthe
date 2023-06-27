@@ -462,7 +462,8 @@ class MartheSoil():
                 # ---- Search pattern
                 match = re.search(re_match, mart_content)
                 # ---- Replace by new value
-                repl = re.sub(match.group(1), "{:10d}".format(int(d.value)), match.group(0))
+                #repl = re.sub(match.group(1), "{:10d}".format(int(d.value)), match.group(0)) # why int() !
+                repl = re.sub(match.group(1), "{0:>15.6E}".format(d.value), match.group(0))
                 # --- Replace inplace in file content
                 mart_content = re.sub(match.group(0), repl, mart_content)
             # ---- Write new content
