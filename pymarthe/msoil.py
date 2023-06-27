@@ -405,7 +405,9 @@ class MartheSoil():
         """
 
         # ---- Set global usefull regex
-        re_num = r"\s*[-+]?\d*\.?\d+|\d+"
+        #re_num = r"\s*[-+]?\d*\.?\d+|\d+"
+        # more flexible number format 
+        re_num = r"\s*[+-]?((\d+(\.\d*)?)|(\.\d+))([eE][+-]?\d+)?"
         from_istep = r"\*{3}\s*Le pas|Début"
 
         # ---- Write data in .pastp file
