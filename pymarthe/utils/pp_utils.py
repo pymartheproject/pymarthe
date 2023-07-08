@@ -317,7 +317,8 @@ class PilotPoints():
 
 
 
-    def plot(self, layer, zone, buffer=0, ax=None, zone_kwargs=ZONE_KWARGS, buffer_kwargs=BUFFER_KWARGS, pp_kwargs=PP_KWARGS):
+    def plot(self, layer, zone, buffer=0, ax=None,
+                   zone_kwargs={}, buffer_kwargs={}, pp_kwargs={}):
         """
         Pilot point internal ploting facility.
 
@@ -359,6 +360,12 @@ class PilotPoints():
         plt.show()
 
         """
+        # -- Manage kwargs
+        z_kwg, b_kwg, p_kwg  = [d.copy() for d in [ZONE_KWARGS, BUFFER_KWARGS, PP_KWARGS]]
+        z_kwg.update(zone_kwargs)
+        b_kwg.update(buffer_kwargs)
+        p_kwg.update(pp_kwargs)
+
         # -- Get required active domain as polygon
         polygon = self.get_polygon(layer, zone)
 
@@ -370,18 +377,18 @@ class PilotPoints():
         # -- Plot pilot point active zone(s) exterior line
         geoms = [polygon] if isinstance(polygon, self.Polygon) else [g for g in polygon.geoms]
         for g in geoms:
-            ax.plot(*g.exterior.xy, **zone_kwargs)
+            ax.plot(*g.exterior.xy, **z_kwg)
             ax.fill(*g.exterior.xy, facecolor='lightgrey')
 
         # -- Plot pilot point active zone(s) interior line(s)
         for g in geoms:
             for hole in g.interiors:
-                ax.plot(*hole.xy, **{k:v for k,v in zone_kwargs.items() if k != 'label'})
+                ax.plot(*hole.xy, **{k:v for k,v in z_kwg.items() if k != 'label'})
                 ax.fill(*hole.xy, facecolor='white')
 
         # -- Plot buffer zone if required
         if buffer != 0:
-            ax.plot(*polygon.buffer(buffer).exterior.xy, **buffer_kwargs)
+            ax.plot(*polygon.buffer(buffer).exterior.xy, **b_kwg)
 
         # -- Check that pilot points have already been generated
         err_msg = 'ERROR : No pilot points have been added yet ' \
@@ -389,8 +396,8 @@ class PilotPoints():
         assert self.data[layer][zone] is not None, err_msg
 
         # -- Plot pilot points
-        x, y = np.column_stack([p.xy for p in self.data[layer][zone]['pp']])
-        ax.scatter(x,y, **pp_kwargs)
+        x, y = np.column_stack([p.xy for p in self.data[layer][zone]['pp'].geoms])
+        ax.scatter(x,y, **p_kwg)
 
         # -- Ajust view
         ax.autoscale_view()
@@ -403,6 +410,7 @@ class PilotPoints():
 
         # -- Return axe
         return ax
+
 
 
 
