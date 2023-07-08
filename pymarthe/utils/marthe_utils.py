@@ -1696,7 +1696,7 @@ def hydrodyn_periodicity(pastpfile, istep, external=False, new_pastpfile=None):
                 if 'Fin de ce pas' in l:
                     break
             # -- Insert line to activate all timesteps (default) 
-            _l ='  /CALCUL_HDYNAM/ACTION    I= 0;\n'
+            _l ='  /CALCUL_HDYNAM/ACTION    I= 1;\n'
             nlines.insert(i, _l)
 
         # ---- Desactivate all timesteps
