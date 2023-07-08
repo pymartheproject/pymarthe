@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, sys
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -1889,25 +1890,34 @@ def set_tw(start=None, end=None, mm=None, martfile=None, pastpfile=None):
         lines = f.readlines()
 
     # ---- Set usefull regex
-    re_block = r"\*{3}\s*Pas de Temps"
-    re_repl = r"([-+]?\d*\.?\d+|\d+)=N"
+    re_block = r"\*{3}\s*(Pas|Pas de Temps) et"
+    re_repl = r"([-+]?\d*\.?\d+|\d+)|(\*|\s*)=N"
+    re_bef = r"(^\s*)[\*|\d]"
 
     # ---- Extract required lines
     for i, line in enumerate(lines):
         if re.search(re_block, line) is not None:
             start_line = lines[i+4]
             end_line = lines[i+1]
+            new_start_line = '{}{}={}'.format(re.search(re_bef, start_line).group(1),
+                                              istart,
+                                              '='.join(start_line.split('=')[1:]))
+            new_end_line = '{}{}={}'.format(re.search(re_bef, end_line).group(1),
+                                              iend,
+                                              '='.join(end_line.split('=')[1:]))
             break
 
     # ---- Replace start line
-    replace_text_in_file( martfile, start_line, re.sub(re_repl, str(istart) + '=N', start_line) )
+    replace_text_in_file(martfile, start_line, new_start_line)
 
     # ---- Replace end line
-    replace_text_in_file( martfile, end_line, re.sub(re_repl, str(iend) + '=N', end_line) )
+    replace_text_in_file(martfile, end_line, new_end_line)
 
     # -- Print final message
     print(f"==> Model time window had been set from istep " \
           f"{istart} to {iend} successfully. ")
+
+
 
 
 
