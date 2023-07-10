@@ -256,7 +256,7 @@ class MartheModel():
 
         Examples:
         --------
-        mm..build_spatial_idx()
+        mm..build_spatial_index()
 
         """
         # -- Activate iterator by setting spatial index to 1
@@ -982,7 +982,7 @@ class MartheModel():
 
         # -- Build spatial index if required
         if self.spatial_index is None:
-            self.build_spatial_idx()
+            self.build_spatial_index()
 
         # -- Intercept coordinates with grid to extract node ids
         if layer is None:

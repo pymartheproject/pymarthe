@@ -115,9 +115,11 @@ class MartheObs():
 
         # ---- Build default observation names
         # Note: maximum number of locnmes is set to 1000 (more than enough)
-        if not 'obsnme' in kwargs:
+        if 'obsnmes' in kwargs:
+            self.obsnmes = kwargs['obsnmes']
+        else:
             self.obsnmes = ['loc{}n{}'.format(str(self.iloc).zfill(3),
-                            str(i).zfill(ndigit))
+                                              str(i).zfill(ndigit))
                             for i in range(len(self.value))]
 
         # ---- Fill observations DataFrame with input data

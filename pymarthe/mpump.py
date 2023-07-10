@@ -19,7 +19,7 @@ class MarthePump():
 
     """
 
-    def __init__(self, mm, pastp_file = None,  mode = 'aquifer', verbose=True):
+    def __init__(self, mm, pastp_file = None,  mode = 'aquifer', verbose=False):
         """
         MarthePump class : available for aquifer or river pumping.
 

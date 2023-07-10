@@ -1423,12 +1423,12 @@ class MartheOptim():
         pst = pyemu.Pst.from_io_files(*self.collect_pest_files())
 
         # -- Get clean DataFrame of all parameters
-        param_df = self.get_param_df(
-                        transformed=True
-                            ).rename(
-                                {'trans':'partrans',
-                                 'defaultvalue':'parval1'},
-                                axis=1)
+        param_df = (
+            self.get_param_df(transformed=True)
+            .rename({'trans':'partrans',
+                    'defaultvalue':'parval1'},
+                    axis=1)
+            )
         param_df['parnme'] = param_df['parnme'].str.replace('__','_')
         param_df.set_index('parnme', drop = False, inplace = True)
 
@@ -1437,7 +1437,7 @@ class MartheOptim():
 
         # -- Push to Pst 'parameter_data' section and update parameter groups
         pst.parameter_data.loc[param_df.index] = param_df[pst.par_fieldnames]
-        pst.rectify_pgroups()
+        #pst.rectify_pgroups() # pandas .append() issues with pyemu
 
         # -- Get clean DataFrame of all observations 
         obs_df = self.get_obs_df(transformed=True)

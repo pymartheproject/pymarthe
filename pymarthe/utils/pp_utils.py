@@ -232,92 +232,94 @@ class PilotPoints():
             self.data[layer][zone] = {**metadata, 'n':len(mp.geoms), 'pp':mp}
 
 
-    def add_n_pp(self, layer, zone, n, tol= 50, xoffset=0, yoffset=0, buffer=0):
-        """
-        Generate pilot points from directional (xy) spacing.
-
-        Parameters
-        ----------
-        layer (int) : required layer id
-
-        zone (int) : required zone id (necessarily >0)
-
-        n (int) : number of pilot points to generate.
-
-        tol (int/float, optional) : tolerance on infered spacing.
-                                    Default is 50.
-                                    Note: a low value can slow down the points 
-                                          generation but offers a better precision.
-
-        xoffset (int/float, optional) : offset distance from the origin seeding point
-                                        in x direction (lower left corner of polgyon extension).
-                                        Default is 0.
-
-        yoffset (int/float, optional) : offset distance from the origin seeding point
-                                        in y direction (lower left corner of polgyon extension).
-                                        Default is 0.
-
-        buffer (int/foat, optional) : exterior buffering distance of the required polygon.
-                                      Default is 0.
-                                      Note: this argument can be used to exaggerate the polygon 
-                                            area while seending pilot points. That can be usefull
-                                            with local irregular shaped aquifer domain.
-        Returns:
-        --------
-        Store dictionary of generated pilot points data in main `.data` attribut.
-        Format: {
-                'layer': 1,                         |
-                 'zone': 1,                         |
-                 'xspacing': 600,                   |
-                 'yspacing': 600,                   |   
-                 'xoffset': 0,                      |   METDADATA
-                 'yoffset': 0,                      |
-                 'buffer': 100,                     |
-                 'n': 40                            |
-                 ...
-                 'pp': shapely.geometry.MultiPoint  |   DATA
-                 }
-
-        Examples
-        --------
-        pp = PilotPoints(izone)
-        pp.add_spacing_pp(layer=2, zone=1, n=40, tol=250, buffer=100)
-
-        """
-        # -- Keep the arguments as metadata dictionary
-        metadata = {k:v for k,v in locals().items() if k != 'self'}
-        # -- Extract required pilot point active polygon zone
-        polygon = self.get_polygon(layer, zone)
-        bpolygon = polygon.buffer(buffer)
-        # -- Fetch polygon bounds 
-        minx, miny, maxx, maxy = bpolygon.bounds 
-        # ---- Initialize spacing and point counter
-        spacing = min((maxy-miny)/4, (maxx-minx)/4)
-        point_counter = 0
-        # Start while loop to find the better spacing according to tolerance increment
-        while point_counter <= n:
-            # --- Generate grid point coordinates
-            x = np.arange(minx, maxx, spacing) + xoffset
-            y = np.arange(miny, maxy, spacing) + yoffset
-            xy = np.reshape(np.meshgrid(x,y),(2,-1))
-            # -- Mask points outside model extension
-            pp_coords = xy.T[self.mm.isin_extent(*xy)]
-            # -- Get only points taht lie in buffered polygon
-            mp = bpolygon.intersection(self.MultiPoint(pp_coords))
-            # ---- Verify number of point generated
-            point_counter = len(mp.geoms)
-            spacing -= tol
-        else:
-            # -- Add to pilot point data (removing excess points)
-            self.data[layer][zone] = {**metadata, 'xspacing':spacing, 
-                                                  'yspacing':spacing,
-                                                  'pp':mp[point_counter-n:]} 
 
 
+def add_n_pp(self, layer, zone, n, tol=1, xoffset=0, yoffset=0, buffer=0):
+    """
+    Generate pilot points from directional (xy) spacing.
+
+    Parameters
+    ----------
+    layer (int) : required layer id
+
+    zone (int) : required zone id (necessarily >0)
+
+    n (int) : number of pilot points to generate.
+
+    tol (int/float, optional) : tolerance on infered spacing.
+                                Default is 1.
+                                Note: a low value can slow down the points 
+                                      generation but offers a better precision.
+
+    xoffset (int/float, optional) : offset distance from the origin seeding point
+                                    in x direction (lower left corner of polgyon extension).
+                                    Default is 0.
+
+    yoffset (int/float, optional) : offset distance from the origin seeding point
+                                    in y direction (lower left corner of polgyon extension).
+                                    Default is 0.
+
+    buffer (int/foat, optional) : exterior buffering distance of the required polygon.
+                                  Default is 0.
+                                  Note: this argument can be used to exaggerate the polygon 
+                                        area while seending pilot points. That can be usefull
+                                        with local irregular shaped aquifer domain.
+    Returns:
+    --------
+    Store dictionary of generated pilot points data in main `.data` attribut.
+    Format: {
+            'layer': 1,                         |
+             'zone': 1,                         |
+             'xspacing': 600,                   |
+             'yspacing': 600,                   |   
+             'xoffset': 0,                      |   METDADATA
+             'yoffset': 0,                      |
+             'buffer': 100,                     |
+             'n': 40                            |
+             ...
+             'pp': shapely.geometry.MultiPoint  |   DATA
+             }
+
+    Examples
+    --------
+    pp = PilotPoints(izone)
+    pp.add_spacing_pp(layer=2, zone=1, n=40, tol=250, buffer=100)
+
+    """
+    # -- Keep the arguments as metadata dictionary
+    metadata = {k:v for k,v in locals().items() if k != 'self'}
+    # -- Extract required pilot point active polygon zone
+    polygon = self.get_polygon(layer, zone)
+    bpolygon = polygon.buffer(buffer)
+    # -- Fetch polygon bounds 
+    minx, miny, maxx, maxy = bpolygon.bounds 
+    # ---- Initialize spacing and point counter
+    spacing = min((maxy-miny)/4, (maxx-minx)/4)
+    point_counter = 0
+    # Start while loop to find the better spacing according to tolerance increment
+    while point_counter <= n:
+        # --- Generate grid point coordinates
+        x = np.arange(minx, maxx, spacing) + xoffset
+        y = np.arange(miny, maxy, spacing) + yoffset
+        xy = np.reshape(np.meshgrid(x,y),(2,-1))
+        # -- Mask points outside model extension
+        pp_coords = xy.T[self.mm.isin_extent(*xy)]
+        # -- Get only points taht lie in buffered polygon
+        mp = bpolygon.intersection(self.MultiPoint(pp_coords))
+        # ---- Verify number of point generated
+        point_counter = 1 if mp.geom_type == 'Point' else len(mp.geoms)
+        spacing -= tol
+    else:
+        # -- Add to pilot point data (removing excess points)
+        self.data[layer][zone] = {**metadata, 'xspacing':spacing, 
+                                              'yspacing':spacing,
+                                              'pp':self.MultiPoint(list(mp.geoms)[point_counter-n:])} 
+                                              
 
 
 
-    def plot(self, layer, zone, buffer=0, ax=None, zone_kwargs=ZONE_KWARGS, buffer_kwargs=BUFFER_KWARGS, pp_kwargs=PP_KWARGS):
+    def plot(self, layer, zone, buffer=0, ax=None,
+                   zone_kwargs={}, buffer_kwargs={}, pp_kwargs={}):
         """
         Pilot point internal ploting facility.
 
@@ -359,6 +361,12 @@ class PilotPoints():
         plt.show()
 
         """
+        # -- Manage kwargs
+        z_kwg, b_kwg, p_kwg  = [d.copy() for d in [ZONE_KWARGS, BUFFER_KWARGS, PP_KWARGS]]
+        z_kwg.update(zone_kwargs)
+        b_kwg.update(buffer_kwargs)
+        p_kwg.update(pp_kwargs)
+
         # -- Get required active domain as polygon
         polygon = self.get_polygon(layer, zone)
 
@@ -370,18 +378,18 @@ class PilotPoints():
         # -- Plot pilot point active zone(s) exterior line
         geoms = [polygon] if isinstance(polygon, self.Polygon) else [g for g in polygon.geoms]
         for g in geoms:
-            ax.plot(*g.exterior.xy, **zone_kwargs)
+            ax.plot(*g.exterior.xy, **z_kwg)
             ax.fill(*g.exterior.xy, facecolor='lightgrey')
 
         # -- Plot pilot point active zone(s) interior line(s)
         for g in geoms:
             for hole in g.interiors:
-                ax.plot(*hole.xy, **{k:v for k,v in zone_kwargs.items() if k != 'label'})
+                ax.plot(*hole.xy, **{k:v for k,v in z_kwg.items() if k != 'label'})
                 ax.fill(*hole.xy, facecolor='white')
 
         # -- Plot buffer zone if required
         if buffer != 0:
-            ax.plot(*polygon.buffer(buffer).exterior.xy, **buffer_kwargs)
+            ax.plot(*polygon.buffer(buffer).exterior.xy, **b_kwg)
 
         # -- Check that pilot points have already been generated
         err_msg = 'ERROR : No pilot points have been added yet ' \
@@ -389,8 +397,8 @@ class PilotPoints():
         assert self.data[layer][zone] is not None, err_msg
 
         # -- Plot pilot points
-        x, y = np.column_stack([p.xy for p in self.data[layer][zone]['pp']])
-        ax.scatter(x,y, **pp_kwargs)
+        x, y = np.column_stack([p.xy for p in self.data[layer][zone]['pp'].geoms])
+        ax.scatter(x,y, **p_kwg)
 
         # -- Ajust view
         ax.autoscale_view()
@@ -403,6 +411,7 @@ class PilotPoints():
 
         # -- Return axe
         return ax
+
 
 
 
