@@ -56,6 +56,14 @@ DEFAULT_CROSS_SECTION_LINE_KWARGS = {
 	'zorder': 50
 }
 
+DEFAULT_CROSS_SECTION_TRANSLATED_LINE_KWARGS = {
+	'lw': 1.2,
+	'color': 'k',
+	'ls': '--',
+	'alpha': .8,
+	'zorder': 50
+}
+
 DEFAULT_SURFACE_KWARGS = {
 	'alpha': .8,
 	'lw': .8,
@@ -286,15 +294,21 @@ class CrossSection():
 				# -- Build cross line from input point coordinates
 				self.xsline = LineString(xsline)
 
+		# -- Apply a little translation of crossSection line to avoid
+		#    intersecting the exact share line between two neighbouring cells
+		self.xsline_translated = translate(self.xsline, xoff=self.offset, yoff=self.offset)
+
 		# -- Collect intersected nodes between line and model cells
 		xsnodes = (
 				self.modelgrid
 				.loc[
 					np.tile(
-						(self.modelgrid
+						(
+							self.modelgrid
 							.query('layer == 0')['vertices']
 							.map(Polygon)
-							.map(self.xsline.intersects)),
+							.map(self.xsline_translated.intersects)
+						),
 						reps=self.mm.nlay
 					)
 				]
@@ -337,7 +351,7 @@ class CrossSection():
 			.apply(
 				lambda p: (
 					LineString(p.exterior.coords)
-					.intersection(translate(self.xsline, xoff=self.offset, yoff=self.offset))
+					.intersection(self.xsline_translated)
 					)
 				)
 			# -- Manage different intersection objects (Point, MultiPoint)
@@ -350,7 +364,7 @@ class CrossSection():
 			# -- Expand series of list of points to flat points series
 			.explode()
 			# -- Compute curvilinear abscissa of each points
-			.apply(lambda p: self.xsline.project(p))
+			.apply(lambda p: self.xsline_translated.project(p))
 			# -- Convert to Dataframe renaming columns
 			.reset_index()
 			.set_axis(['node', 'x_curv'], axis=1)
@@ -375,13 +389,15 @@ class CrossSection():
 
 
 
-	def plot(self, ax=None, **kwargs):
+	def plot(self, ax=None, add_translated=False, **kwargs):
 		"""
 		Visualize cross section line in xy-dimension.
 
 		Parameters:
 		-----------
 		ax (Axesubplot, optional) : custom matplotlib subplot.
+		add_translated (bool, optional): whatever plot translated cross section line
+		                                 Default is False.
 		***kwargs : matplotlib.axes.Axes.plot arguments.
 
 		Returns:
@@ -425,9 +441,14 @@ class CrossSection():
 		ax.fill(*uu.exterior.coords.xy,
 				color='lightgrey', alpha=.6,
 				zorder=10, label='Active domain')
-		# -- Plot cross line 
+		# -- Plot real cross line 
 		ax.plot(*self.xsline.coords.xy,
 				label ='Cross-section line', **kwargs)
+		# -- Plot translated cross line if required
+		if add_translated:
+			ax.plot(*self.xsline_translated.coords.xy,
+				    label='Cross-section line (translated)',
+				    **DEFAULT_CROSS_SECTION_TRANSLATED_LINE_KWARGS)
 		# -- Add grid xy-lines
 		ax.grid(color='lightgrey', lw=.4, zorder=5)
 		# -- Add legend
@@ -723,9 +744,9 @@ class CrossSection():
 		# -- Get location as shapely Point
 		point = loc if isinstance(loc, Point) else Point(loc)
 		# -- Assure isn't to far from the cross section line
-		is_near = True if tolerance is None else point.within(self.xsline.buffer(tolerance))
+		is_near = True if tolerance is None else point.within(self.xsline_translated.buffer(tolerance))
 		# Extract curvilinear abscissa
-		xcurv = self.xsline.project(point)
+		xcurv = self.xsline_translated.project(point)
 		# -- Check if point can be plot
 		if (is_near) & (xmin < xcurv < xmax):
 			# Plot vertical line on giving location
@@ -786,7 +807,7 @@ class CrossSection():
 					}
 				)
 		# -- Iterate over all cross line vertices adding vertical line
-		for i, point in enumerate(self.xsline.coords):
+		for i, point in enumerate(self.xsline_translated.coords):
 			# -- Update vertice text
 			s = text_kws.get('s', prefix + str(i))
 			# -- Add location with text
