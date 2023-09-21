@@ -419,6 +419,31 @@ def write_simfile(dates, values, simfile):
 
 
 
+def read_simfile(simfile):
+    """
+    -----------
+    Description
+    -----------
+    Read simulated values 
+    Expected format (no header):
+        1972-12-31  12.755
+        1973-12-31  12.746
+        1974-12-31  12.523
+
+    -----------
+    Parameters
+    -----------
+    - simfile (str) : path to simulated file to write.
+    -----------
+    Returns
+    -----------
+    df
+    """
+    sim_df = pd.read_csv(simfile, 
+                     delim_whitespace=True, names=['date','value'],
+                     header=None, index_col=0, 
+                     parse_dates=True)
+    return(sim_df)
 
 
 def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index', fluc_dic=dict(), sim_dir='.'):

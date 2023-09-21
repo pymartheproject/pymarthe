@@ -1475,6 +1475,9 @@ class MartheOptim():
         else:
             pst.model_command = marthe_utils.make_iterable(model_command)
 
+        # rectify parameter groups (synchronize parameter groups section with the parameter data section)
+        pst.rectify_pgroups()
+
         # -- Write pst if required
         if write_pst == True:
             pst.write(f'{gpath}.pst')
@@ -1483,7 +1486,6 @@ class MartheOptim():
 
         # -- Return Pst instance
         return pst
-
 
 
 
