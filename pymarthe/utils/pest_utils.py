@@ -464,9 +464,14 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
         validity = name.replace(suffix,'') in prn_df.columns.get_level_values('name')
     
     # -- Assert that the required name is in prn
-    err_msg = f'ERROR : `{name}` not found in simulated data. ' \
+    # replaced error by warning : some obs may not originated from the prn
+    # an alternative (preferable) option would be not to call the prn...
+    # but that requires an additional keyword in the .config (TODO)
+    err_msg = f'Warning: `{name}` not found in simulated data. ' \
               'It must be provided in the Marthe .histo file.'
-    assert validity, err_msg
+    if not validity:
+        print(err_msg)
+        return
 
     # -- Get records by name
     df = prn_df.xs(key=name.replace(suffix,''), level='name', axis=1)
@@ -486,11 +491,6 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
     write_simfile(dates = df.index,
                   values = transform(df['value'], trans).values,
                   simfile = os.path.join(sim_dir, f'{name}.dat'))
-
-
-
-
-
 
 
 def run_from_config(configfile, **kwargs):
@@ -525,3 +525,6 @@ def run_from_config(configfile, **kwargs):
                     interp_method= odic['interp_method'],
                     fluc_dic= eval(odic['fluc_dic']),
                     sim_dir= os.path.normpath(hdic['Simulation files directory']))
+
+
+
