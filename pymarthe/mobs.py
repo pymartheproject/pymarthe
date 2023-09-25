@@ -54,7 +54,7 @@ class MartheObs():
         obgnme (str, kwargs): group of observation related.
                               Default is locnme.
 
-        obnme (list, kwargs): custom observation names
+        obnmes (list, kwargs): custom observation names
                                Default build as 'loc{locnme_id}n{obs_id}'
                                
         weight (list, kwargs): weight per each observations
@@ -116,7 +116,8 @@ class MartheObs():
         # ---- Build default observation names
         # Note: maximum number of locnmes is set to 1000 (more than enough)
         if 'obsnmes' in kwargs:
-            self.obsnmes = kwargs['obsnmes']
+            # lower case for pyemu compatibility
+            self.obsnmes = list(map(lambda x: x.lower(),kwargs['obsnmes']))
         else:
             self.obsnmes = ['loc{}n{}'.format(str(self.iloc).zfill(3),
                                               str(i).zfill(ndigit))
