@@ -506,7 +506,7 @@ def run_from_config(configfile, **kwargs):
     mm.write_prop()
     # -- Run model
     print('\t-> Running model with updated parameters')
-    mm.run_model(**kwargs)
+    #mm.run_model(**kwargs)
     # -- Extract simulated data
     print('\t-> Extracting simulated values')
     prn = marthe_utils.read_prn(os.path.join(mm.mldir,'historiq.prn'))

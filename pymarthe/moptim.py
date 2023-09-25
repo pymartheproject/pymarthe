@@ -304,7 +304,7 @@ class MartheOptim():
         obgnme (str, kwargs): name of the group of related observation.
                               Default is locnme.
 
-        obnme (list, kwargs): custom observation names
+        obnmes (list, kwargs): custom observation names
                                Default build as 'loc{loc_name_id}n{obs_id}'
 
         weight (list, kwargs): weight per each observations
@@ -1443,7 +1443,8 @@ class MartheOptim():
         obs_df = self.get_obs_df(transformed=True)
 
         # -- Push to Pst 'observation_data' section
-        pst.observation_data.loc[obs_df.index] = obs_df[pst.obs_fieldnames]
+        # pyemu.pst_from_io_files() applies .lower() to observation names when reading ins files 
+        pst.observation_data.loc[obs_df.index.str.lower()] = obs_df[pst.obs_fieldnames]
 
         # -- Add regularization if required
         if add_reg0:
