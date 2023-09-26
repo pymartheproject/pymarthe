@@ -493,7 +493,7 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
                   simfile = os.path.join(sim_dir, f'{name}.dat'))
 
 
-def run_from_config(configfile, **kwargs):
+def run_from_config(configfile, run_model=True, **kwargs):
     """
     """
     print('PERFORMING FORWARD RUN ...')
@@ -506,7 +506,8 @@ def run_from_config(configfile, **kwargs):
     mm.write_prop()
     # -- Run model
     print('\t-> Running model with updated parameters')
-    #mm.run_model(**kwargs)
+    if run_model:
+        mm.run_model(**kwargs)
     # -- Extract simulated data
     print('\t-> Extracting simulated values')
     prn = marthe_utils.read_prn(os.path.join(mm.mldir,'historiq.prn'))
