@@ -1195,7 +1195,8 @@ class MartheOptim():
                    'import multiprocessing as mp',
                    'import numpy as np',
                    'import pandas as pd',
-                   'import pymarthe']
+                   'import pymarthe',
+                   'from pymarthe.utils import marthe_utils, pest_utils']
             f.write('\n'.join(imp))
             f.write('\n'*2)
 
