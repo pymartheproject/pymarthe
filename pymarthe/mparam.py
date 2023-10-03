@@ -109,7 +109,14 @@ class MartheListParam():
         self.value_col = value_col
         # -- Set parameter default value
         if defaultvalue is None:
-            self.defaultvalue = mobj.data.set_index(self.kmi.names).loc[self.kmi, value_col].to_list()
+            # subset kmi keys to those pertaining to the mobj data df
+            # this becomes useful when additional keys have been introduced in the kmi
+            mobj_idx = kmi.copy()
+            for name in self.kmi.names:
+                if not name in mobj.data.columns:
+                    mobj_idx = mobj_idx.droplevel(name)
+            # set default values from current mobj values
+            self.defaultvalue = mobj.data.set_index(mobj_idx.names).loc[mobj_idx, value_col].to_list()
         else:
             self.defaultvalue = defaultvalue
         # -- Transformation validity

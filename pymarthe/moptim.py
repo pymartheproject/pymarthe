@@ -1126,7 +1126,7 @@ class MartheOptim():
 
 
 
-    def write_forward_run(self, fr_file, configfile, extra_py_imports=[], extra_functions=[], **kwargs):
+    def write_forward_run(self, fr_file, configfile, extra_py_imports=[], extra_functions=[], preproc_functions=[], **kwargs):
         """
         Write forward run python file.
         Note : if some extra functions are provided, the `inspect` 
@@ -1209,6 +1209,7 @@ class MartheOptim():
             f.write('\n')
 
             # ---- Write extra functions
+            extra_functions += preproc_functions
             ext_func = marthe_utils.make_iterable(extra_functions)
             # -- Assert that all items are functions
             err_msg = 'ERROR: all extra functions must be callable objects.'
@@ -1233,6 +1234,11 @@ class MartheOptim():
             # ---- Write main() function
             f.write('\n')
             f.write('def main():\n')
+            # -- Perform preproc functions
+            f.write('\t# -- Run preproc functions\n')
+            for func in preproc_functions:
+                f.write(f'\t{func.__name__}()\n')
+
             # -- Perform a forward run from .config file
             f.write('\t# -- Run model from .config file\n')
             run_lines = ['\tpymarthe.utils.pest_utils.run_from_config(',

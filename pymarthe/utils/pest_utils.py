@@ -145,11 +145,11 @@ def write_mlp_tplfile(tplfile, param_df):
                                    max_rows = len(df), min_rows = len(df)))
 
 
-def write_mlp_parfile(parfile, param_df, trans='none'):
+def write_mlp_parfile(parfile, param_df, trans='none', value_col='defaultvalue'):
     """
     """
     df = param_df.copy(deep=True)
-    df['transformed'] = transform(param_df['defaultvalue'], trans)
+    df['transformed'] = transform(param_df[value_col], trans)
     with open(parfile, 'w', encoding=encoding) as f:
         f.write(df.to_string(col_space=0, columns=['parnme', 'transformed'],
                              formatters=FMT_DIC, justify="left",
