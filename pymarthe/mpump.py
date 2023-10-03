@@ -281,8 +281,12 @@ class MarthePump():
         df = self._data.copy(deep=True)
         # -- Get kmi and transformed values
         kmi, bvalues = pest_utils.parse_mlp_parfile(parfile, keys, value_col, btrans)
+        # find intersection of keys with parameter data columns
+        for k in kmi.names :
+            if k not in df.columns:
+                kmi = kmi.droplevel(k)
         # -- Convert to MultiIndex Dataframe
-        mi_df = df.set_index(keys)
+        mi_df = df.set_index(kmi.names)
         # -- Set values and back to single index
         mi_df.loc[kmi, value_col] = bvalues.values
         data = mi_df.reset_index()
