@@ -12,7 +12,6 @@ import warnings
 
 encoding = 'latin-1'
 
-
 class MarthePump():
     """
     Class for handling Marthe pumping data.
@@ -589,6 +588,7 @@ class MarthePump():
             for qcol, gb in rec_df_ss.groupby('qcol'):
                 df.iloc[:,int(qcol)] = gb['value'].values
             # ---- Rewrite external file
+            # NOTE should be updated with to_string()
             df.to_csv(qfilename, sep = '\t',header = True,index = False)
 
 
@@ -623,8 +623,19 @@ class MarthePump():
             df = pd.read_csv(qfilename, header=None, delim_whitespace=True)
             for qcol, gb in data.groupby('qcol'):
                 df.iloc[:,int(qcol)] = gb['value'].values
-            df.to_csv(qfilename, sep='\t', header=False, index=False)
-
+            #df.to_csv(qfilename, sep='\t', header=False, index=False)
+            # format definition flexible to handle both "x, y, value" and "value, ligne, colonne, plan"
+            # fixed-width format (check widths !)
+            FFMT = lambda x: "{0:>20.10E} ".format(float(x))
+            IFMT = lambda x: "{0:>6d} ".format(int(x))
+            fmt_dic = {'i':IFMT,'f':FFMT} 
+            formatters = [ fmt_dic[df[c].dtype.kind] for c in df]
+            with open(qfilename, 'w', encoding=encoding) as f:
+                    f.write(df.to_string( col_space=0,
+                                          formatters=formatters,
+                                         justify="left", header=False, index=False, 
+                                         index_names=False, 
+                                         max_rows = len(df), min_rows = len(df) ) )
 
 
 
