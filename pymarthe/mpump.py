@@ -619,7 +619,7 @@ class MarthePump():
         listm_df[['layer', 'i', 'j']] = listm_df[['layer', 'i', 'j']].add(1)
 
         # ---- Write (modified) data
-        for qfilename, data in listm_df.groupby('qfilename'):
+        for (istep, qfilename), data in listm_df.groupby(['istep','qfilename']):
             df = pd.read_csv(qfilename, header=None, delim_whitespace=True)
             for qcol, gb in data.groupby('qcol'):
                 df.iloc[:,int(qcol)] = gb['value'].values
