@@ -95,6 +95,7 @@ class MartheObs():
         self.nodata = nodata
         self.datatype = datatype
         self.iloc = iloc
+        # locnme, date and value should be updated when  obs_df is modified
         self.locnme = locnme
         self.date = date
         self.value = value
@@ -123,6 +124,9 @@ class MartheObs():
                                               str(i).zfill(ndigit))
                             for i in range(len(self.value))]
 
+        #NOTE : it would be advantageous to make obs_df a class property
+        # doing so, self.date, self. value and others could be modified by the property setter
+        # this happends whens self.obs_df is edited by the user
         # ---- Fill observations DataFrame with input data
         self.obs_df = pd.DataFrame(index=self.obsnmes)
         # TODO should be fixed to keep datetime format for date column
@@ -183,7 +187,9 @@ class MartheObs():
         --------
         mobs.write_insfile()
         """
-        pest_utils.write_insfile(self.obsnmes, self.insfile)
+        #pest_utils.write_insfile(self.obsnmes, self.insfile)
+        # unnecessary if self.obsnmes was updated when obs_df is edited
+        pest_utils.write_insfile(self.obs_df.index, self.insfile)
     
 
     def write_simfile(self, prn='historiq.prn'):
@@ -217,7 +223,9 @@ class MartheObs():
         # ---- Extract and write simulated value(s)
         pest_utils.extract_prn( prn_df,
                                 name= self.locnme,
-                                dates_out= self.date,
+                                #dates_out= self.date,
+                                # unnecessary if self.date was updated when obs_df is edited
+                                dates_out= self.obs_df.date,
                                 fluc_dic= self.fluc_dic,
                                 sim_dir= os.path.split(self.simfile)[0] )
 
@@ -235,7 +243,7 @@ class MartheObs():
             'trans= {}'.format(self.trans),
             'fluc_dic= {}'.format(str(self.fluc_dic)),
             'interp_method= {}'.format(self.interp_method),
-            'dates_out= {}'.format('|'.join([str(v) for v in self.date]))
+            'dates_out= {}'.format('|'.join([str(v) for v in self.obs_df.date]))
               ]
         lines.extend(data)
         lines.append('[END_OBS]')
