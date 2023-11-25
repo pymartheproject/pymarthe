@@ -900,7 +900,9 @@ def read_prn(prnfile = 'historiq.prn'):
         df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
                          skiprows=mask.count(True) + add_skip, index_col = 0,
                          )
-    df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
+    # am 2023-11-24: in recent version of pandas, inplace is not authorized anymore
+    # df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
+    df = df.dropna(axis=1, how = 'all')  # drop empty columns if exists
     # ---- Format DateTimeIndex or float
     df.index.name = 'date'
     # ---- Set columns as multi-index as columns
@@ -969,7 +971,9 @@ def read_histo_file(histo_file):
     # ---- Build histo DataFrame
     cols = ['type','inest','loc_type','x','y','layer','id', 'label']
     df = pd.DataFrame(data, columns = cols)
-    df.set_index('id', inplace = True)
+    # am: remove inplace for pandas (>=2.0)
+    # df.set_index('id', inplace = True)
+    df = df.set_index('id')
     # ---- Return histo DataFrame
     return df
 
