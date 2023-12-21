@@ -900,14 +900,15 @@ def read_prn(prnfile = 'historiq.prn'):
         df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
                          skiprows=mask.count(True) + add_skip, index_col = 0,
                          )
-    # am 2023-11-24: in recent version of pandas, inplace is not authorized anymore
-    # df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
-    df = df.dropna(axis=1, how = 'all')  # drop empty columns if exists
     # ---- Format DateTimeIndex or float
     df.index.name = 'date'
     # ---- Set columns as multi-index as columns
     midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
     df.columns = midx
+    # am 2023-11-24: in recent version of pandas, inplace is not authorized anymore
+    # and move after multiindex to avoid error on len(tupes) vs. len(df.columns)
+    # df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
+    df = df.dropna(axis=1, how = 'all')  # drop empty columns if exists
     # ---- Trandform inest id to integer
     if nest:
         levels = df.columns.get_level_values('inest').astype(int).unique()
