@@ -461,11 +461,9 @@ class MartheSoil():
                                                                 d.zone, 
                                                                 re_num)
                 # ---- Search pattern
-                match = re.search(re_match, mart_content)
-                # ---- Replace by new value
-                repl = re.sub(match.group(1), "{0:>10.4E}".format(d.value), match.group(0))
+                pattern = f'(\/{d.soilprop.upper()}\/ZONE_SOL\s*Z=\s*{d.zone})(V={re_num};)'
                 # --- Replace inplace in file content
-                mart_content = re.sub(match.group(0), repl, mart_content)
+                mart_content=re.sub(pattern, rf"\1V={d.value:>10.4E};",mart_content)
             # ---- Write new content
             out = self.martfile if filename is None else filename
             with open(out, 'w', encoding=encoding) as f:
