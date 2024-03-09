@@ -1437,7 +1437,9 @@ class MartheOptim():
                     axis=1)
             )
         param_df['parnme'] = param_df['parnme'].str.replace('__','_')
-        param_df.set_index('parnme', drop = False, inplace = True)
+        # am: inplace not allowed since pandas >= 2.0
+        # param_df.set_index('parnme', drop = False, inplace = True)
+        param_df = param_df.set_index('parnme', drop = False)
 
         # -- Disable parameter transformation (already done by pyMarthe)
         param_df['partrans'] = 'none'

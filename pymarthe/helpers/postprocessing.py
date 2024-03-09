@@ -630,7 +630,9 @@ class PestPostProcessing():
                 par_df = pd.read_csv(self.pst.filename.replace('.pst', '.par.{}'.format(str(it + 1))),
                                      skiprows = [0], usecols = [1],
                                      header = None, sep = r'\s+', index_col = False)
-                par_df.set_index(self.pst.parameter_data.parnme, inplace = True)
+                # am : inplace not allowed anymore in pandas>=2.0
+                # par_df.set_index(self.pst.parameter_data.parnme, inplace = True)
+                par_df = par_df.set_index(self.pst.parameter_data.parnme)
                 par_df.columns = ['it' + str(it + 1)]
                 ipar_list.append(par_df.T)
                 # ---- Concat all values

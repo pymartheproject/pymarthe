@@ -400,8 +400,11 @@ class MarthePump():
         mp.switch_boundnames(switch_dic = {'B1951752/F1': 'F1'})
         """
         # ---- Use .replace method on boundname column
-        self._data['boundname'].replace(switch_dic, inplace=True)
-        self.data['boundname'].replace(switch_dic, inplace=True)
+        # am 2023-11-24: inplace not authorized in newer versions of pandas
+        # self._data['boundname'].replace(switch_dic, inplace=True)
+        self._data['boundname'] = self._data['boundname'].replace(switch_dic)
+        # self.data['boundname'].replace(switch_dic, inplace=True)
+        self.data['boundname'] = self.data['boundname'].replace(switch_dic)
 
 
 

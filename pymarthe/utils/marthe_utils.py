@@ -851,7 +851,12 @@ def read_prn(prnfile = 'historiq.prn'):
     add_skip = 1
     with open(prnfile, 'r', encoding=encoding) as f:
         # ----Fetch 5 first lines of prn file 
-        flines_arr = np.array([f.readline().split('\t')[:-1] for i in range(5)], dtype=list)
+        
+        # am 2023-11-24 : in some version of marthe, no empty col at the end of file.
+        # using [:-1] would drop a real column and raise error while renaming columns in line 904
+        # flines_arr = np.array([f.readline().split('\t')[:-1] for i in range(5)], dtype=list)
+        flines_arr = np.array([f.readline().split('\t') for i in range(5)], dtype=list)
+
         # ---- Create a boolean mask to read only usefull header lines
         mask = [False, True, False, True , False]
         # ---- Select only usefull first lines by mask
@@ -885,7 +890,9 @@ def read_prn(prnfile = 'historiq.prn'):
         df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
                          skiprows=mask.count(True) + add_skip, index_col = 0,
                          parse_dates = True, dayfirst=True)
-        df.drop(df.columns[0], axis=1,inplace=True)
+        # am 2023-11-24: in recent version of pandas, inplace is not authorized anymore
+        # df.drop(df.columns[0], axis=1,inplace=True)
+        df = df.drop(df.columns[0], axis=1)
     else :
         # ---- Get all headers as tuple
         tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][1:]
@@ -893,16 +900,21 @@ def read_prn(prnfile = 'historiq.prn'):
         df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
                          skiprows=mask.count(True) + add_skip, index_col = 0,
                          )
-    df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
     # ---- Format DateTimeIndex or float
     df.index.name = 'date'
     # ---- Set columns as multi-index as columns
     midx = pd.MultiIndex.from_tuples(tuples, names=idx_names)
     df.columns = midx
+    # am 2023-11-24: in recent version of pandas, inplace is not authorized anymore
+    # and move after multiindex to avoid error on len(tupes) vs. len(df.columns)
+    # df.dropna(axis=1, how = 'all', inplace = True)  # drop empty columns if exists
+    df = df.dropna(axis=1, how = 'all')  # drop empty columns if exists
     # ---- Trandform inest id to integer
     if nest:
         levels = df.columns.get_level_values('inest').astype(int).unique()
-        df.columns.set_levels(levels = levels, level='inest', inplace=True)
+        # am 2023-11-24: in recent version of pandas, inplace is not authorized anymore
+        # df.columns.set_levels(levels = levels, level='inest', inplace=True)
+        df.columns = df.columns.set_levels(levels = levels, level='inest')
     # ---- Return prn DataFrame
     return df
 
@@ -960,7 +972,9 @@ def read_histo_file(histo_file):
     # ---- Build histo DataFrame
     cols = ['type','inest','loc_type','x','y','layer','id', 'label']
     df = pd.DataFrame(data, columns = cols)
-    df.set_index('id', inplace = True)
+    # am: remove inplace for pandas (>=2.0)
+    # df.set_index('id', inplace = True)
+    df = df.set_index('id')
     # ---- Return histo DataFrame
     return df
 
@@ -1610,7 +1624,9 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
         # -- Convert to DataFrame skiping the useless additional headers and NaN columns
         zb_df = pd.read_table(StringIO(zb_table), skiprows=[1]).dropna(axis=1)
         # -- Drop numeric date column
-        zb_df.drop(columns=zb_df.columns[1], inplace=True)
+        # am 2023-11-24; inplace not authorized anymore in pandas
+        # zb_df.drop(columns=zb_df.columns[1], inplace=True)
+        zb_df = zb_df.drop(columns=zb_df.columns[1])
         # -- Manage column names
         zb_df.columns = ['date'] + list(zb_df.columns[1:].str.strip())
         # -- Convert date column to datetime format
