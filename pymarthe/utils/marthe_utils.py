@@ -960,6 +960,9 @@ def read_histo_file(histo_file):
     # ---- Build histo DataFrame
     cols = ['type','inest','loc_type','x','y','layer','id', 'label']
     df = pd.DataFrame(data, columns = cols)
+    # convert layer to 0_based
+    df['layer'] = df.layer - 1 
+    print('INFO : layer id in read_histo_file df is 0-based.')
     df.set_index('id', inplace = True)
     # ---- Return histo DataFrame
     return df
