@@ -1453,7 +1453,9 @@ class MartheFieldSeries():
             # -- Manage masked vales
             df  = df[~df['value'].isin(mv)]
             # -- Change column name according to istep
-            df.rename(columns={'value': mf.field}, inplace=True)
+            # am 2023-11-inplace not authorized anymore in pandas
+            # df.rename(columns={'value': mf.field}, inplace=True)
+            df = df.rename(columns={'value': mf.field})
             dfs.append(df)
 
         # -- Concatenate drop duplicated layer,inest,i,j,x,y columns

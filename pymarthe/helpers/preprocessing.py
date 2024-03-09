@@ -88,7 +88,9 @@ def spatial_aggregation(mm, x, y, layer, value, agg = 'sum', trans ='none', only
         agg_df = agg_df.loc[[mm.all_active(n) for n in agg_df.node]]
 
     # -- Rename value column for merging purpose
-    agg_df.rename({'_value': 'value'}, axis = 1, inplace=True)
+    # am 2023-11-24, inplace not allowed anymore in pandas
+    # agg_df.rename({'_value': 'value'}, axis = 1, inplace=True)
+    agg_df = agg_df.rename({'_value': 'value'}, axis = 1)
 
     # -- Merge aggregated/initial DataFrames 
     res = pd.merge(df, agg_df).drop_duplicates('node').drop('_value',axis=1)
@@ -340,7 +342,9 @@ def extract_Hubeau_head_records(code_bss, start_date, end_date):
 
     # ---- Set DateTimeIndex
     df['date'] = pd.to_datetime(df['date_mesure'])
-    df.set_index('date', inplace=True)
+    # am 2023-11-24, inplace not allowed anymore in pandas
+    # df.set_index('date', inplace=True)
+    df = df.set_index('date')
 
     # ---- Return DataFrame
     return df
