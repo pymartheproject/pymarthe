@@ -975,9 +975,7 @@ def read_histo_file(histo_file):
     # convert layer to 0_based
     df['layer'] = df.layer - 1 
     print('INFO : layer id in read_histo_file df is 0-based.')
-    df.set_index('id', inplace = True)
     # am: remove inplace for pandas (>=2.0)
-    # df.set_index('id', inplace = True)
     df = df.set_index('id')
     # ---- Return histo DataFrame
     return df
