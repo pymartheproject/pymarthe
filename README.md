@@ -38,6 +38,13 @@ PyMarthe (v1.0) is a python wrapper acting as a "coupling interface" between [MA
 
 <br></br>
 
+Documentation
+-----------------------------------------------
+
+PyMarthe classes and function documentation in English can be found [here](https://pymarthe.readthedocs.io/en/latest/) 
+
+Users are also invited to read the PyMarthe user manual (in French) and examples provided as Jupyter notebooks in this repository. 
+
 Getting Started
 -----------------------------------------------
 
