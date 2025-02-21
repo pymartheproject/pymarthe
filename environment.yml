@@ -1,0 +1,18 @@
+# use : `conda env create -n pymarthe -f env.yml`
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - pandas>=1.5
+  - matplotlib
+  - pip
+  - Rtree
+  - appdirs
+  - pathlib2
+  - ast
+  - pyshp
+  - pyemu
+  - pyvista
+  - vtk
+  - imageio
+  
