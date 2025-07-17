@@ -461,7 +461,11 @@ class MartheSoil():
                                                                 d.zone, 
                                                                 re_num)
                 # ---- Search pattern
-                pattern = f'(\/{d.soilprop.upper()}\/ZONE_SOL\s*Z=\s*{d.zone})(V={re_num};)'
+                pattern = r'(\/{0}\/ZONE_SOL\s*Z=\s*{1})(V={2};)'.format(
+                    d.soilprop.upper(),
+                    d.zone,
+                    re_num
+                )
                 # --- Replace inplace in file content
                 mart_content=re.sub(pattern, rf"\1V={d.value:>10.4E};",mart_content)
             # ---- Write new content
