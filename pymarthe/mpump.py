@@ -12,13 +12,14 @@ import warnings
 
 encoding = 'latin-1'
 
+
 class MarthePump():
     """
     Class for handling Marthe pumping data.
 
     """
 
-    def __init__(self, mm, pastp_file = None,  mode = 'aquifer', verbose=False):
+    def __init__(self, mm, pastp_file=None, mode='aquifer', verbose=False):
         """
         MarthePump class : available for aquifer or river pumping.
 
@@ -60,10 +61,6 @@ class MarthePump():
         if verbose:
             self._verbose()
 
-
-
-
-
     def _verbose(self):
         """
         Perform some classic checks about pumping data validity and print
@@ -78,37 +75,32 @@ class MarthePump():
             for node in self.data['node']:
                 if self.mm.imask.data['value'][node] == 0:
                     coords = 'Node = {}, Layer = {}, Nested = {}, Row = {}, Column = {} .'.format(
-                                    node,
-                                    self.mm.imask.data['layer'][node],
-                                    self.mm.imask.data['inest'][node],
-                                    self.mm.imask.data['i'][node],
-                                    self.mm.imask.data['j'][node]
-                                )
+                        node,
+                        self.mm.imask.data['layer'][node],
+                        self.mm.imask.data['inest'][node],
+                        self.mm.imask.data['i'][node],
+                        self.mm.imask.data['j'][node]
+                    )
                     warnings.warn(warn_msg + coords)
         except:
             pass
 
-
-
         # -- Search for several pumping data on same node
         warn_msg = "Multiple pumping condition in same cell : "
         try:
-            agg = self.data.groupby(['istep','node'], as_index=False).size()
+            agg = self.data.groupby(['istep', 'node'], as_index=False).size()
             nodes = agg.loc[agg['size'] > 1, 'node'].unique()
             for node in nodes:
                 coords = 'Node = {}, Layer = {}, Nested = {}, Row = {}, Column = {} .'.format(
-                                node,
-                                self.mm.imask.data['layer'][node],
-                                self.mm.imask.data['inest'][node],
-                                self.mm.imask.data['i'][node],
-                                self.mm.imask.data['j'][node]
-                            )
+                    node,
+                    self.mm.imask.data['layer'][node],
+                    self.mm.imask.data['inest'][node],
+                    self.mm.imask.data['i'][node],
+                    self.mm.imask.data['j'][node]
+                )
                 warnings.warn(warn_msg + coords)
         except:
             pass
-
-
-
 
     def _extract_data(self, mode):
         """
@@ -129,7 +121,7 @@ class MarthePump():
         mp._extract_data()
 
         """
-        
+
         # ---- Manage 'aqpump'
         if self.mode == 'aquifer':
             d, _d = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
@@ -137,20 +129,36 @@ class MarthePump():
         # ---- Manage 'rivpump'
         elif self.mode == 'river':
             # ---- Convert aff/trc data in column, line, plan (layer) format in .pastp file
-            marthe_utils.convert_at2clp(self.pastp_file, mm = self.mm)
+            marthe_utils.convert_at2clp(self.pastp_file, mm=self.mm)
             d, _d = marthe_utils.extract_pastp_pumping(self.pastp_file, mode)
 
         # -- Manage xy inputs
-        if all(loc in d.columns for loc in list('xy')):
-            # -- Print message to inform about convertion
+        if all(loc in d.columns for loc in ['x', 'y']):
             print('Converting xy pumping data into row(s), column(s) ...')
-            # -- Get all nodes
-            nodes = self.mm.get_node(x=_d.x,y=_d.y,layer=_d.layer)
-            # -- Perform query on modlegrid
-            _d[['node','i','j']] = self.mm.query_grid(node=nodes, target=['i','j']).reset_index()
-            # -- Push to class attribute
-            self.data, self._data = _d[self.vars], _d[self._vars + ['x','y']]
+            # -- In case that col x and y have nan values
+            if _d['x'].isna().any() or _d['y'].isna().any():
+                # -- Keep only rows with valid x and y
+                _d_clean = _d.dropna(subset=['x', 'y'])
 
+                # -- Get nodes and query model grid
+                nodes = self.mm.get_node(x=_d_clean['x'], y=_d_clean['y'], layer=_d_clean['layer'])
+                grid_info = self.mm.query_grid(node=nodes, target=['i', 'j']).reset_index()
+
+                # -- Update _d_clean with grid info
+                _d_clean = _d_clean.reset_index(drop=False)
+                _d_clean[['node', 'i', 'j']] = grid_info
+                _d_clean.set_index('index', inplace=True)
+
+                # -- Update original DataFrame with computed data
+                _d.loc[_d_clean.index, ['node', 'i', 'j']] = _d_clean[['node', 'i', 'j']]
+            else:
+                # -- All rows are valid: process directly
+                nodes = self.mm.get_node(x=_d['x'], y=_d['y'], layer=_d['layer'])
+                _d[['node', 'i', 'j']] = self.mm.query_grid(node=nodes, target=['i', 'j']).reset_index()
+            # -- Push final data to class attributes
+            self.data = _d[self.vars]
+            self._data = _d[self._vars + ['x', 'y']]
+            print(self.data, self._data)
         # -- Manage ij inputs
         else:
             # -- Perform query on modelgrid
@@ -158,21 +166,16 @@ class MarthePump():
             # -- Push to class attribute
             self.data, self._data = _d[self.vars], _d[self._vars]
 
-
         # ---- Set generic boundnames
         digits = len(str(self.data.node.max()))
-        bdnmes =  ['{}_{}'.format(
-                        self.prop_name,
-                        str(node).zfill(digits)
-                        )
-                    for node in self.data.node]
-        self.data['boundname'], self._data['boundname'] = [bdnmes]*2
+        bdnmes = ['{}_{}'.format(
+            self.prop_name,
+            str(node).zfill(digits)
+        )
+            for node in self.data.node]
+        self.data['boundname'], self._data['boundname'] = [bdnmes] * 2
 
-
-
-
-
-    def get_data(self, istep=None, node=None, layer=None, i=None, j=None, boundname=None, force=False , as_mask=False):
+    def get_data(self, istep=None, node=None, layer=None, i=None, j=None, boundname=None, force=False, as_mask=False):
         """
         Function to select/subset pumping data.
 
@@ -222,13 +225,13 @@ class MarthePump():
 
         # ---- Build query (format: q = 'column_0 in [value_0,..] & ...'')
         q = ' & '.join(
-                ["{} in {}".format(k, list(self.data[k].unique())) 
-                    if v is None else "{} in {}".format(k, list(marthe_utils.make_iterable(v)))
-                    for k, v 
-                    in zip(col_query, [istep,node,layer,i,j,boundname])
-                    ]
-                        )
-        
+            ["{} in {}".format(k, list(self.data[k].unique()))
+             if v is None else "{} in {}".format(k, list(marthe_utils.make_iterable(v)))
+             for k, v
+             in zip(col_query, [istep, node, layer, i, j, boundname])
+             ]
+        )
+
         # ---- Force all provided isteps (slow)
         if force:
             # -- Subset (without timestep)
@@ -238,7 +241,7 @@ class MarthePump():
                 df = df_ss.loc[df_ss.istep == istep]
                 # -- If istep not provided in pastp file
                 if df.empty:
-                    nip = df_ss.loc[df_ss.istep < istep, 'istep'].max()   # nip = nearest previous istep
+                    nip = df_ss.loc[df_ss.istep < istep, 'istep'].max()  # nip = nearest previous istep
                     np_df = df_ss[df_ss.istep == nip]
                     np_df['istep'] = istep
                     dfs.append(np_df)
@@ -268,11 +271,6 @@ class MarthePump():
         else:
             return df
 
-
-
-
-
-
     def set_data_from_parfile(self, parfile, keys, value_col, btrans):
         """
         """
@@ -281,7 +279,7 @@ class MarthePump():
         # -- Get kmi and transformed values
         kmi, bvalues = pest_utils.parse_mlp_parfile(parfile, keys, value_col, btrans)
         # find intersection of keys with parameter data columns
-        for k in kmi.names :
+        for k in kmi.names:
             if k not in df.columns:
                 kmi = kmi.droplevel(k)
         # -- Convert to MultiIndex Dataframe
@@ -291,9 +289,6 @@ class MarthePump():
         data = mi_df.reset_index()
         # -- Set data inplace
         self.data, self._data = data[self.vars], data[self._vars]
-
-
-
 
     def set_data(self, value, istep=None, node=None, layer=None, i=None, j=None, boundname=None):
         """
@@ -340,9 +335,6 @@ class MarthePump():
         # ---- Replace previous data
         self._data, self.data = df[self._vars], df[self.vars]
 
-
-
-
     def get_boundnames(self, istep=None, layer=None, i=None, j=None):
         """
         Function to get boundname on subset data.
@@ -380,8 +372,6 @@ class MarthePump():
         # ---- Return boundnames as list of string
         return boundnames
 
-
-
     def switch_boundnames(self, switch_dic):
         """
         Function to change boundname of a pumping point by another.
@@ -405,9 +395,6 @@ class MarthePump():
         self._data['boundname'] = self._data['boundname'].replace(switch_dic)
         # self.data['boundname'].replace(switch_dic, inplace=True)
         self.data['boundname'] = self.data['boundname'].replace(switch_dic)
-
-
-
 
     def split_qtype(self, qtype=None):
         """
@@ -444,17 +431,13 @@ class MarthePump():
         gb = self._data.groupby('qtype')
 
         # ---- Split data by qtype
-        dfs = [gb.get_group(qt) 
+        dfs = [gb.get_group(qt)
                if qt in self._data['qtype'].unique()
-               else pd.DataFrame() 
+               else pd.DataFrame()
                for qt in qtypes]
 
         # ---- Return list of (required) DataFrames
         return dfs
-
-
-
-
 
     def _write_mail(self):
         """
@@ -504,11 +487,11 @@ class MarthePump():
                 df = mail_df.loc[mail_df['istep'] == istep]
                 # ---- Update replace dictionary for this istep
                 repl_dic = {}
-                for i,row in df.iterrows():
-                    c,l,p,v = row[['j','i','layer','value']].astype(str)
-                    match = r''.join(['C=', sp, c, 'L=', sp, l, 
-                                     'P=', sp, p, 'V=', sp, re_num])
-                    repl = 'C={:>7}L={:>7}P={:>7}V={:>10}'.format(c,l,p,v)
+                for i, row in df.iterrows():
+                    c, l, p, v = row[['j', 'i', 'layer', 'value']].astype(str)
+                    match = r''.join(['C=', sp, c, 'L=', sp, l,
+                                      'P=', sp, p, 'V=', sp, re_num])
+                    repl = 'C={:>7}L={:>7}P={:>7}V={:>10}'.format(c, l, p, v)
                     repl_dic[match] = repl
                 # ---- stock as new line
                 new_lines.append(line)
@@ -528,8 +511,6 @@ class MarthePump():
         # ---- Write all data
         with open(self.pastp_file, 'w') as f:
             f.write(''.join(new_lines))
-
-
 
     def _write_record(self):
         """
@@ -559,7 +540,7 @@ class MarthePump():
         # ---- Set usefull regex
         re_block = r";\s*\*{3}\s*\n(.*?)/\*{5}"
         re_num = r"[-+]?\d*\.?\d+|\d+"
-        re_jikv = r"C=\s*({})L=\s*({})P=\s*({})V=\s*({});".format(*[re_num]*4)
+        re_jikv = r"C=\s*({})L=\s*({})P=\s*({})V=\s*({});".format(*[re_num] * 4)
 
         # ---- Define mode tag
         mode_tag = '/DEBIT/' if self.mode == 'aquifer' else '/Q_EXTER_RIVI/'
@@ -571,7 +552,7 @@ class MarthePump():
         for line in steady_block.splitlines(True):
             if all(s in line for s in [mode_tag + 'MAIL', 'File=']):
                 # ---- Fetch localisation infos
-                c,l,p,v = map(ast.literal_eval, re.findall(re_jikv, line)[0])
+                c, l, p, v = map(ast.literal_eval, re.findall(re_jikv, line)[0])
                 # ---- Query record DataFrame
                 q = f'i == {l} & j == {c} & layer == {p} & istep == 0'
                 new_v = rec_df.query(q)['value'].values[0]
@@ -585,17 +566,14 @@ class MarthePump():
         # ---- Rewrite transient data in external file       
         for qfilename in rec_df['qfilename'].unique():
             # ---- Read external file 
-            df = pd.read_csv(qfilename,  delim_whitespace=True)
+            df = pd.read_csv(qfilename, delim_whitespace=True)
             # ---- Set new values
             rec_df_ss = rec_df.query(f"istep != 0 & qfilename == '{qfilename}'")
             for qcol, gb in rec_df_ss.groupby('qcol'):
-                df.iloc[:,int(qcol)] = gb['value'].values
+                df.iloc[:, int(qcol)] = gb['value'].values
             # ---- Rewrite external file
             # NOTE should be updated with to_string()
-            df.to_csv(qfilename, sep = '\t',header = True,index = False)
-
-
-
+            df.to_csv(qfilename, sep='\t', header=True, index=False)
 
     def _write_listm(self):
         """
@@ -622,25 +600,23 @@ class MarthePump():
         listm_df[['layer', 'i', 'j']] = listm_df[['layer', 'i', 'j']].add(1)
 
         # ---- Write (modified) data
-        for (istep, qfilename), data in listm_df.groupby(['istep','qfilename']):
+        for (istep, qfilename), data in listm_df.groupby(['istep', 'qfilename']):
             df = pd.read_csv(qfilename, header=None, delim_whitespace=True)
             for qcol, gb in data.groupby('qcol'):
-                df.iloc[:,int(qcol)] = gb['value'].values
+                df.iloc[:, int(qcol)] = gb['value'].values
             #df.to_csv(qfilename, sep='\t', header=False, index=False)
             # format definition flexible to handle both "x, y, value" and "value, ligne, colonne, plan"
             # fixed-width format (check widths !)
             FFMT = lambda x: "{0:>20.10E} ".format(float(x))
             IFMT = lambda x: "{0:>6d} ".format(int(x))
-            fmt_dic = {'i':IFMT,'f':FFMT} 
-            formatters = [ fmt_dic[df[c].dtype.kind] for c in df]
+            fmt_dic = {'i': IFMT, 'f': FFMT}
+            formatters = [fmt_dic[df[c].dtype.kind] for c in df]
             with open(qfilename, 'w', encoding=encoding) as f:
-                    f.write(df.to_string( col_space=0,
-                                          formatters=formatters,
-                                         justify="left", header=False, index=False, 
-                                         index_names=False, 
-                                         max_rows = len(df), min_rows = len(df) ) )
-
-
+                f.write(df.to_string(col_space=0,
+                                     formatters=formatters,
+                                     justify="left", header=False, index=False,
+                                     index_names=False,
+                                     max_rows=len(df), min_rows=len(df)))
 
     def write_data(self):
         """
@@ -676,7 +652,6 @@ class MarthePump():
         # ---- Write multiple cell / single condition (listm)
         if not listm_df.empty:
             self._write_listm()
-
 
     def __str__(self):
         """
