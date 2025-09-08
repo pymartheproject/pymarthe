@@ -35,6 +35,7 @@ print(
 # ---- Imports from main library
 from .marthe import MartheModel
 from .mfield import MartheField
+from .mfield import MartheFieldSeries
 from .moptim import MartheOptim
 from .msoil import MartheSoil
 from .mpump import MarthePump
