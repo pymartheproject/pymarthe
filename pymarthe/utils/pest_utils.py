@@ -264,7 +264,7 @@ def read_config(configfile):
     re_hblock = r'\*{3}(.+?)\*{3}'
     re_pblock = r'\[START_PARAM\](.+?)\[END_PARAM\]'
     re_oblock = r'\[START_OBS\](.+?)\[END_OBS\]'
-    re_item_hblock = r'(.+):\s*(.+)\n'
+    re_item_hblock = r'(.+?):\s*(.+)\n'
     re_item_block = r'(.+)=\s*(.+)\n'
     
 

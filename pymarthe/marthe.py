@@ -482,6 +482,8 @@ class MartheModel():
         # ---- Load permh field
         imask = MartheField('imask', self.mlfiles['permh'], self)
         # ---- Change data to binary
+        # Replace 9999 values by 0
+        imask.data['value'][imask.data['value'] == 9999] = 0
         imask.data['value'] = (imask.data['value'] != 0).astype(int)
         # ---- Return MartheField instance
         return imask
@@ -604,6 +606,7 @@ class MartheModel():
         # -- Build MartheModel from configuration file
         hdic, pdics, _ = pest_utils.read_config(configfile)
         si = None if hdic['Model spatial index'] == 'None' else hdic['Model spatial index']
+        print(hdic)
         mm = cls(hdic['Model full path'], spatial_index=si)
 
         # -- Iterate over parameter dictionaries

@@ -1051,7 +1051,7 @@ class MartheGridParam():
                     cov.to_coo(kfac_file.replace('.fac', '.jcb')) # Format = `coo` to avoid 12 char length limit
 
 
-
+    # TODO : get_param_df also a method of MartheOptim class. Maybe be confusive..
     def get_param_df(self, transformed=False):
         """
         Join all parameter informations in a single DataFrame

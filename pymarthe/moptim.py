@@ -6,7 +6,7 @@ Designed for structured grid
 
 import os, sys
 import numpy as np
-import pandas as pd 
+import pandas as pd
 import pyemu
 import warnings
 from datetime import datetime
@@ -30,7 +30,7 @@ base_param = ['parnme', 'trans', 'btrans', 'parchglim',
               'pargp', 'scale', 'offset', 'dercom']
 
 
-# ---- Set encoding 
+# ---- Set encoding
 encoding = 'latin-1'
 
 
@@ -112,7 +112,7 @@ class MartheOptim():
 
 
 
-
+    # TODO : get_param_df also a method of MartheGridParam class. Maybe be confusive..
     def get_param_df(self, transformed=False):
         """
         Get all parameters informations in a large DataFrame.
@@ -267,7 +267,7 @@ class MartheOptim():
             return exi, uni
         # ---- Empty return for inactive check
         elif error == 'off':
-            return 
+            return
 
 
 
@@ -346,7 +346,7 @@ class MartheOptim():
             assert ('value' in data.columns), err_msg
             # -- Get locnme if not provided
             locnme = f'loc{str(self.get_nlocs()).zfill(3)}' if locnme is None else locnme
-        
+
         # ---- Avoid adding same locnme multiple times
         if locnme in self.obs.keys():
             # -- Raise warning message
@@ -378,7 +378,7 @@ class MartheOptim():
                                f'are out of actual model time window ({self.tw_min} - {self.tw_max}). ' \
                                'They will not be considered.'
                     warnings.warn(warn_msg)
-        except : # no date format 
+        except : # no date format
             df_tw = df
 
         # ---- Build MartheObs instance from data input
@@ -598,7 +598,7 @@ class MartheOptim():
         for ln in locnmes:
             self.obs[ln].write_insfile()
 
-            
+
 
     def write_simfile(self, locnme=None, prnfile=None):
         """
@@ -702,7 +702,7 @@ class MartheOptim():
                 new_dt = self.obs[ln].datatype + tag + 'f'
                 self.add_obs(data = df, locnme = new_locnme,
                              datatype = new_dt, check_loc = False,
-                             fluc_dic = {'tag':tag,'on':on}, 
+                             fluc_dic = {'tag':tag,'on':on},
                             **kwargs)
             else:
                 warn_msg = f"WARNING : could not found observation with `locnme` = {ln}. " \
@@ -764,10 +764,6 @@ class MartheOptim():
                 self.obs[locnme].weight = w
                 self.obs[locnme].obs_df['weight'] = w
 
-
-
-
-
     def add_param(self, parname, mobj, **kwargs):
         """
         Add a parameter a set of parameters.
@@ -803,7 +799,7 @@ class MartheOptim():
         Examples
         -----------
         # -- Example on pumping data
-        mm.load_prop('soil')
+        mm.load_prop('aqpump')
         mp = mm.prop['aqpump']
         kmi_p31 = pest_utils.get_kmi(mp, keys = ['boundname', 'layer', 'istep'], boundname = 'p31')
         mgp.add_param(parname='p31', mobj=mp,
@@ -1173,7 +1169,7 @@ class MartheOptim():
                                exe_name= 'Marth_R8')
 
         """
-        
+
         with open(fr_file, 'w', encoding='utf-8') as f:
 
             # ---- Print artistic header
@@ -1224,7 +1220,7 @@ class MartheOptim():
                 for i, func in enumerate(ext_func):
                     # -- Assert that item is a function
                     err_msg = 'ERROR : All single items in `extra_functions` must be callable. ' \
-                              f'Given : {type(func)}' 
+                              f'Given : {type(func)}'
                     assert callable(func), err_msg
                     f.write(f"# -- Extra function n°{i+1}\n")
                     # -- Get source code of the function
@@ -1242,7 +1238,7 @@ class MartheOptim():
             # -- Perform a forward run from .config file
             f.write('\t# -- Run model from .config file\n')
             run_lines = ['\tpymarthe.utils.pest_utils.run_from_config(',
-                        f'"{configfile}"',
+                        f'r"{configfile}"',
                         *[f', {k}={v}' if isinstance(v,(type(None), bool)) else f', {k}="{v}"' for k,v in kwargs.items()],
                         ')\n']
             f.write(''.join(run_lines))
