@@ -1624,12 +1624,12 @@ class MartheModel():
         """
         Private function for checking spatial index files. Intent to capture a
         FileNotFoundError if index files are not found. While rtree.index.Index will
-        not return an Error, it creates an empty index.Index instead.
+        not return an Error but creates an empty index.Index instead.
 
         Parameters
         ----------
         spatial_index : str
-            The path to the spatial index prefix file (without extension).
+            The relative or absolute path to the spatial index prefix file (without extension).
 
         Raises
         ------
