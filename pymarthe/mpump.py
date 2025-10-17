@@ -225,11 +225,11 @@ class MarthePump():
 
         # ---- Build query (format: q = 'column_0 in [value_0,..] & ...'')
         q = ' & '.join(
-            ["{} in {}".format(k, list(self.data[k].unique()))
-             if v is None else "{} in {}".format(k, list(marthe_utils.make_iterable(v)))
-             for k, v
-             in zip(col_query, [istep, node, layer, i, j, boundname])
-             ]
+            [
+                "{} in {}".format(k, self.data[k].unique().tolist()) if v is None
+                else "{} in {}".format(k, list(marthe_utils.make_iterable(v)))
+                for k, v in zip(col_query, [istep, node, layer, i, j, boundname])
+            ]
         )
 
         # ---- Force all provided isteps (slow)
