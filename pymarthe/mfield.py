@@ -61,8 +61,14 @@ class MartheField():
         -----------
         mm.mobs.compute_weights(lambda_dic)
         """
-        self.field = field
+        # ----Check for mm type, avoid futures checks and uncaptured errors
+        from .marthe import MartheModel
+        if not isinstance(mm, MartheModel):
+            raise TypeError(f"mm must be a MartheModel, not a {type(mm).__name__}")
+
+        # ---- Set attributes
         self.mm = mm
+        self.field = field
         self.dmv = dmv
         self.use_imask = use_imask
         self.set_data(data)
@@ -337,7 +343,7 @@ class MartheField():
             if len(data.shape) == 3 and layer is None:
                 self.data = self.get_masked(self._3d2rec(data))
             elif len(data.shape) == 2 and layer is not None:
-                self.data = self.get_masked(self._2d2rec(data,layer))
+                self.data = self.get_masked(self._2d2rec(data, layer))
             else:
                 raise ValueError(err_msg)
 
@@ -503,15 +509,6 @@ class MartheField():
         rec = mf._grid2rec('mymodel.emmca')
 
         """
-        # TODO : may be remove ? Actualy this check is late,
-        # TODO : we may check the mm instance in the MartheField class __init__()
-        # TODO : Will be fixed with a minor commit
-        # ---- Assert MartheModel exist
-        err_msg = "ERROR: Building a `MartheField` instance from a 3D-array " \
-                  "require a referenced `MartheModel` instance. " \
-                  "Try MartheField(field, data, mm = MartheModel('mymodel.rma'))."
-        assert self.mm.__str__() == 'MartheModel', err_msg
-
         # ---- Fetch basic model structure
         rec = deepcopy(self.mm.imask.data)
         df = pd.DataFrame.from_records(rec)
@@ -539,16 +536,9 @@ class MartheField():
                             for each model grid cell such as layer,
                             inest, value, ...
         """
-        # ---- Assert MartheModel exist
-        err_msg = "ERROR: Building a `MartheField` instance from a 3D-array " \
-                  "require a referenced `MartheModel` instance. " \
-                  "Try MartheField(field, data, mm = MartheModel('mymodel.rma'))."
-        assert self.mm.__str__() == 'MartheModel', err_msg
-
         # ---- Fetch basic model structure
         rec = deepcopy(self.mm.imask.data)
         df = pd.DataFrame.from_records(rec)
-
         mask = (df.layer == layer) & (df.inest == 0)
         df.loc[mask, 'value'] = arr.ravel()
 
