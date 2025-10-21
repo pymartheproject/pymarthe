@@ -128,6 +128,7 @@ class MartheModel():
         # ---- Manage spatial index instance
         # From existing external file
         if isinstance(spatial_index, str):
+            spatial_index = self._check_si_input(spatial_index)
             self.si_state = 1       # activate spatial index
             from rtree.index import Index
             self.spatial_index = Index(spatial_index)
@@ -1653,6 +1654,42 @@ class MartheModel():
                                           external= external,
                                           new_pastpfile= new_pastpfile)
 
+    def _check_si_input(self, spatial_index: str) -> str:
+        """
+        Removes '.dat' or '.idx' if provde by the user.
+        Intent to capture a FileNotFoundError if index files are not found.
+
+        Parameters
+        ----------
+        spatial_index : str
+            The relative or absolute path to the spatial index prefix file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the corresponding '.dat' or '.idx' files do not exist.
+        Returns
+        ------
+            spatial_index : path to the spatial index file fixed.
+        """
+
+        # Fix spatial_index argument if it's not valid (remove extention)
+        if spatial_index.endswith(('.dat', '.idx')):
+            spatial_index_fix = spatial_index[:-4]
+        else:
+            spatial_index_fix = spatial_index
+
+        # Checks if spatial_index files exist
+        spatial_index_dat = spatial_index_fix + ".dat"
+        spatial_index_idx = spatial_index_fix + ".idx"
+        if (not os.path.exists(spatial_index_dat) or not
+                os.path.exists(spatial_index_idx)):
+            raise FileNotFoundError(
+                f"Path or file '{os.path.join(os.getcwd(), spatial_index_idx)}' or "
+                f"'{os.path.join(os.getcwd(), spatial_index_dat)}' do not exists."
+            )
+
+        return spatial_index_fix
 
     def __str__(self):
         """
