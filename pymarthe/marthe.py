@@ -721,14 +721,14 @@ class MartheModel():
         """
         marthe_utils.remove_autocal(self.rma_file, self.mlfiles['mart'])
 
-    def make_silent(self):
+    def set_verbosity(self, silent: bool) -> None:
         """
-        Function to make marthe run silent
+        Function to run marthe model either silently or with verbose output
 
         Parameters:
         ----------
         self : MartheModel instance
-
+        silent : bool
         Returns:
         --------
         Write in .mart inplace
@@ -736,9 +736,9 @@ class MartheModel():
         Examples:
         --------
         mm = MartheModel(rma_file)
-        mm.make_silent()
+        mm.set_verbosity(silent=True)
         """
-        marthe_utils.make_silent(self.mlfiles['mart'])
+        marthe_utils.set_verbosity(self.mlfiles['mart'], silent)
 
     def get_outcrop(self, as_2darray=False, base=0):
         """
@@ -1309,9 +1309,8 @@ class MartheModel():
         buff = []
         normal_msg = 'normal termination'
 
-        # ---- Force model to run as silent if required
-        if silent:
-            self.make_silent()
+        # ---- Set the verbosity of the model
+        self.set_verbosity(silent)
 
         # ---- Check to make sure that program and namefile exist
         exe = which(exe_name)
