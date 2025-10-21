@@ -129,7 +129,7 @@ class MartheModel():
         # ---- Manage spatial index instance
         # From existing external file
         if isinstance(spatial_index, str):
-            self._check_si_files(spatial_index)
+            spatial_index = self._check_si_input(spatial_index)
             self.sifile = spatial_index
             self.si_state = 1  # activate spatial index
             from rtree.index import Index
@@ -1619,39 +1619,42 @@ class MartheModel():
                                           external=external,
                                           new_pastpfile=new_pastpfile)
 
-    def _check_si_files(self, spatial_index: str) -> None:
+    def _check_si_input(self, spatial_index: str) -> str:
         """
-        Private function for checking spatial index files. Intent to capture a
-        FileNotFoundError if index files are not found. While rtree.index.Index will
-        not return an Error but creates an empty index.Index instead.
+        Removes '.dat' or '.idx' if provde by the user.
+        Intent to capture a FileNotFoundError if index files are not found.
 
         Parameters
         ----------
         spatial_index : str
-            The relative or absolute path to the spatial index prefix file (without extension).
+            The relative or absolute path to the spatial index prefix file.
 
         Raises
         ------
-        ValueError
-            If the spatial_index string ends with '.dat' or '.idx'.
         FileNotFoundError
             If the corresponding '.dat' or '.idx' files do not exist.
+        Returns
+        ------
+            spatial_index : path to the spatial index file fixed.
         """
 
-        # Checks if spatial_index argument is valid
+        # Fix spatial_index argument if it's not valid (remove extention)
         if spatial_index.endswith(('.dat', '.idx')):
-            raise ValueError(
-                "spatial_index argument does not support extension like"
-                "'.dat' or '.idx'. \n Just provide the prefix without extension")
-        spatial_index_dat = spatial_index + ".dat"
-        spatial_index_idx = spatial_index + ".idx"
+            spatial_index_fix = spatial_index[:-4]
+        else:
+            spatial_index_fix = spatial_index
+
         # Checks if spatial_index files exist
+        spatial_index_dat = spatial_index_fix + ".dat"
+        spatial_index_idx = spatial_index_fix + ".idx"
         if (not os.path.exists(spatial_index_dat) or not
                 os.path.exists(spatial_index_idx)):
             raise FileNotFoundError(
-                f"Paths to the index files '{spatial_index_idx}' and "
-                f"'{spatial_index_dat}' do not exist."
+                f"Path or file '{os.path.join(os.getcwd(), spatial_index_idx)}' or "
+                f"'{os.path.join(os.getcwd(), spatial_index_dat)}' do not exists."
             )
+
+        return spatial_index_fix
 
     def __str__(self):
         """
