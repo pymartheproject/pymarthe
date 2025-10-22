@@ -1330,8 +1330,7 @@ class MartheModel():
             rma_file = os.path.join(self.mldir, self.rma_file)
 
         if disable_popen:
-            import subprocess
-            buff = subprocess.run([exe, rma_file],capture_output=True, text=True, check=True)
+            buff = sp.run([exe, rma_file],capture_output=True, text=True, check=True)
             success = True
 
         else:
