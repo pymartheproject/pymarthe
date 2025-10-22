@@ -1272,7 +1272,7 @@ class MartheModel():
                 )
             )
 
-    def run_model(self, exe_name='marthe', rma_file=None,
+    def run_model(self, exe_name='marthe', rma_file=None, disable_popen=False,
                   silent=True, verbose=False, pause=False,
                   report=False, cargs=None):
         """
@@ -1329,70 +1329,78 @@ class MartheModel():
         if rma_file is None:
             rma_file = os.path.join(self.mldir, self.rma_file)
 
-        # ---- Simple function for the thread to target
-        def q_output(output, q):
-            for line in iter(output.readline, b''):
-                q.put(line)
+        if disable_popen:
+            import subprocess
+            buff = subprocess.run([exe, rma_file],capture_output=True, text=True, check=True)
+            success = True
 
-        # ---- Create a list of arguments to pass to Popen
-        argv = [exe_name]
-        if rma_file is not None:
-            argv.append(rma_file)
+        else:
 
-        # ---- Add additional arguments to Popen arguments
-        if cargs is not None:
-            cargs = [arg for arg in cargs if isinstance(cargs, str)]
-            for t in cargs:
-                argv.append(t)
+            # ---- Simple function for the thread to target
+            def q_output(output, q):
+                for line in iter(output.readline, b''):
+                    q.put(line)
 
-        # ---- Run the model with Popen
-        proc = sp.Popen(argv, stdout=sp.PIPE, stderr=sp.STDOUT)
+            # ---- Create a list of arguments to pass to Popen
+            argv = [exe_name]
+            if rma_file is not None:
+                argv.append(rma_file)
 
-        # ---- Some tricks for the async stdout reading
-        q = queue.Queue()
-        thread = threading.Thread(target=q_output, args=(proc.stdout, q))
-        thread.daemon = True
-        thread.start()
-        failed_words = ["fail", "error"]
-        last = datetime.now()
-        lastsec = 0.
-        while True:
-            try:
-                line = q.get_nowait()
-            except queue.Empty:
-                pass
-            else:
-                if line == '':
+            # ---- Add additional arguments to Popen arguments
+            if cargs is not None:
+                cargs = [arg for arg in cargs if isinstance(cargs, str)]
+                for t in cargs:
+                    argv.append(t)
+
+            # ---- Run the model with Popen
+            proc = sp.Popen(argv, stdout=sp.PIPE, stderr=sp.STDOUT)
+
+            # ---- Some tricks for the async stdout reading
+            q = queue.Queue()
+            thread = threading.Thread(target=q_output, args=(proc.stdout, q))
+            thread.daemon = True
+            thread.start()
+            failed_words = ["fail", "error"]
+            last = datetime.now()
+            lastsec = 0.
+            while True:
+                try:
+                    line = q.get_nowait()
+                except queue.Empty:
+                    pass
+                else:
+                    if line == '':
+                        break
+                    line = line.decode('latin-1').lower().strip()
+                    if line != '':
+                        now = datetime.now()
+                        dt = now - last
+                        tsecs = dt.total_seconds() - lastsec
+                        line = "elapsed:{0}-->{1}".format(tsecs, line)
+                        lastsec = tsecs + lastsec
+                        buff.append(line)
+                        if not verbose:
+                            print(line)
+                        for fword in failed_words:
+                            if fword in line:
+                                success = False
+                                break
+                if proc.poll() is not None:
                     break
-                line = line.decode('latin-1').lower().strip()
-                if line != '':
-                    now = datetime.now()
-                    dt = now - last
-                    tsecs = dt.total_seconds() - lastsec
-                    line = "elapsed:{0}-->{1}".format(tsecs, line)
-                    lastsec = tsecs + lastsec
-                    buff.append(line)
-                    if not verbose:
-                        print(line)
-                    for fword in failed_words:
-                        if fword in line:
-                            success = False
-                            break
-            if proc.poll() is not None:
-                break
-        proc.wait()
-        thread.join(timeout=1)
-        buff.extend(proc.stdout.readlines())
-        proc.stdout.close()
-        # -- Examine run buff
-        for line in buff:
-            if normal_msg in line:
-                print("success")
-                success = True
-                break
+            proc.wait()
+            thread.join(timeout=1)
+            buff.extend(proc.stdout.readlines())
+            proc.stdout.close()
+            # -- Examine run buff
+            for line in buff:
+                if normal_msg in line:
+                    print("success")
+                    success = True
+                    break
 
-        if pause:
-            input('Press Enter to continue...')
+            if pause:
+                input('Press Enter to continue...')
+
         return success, buff
 
     def get_vtk(self, vertical_exageration=0.05, hws=None,
