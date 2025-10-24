@@ -128,6 +128,7 @@ class MartheModel():
         # ---- Manage spatial index instance
         # From existing external file
         if isinstance(spatial_index, str):
+            spatial_index = self._check_si_input(spatial_index)
             self.si_state = 1       # activate spatial index
             from rtree.index import Index
             self.spatial_index = Index(spatial_index)
@@ -151,9 +152,6 @@ class MartheModel():
             self.build_modelgrid()
         else:
             self.modelgrid = None
-
-
-
 
     def __iter__(self, only_active=False):
 
@@ -241,7 +239,6 @@ class MartheModel():
                     # -- Incrementation of unique cell id
                     node += 1
 
-
     def build_spatial_index(self, name=None, only_active=False):
         """
         Function to build a spatial index on field data.
@@ -283,9 +280,6 @@ class MartheModel():
         si.flush()
         self.sifile = si_name
         self.spatial_index = si
-
-
-
 
     def build_modelgrid(self, add_z=False):
         """
@@ -352,7 +346,6 @@ class MartheModel():
 
         # -- Set DataFrame to .modelgrid attribute
         self.modelgrid = df
-
 
     def _get_top_bottom_arrays(self):
         """
@@ -426,8 +419,6 @@ class MartheModel():
         # -- Return top and botm arrays
         return _top, _hsubs
 
-
-
     def load_geometry(self, g=None, **kwargs):
         """
         Load and store geometry grid information of a MartheModel instance.
@@ -468,8 +459,6 @@ class MartheModel():
                                           use_imask=kwargs.get('use_imask', False)
                                           )
 
-
-
     def build_imask(self):
         """
         Function to build a imask field based on permh
@@ -495,8 +484,6 @@ class MartheModel():
         imask.data['value'] = (imask.data['value'] != 0).astype(int)
         # ---- Return MartheField instance
         return imask
-
-
 
     def load_prop(self, prop, **kwargs):
         """
@@ -550,9 +537,6 @@ class MartheModel():
         else:
             print(f"Property `{prop}` not supported.")
 
-
-
-
     def write_prop(self, prop=None):
         """
         Write MartheModel required properties by name.
@@ -591,9 +575,6 @@ class MartheModel():
         # -- Write required properties
         for p in props:
             self.prop[p].write_data()
-
-
-
 
     @classmethod
     def from_config(cls, configfile, fmt_lite=False):
@@ -661,7 +642,6 @@ class MartheModel():
         # -- Return MartheModel instance
         return mm
 
-
     def get_extent(self):
         """
         Return the model domain extension.
@@ -687,8 +667,6 @@ class MartheModel():
             extent = self.spatial_index.bounds
         # -- Return
         return extent
-
-
 
     def get_edges(self, closed=False):
         """
@@ -727,10 +705,6 @@ class MartheModel():
         # -- Return
         return edges
 
-
-
-
-
     def remove_autocal(self):
         """
         Function to make marthe auto calibration silent.
@@ -751,16 +725,14 @@ class MartheModel():
         """
         marthe_utils.remove_autocal(self.rma_file, self.mlfiles['mart'])    
 
-
-
-    def make_silent(self):
+    def set_verbosity(self, silent: bool) -> None:
         """
-        Function to make marthe run silent
+        Function to run marthe model either silently or with verbose output
 
         Parameters:
         ----------
         self : MartheModel instance
-
+        silent : bool
         Returns:
         --------
         Write in .mart inplace
@@ -768,11 +740,9 @@ class MartheModel():
         Examples:
         --------
         mm = MartheModel(rma_file)
-        mm.make_silent()
+        mm.set_verbosity(silent=True)
         """
-        marthe_utils.make_silent(self.mlfiles['mart']) 
-
-
+        marthe_utils.set_verbosity(self.mlfiles['mart'], silent)
 
     def get_outcrop(self, as_2darray=False, base=0):
         """
@@ -1368,9 +1338,8 @@ class MartheModel():
         buff = []
         normal_msg='normal termination'
 
-        # ---- Force model to run as silent if required
-        if silent:
-            self.make_silent()
+        # ---- Set the verbosity of the model
+        self.set_verbosity(silent)
 
         # ---- Check to make sure that program and namefile exist
         exe = which(exe_name)
@@ -1693,6 +1662,42 @@ class MartheModel():
                                           external= external,
                                           new_pastpfile= new_pastpfile)
 
+    def _check_si_input(self, spatial_index: str) -> str:
+        """
+        Removes '.dat' or '.idx' if provde by the user.
+        Intent to capture a FileNotFoundError if index files are not found.
+
+        Parameters
+        ----------
+        spatial_index : str
+            The relative or absolute path to the spatial index prefix file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the corresponding '.dat' or '.idx' files do not exist.
+        Returns
+        ------
+            spatial_index : path to the spatial index file fixed.
+        """
+
+        # Fix spatial_index argument if it's not valid (remove extention)
+        if spatial_index.endswith(('.dat', '.idx')):
+            spatial_index_fix = spatial_index[:-4]
+        else:
+            spatial_index_fix = spatial_index
+
+        # Checks if spatial_index files exist
+        spatial_index_dat = spatial_index_fix + ".dat"
+        spatial_index_idx = spatial_index_fix + ".idx"
+        if (not os.path.exists(spatial_index_dat) or not
+                os.path.exists(spatial_index_idx)):
+            raise FileNotFoundError(
+                f"Path or file '{os.path.join(os.getcwd(), spatial_index_idx)}' or "
+                f"'{os.path.join(os.getcwd(), spatial_index_dat)}' do not exists."
+            )
+
+        return spatial_index_fix
 
     def __str__(self):
         """
