@@ -319,8 +319,11 @@ class PilotPoints():
 
 
 
-    def plot(self, layer, zone, buffer=0, ax=None,
-                   zone_kwargs={}, buffer_kwargs={}, pp_kwargs={}):
+    def plot(self,
+        layer, zone, buffer=0, ax=None,
+        zone_kwargs={}, buffer_kwargs={}, pp_kwargs={},
+        rc_font=False
+    ):
         """
         Pilot point internal ploting facility.
 
@@ -348,6 +351,8 @@ class PilotPoints():
 
         pp_kwargs (dict, optional) : matplotlib.pyplot.scatter() arguments for pilot
                                      point ploting (as dictioanry).
+        
+        rc_font (bool, optionnal): change rc_font to 'serif', default is False.
 
         Returns:
         --------
@@ -373,8 +378,9 @@ class PilotPoints():
 
         # -- Prepare basic axe if not provided
         if ax is None:
+            if rc_font:
                 plt.rc('font', family='serif', size=10)
-                fig, ax = plt.subplots(figsize=(8,6))
+            fig, ax = plt.subplots(figsize=(8,6))
 
         # -- Plot pilot point active zone(s) exterior line
         geoms = [polygon] if isinstance(polygon, self.Polygon) else [g for g in polygon.geoms]

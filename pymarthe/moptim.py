@@ -798,7 +798,11 @@ class MartheOptim():
                             - MartheSoil instance  (list)
                             - MarthePump instance  (list)
 
-
+        - kwargs (dict): kwargs parameters to the MartheGridParam
+                         or MartheListParam classes.
+                         Example: `fmt_lite` for a lighter format of
+                         parameter name (lenght <12 char ; compatible
+                         with PEST_HP)
 
         Examples
         -----------
@@ -1147,7 +1151,7 @@ class MartheOptim():
                                                     to import.
                                                     Default is [].
 
-        kwargs : additional argument of MartheModel.run_model() method.
+        kwargs : additional argument of MartheModel.run_model() method and `fmt_lite` (bool).
                  Can be :
                     - `exe_name` (str)
                     - `verbose` (bool)
@@ -1325,7 +1329,7 @@ class MartheOptim():
 
     def build_pst(self, add_reg0= False, write_pst= False,
                         write_config=False, write_fr=False,
-                        model_command=None, **kwargs):
+                        model_command=None, fmt_lite=False, **kwargs):
         """
         Generate Pest Control File from the current observation
         and parameters sets added to MartheOptim instance.
@@ -1366,6 +1370,9 @@ class MartheOptim():
                                              If None and `write_fr` == False, the default command
                                              will be 'model.bat' (no changes from pyemu).
                                              Default is None.
+        
+        fmt_lite (bool, optional) : use a lighter format for parameter names.
+                                    allow the use of PEST_HP (<12 char)
 
         **kwargs, additional internal arguments that refer to the pyemu.Pst:
                 - `control_data` section:
@@ -1417,12 +1424,12 @@ class MartheOptim():
             fr_file = os.path.join(self.mm.mldir, 'forward_run.py')
             if write_config == False:
                 warnings.warn(msg)
-            self.write_forward_run(fr_file, configfile)
+            self.write_forward_run(fr_file, configfile, fmt_lite=fmt_lite)
         elif isinstance(write_fr, str):
             if write_config == False:
                 warnings.warn(msg)
             fr_file = write_fr
-            self.write_forward_run(fr_file, configfile)
+            self.write_forward_run(fr_file, configfile, fmt_lite=fmt_lite)
         elif write_fr == False:
             fr_file = None
 

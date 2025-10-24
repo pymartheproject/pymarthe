@@ -596,7 +596,7 @@ class MartheModel():
 
 
     @classmethod
-    def from_config(cls, configfile):
+    def from_config(cls, configfile, fmt_lite=False):
         """
         Load an existing Marthe model from a configuration file written from 
         pymarthe.MartheOptim.write_config(). The return MartheModel instance
@@ -609,6 +609,7 @@ class MartheModel():
         Parameters:
         ----------
         configfile (str) : parametrization configuration file.
+        fmt_lite (bool) : use a light format for parameter name. Allow use of PEST_HP.
 
         Returns:
         --------
@@ -633,10 +634,14 @@ class MartheModel():
             if pdic['type'] == 'list':
                 #if not prop in mm.prop.keys():
                 mm.load_prop(prop)
-                mm.prop[prop].set_data_from_parfile(parfile = os.path.normpath(pdic['parfile']),
-                                                    keys = pdic['keys'].split(','),
-                                                    value_col = pdic['value_col'],
-                                                    btrans = pdic['btrans'])
+                mm.prop[prop].set_data_from_parfile(
+                    parfile = os.path.normpath(
+                        pdic['parfile']),
+                        keys = pdic['keys'].split(','),
+                        value_col = pdic['value_col'],
+                        btrans = pdic['btrans'],
+                        fmt_lite=fmt_lite
+                    )
             # -- Set grid-like properties
             elif pdic['type'] == 'grid':
                 #if not prop in mm.prop.keys():
@@ -646,9 +651,12 @@ class MartheModel():
                 izone = MartheField(f'i{prop}', os.path.normpath(pdic['izone']), mm, use_imask=use_imask)
                 # -- Set all field values (zpc and pp)
                 for pf in  pdic['parfile'].split(','):
-                    mm.prop[prop].set_data_from_parfile(parfile= os.path.normpath(pf),
-                                                        izone= izone,
-                                                        btrans= pdic['btrans'])
+                    mm.prop[prop].set_data_from_parfile(
+                        parfile= os.path.normpath(pf),
+                        izone= izone,
+                        btrans= pdic['btrans'],
+                        fmt_lite=fmt_lite
+                    )
 
         # -- Return MartheModel instance
         return mm
@@ -1323,7 +1331,7 @@ class MartheModel():
 
 
 
-    def run_model(self,exe_name = 'marthe', rma_file = None, 
+    def run_model(self, exe_name = 'marthe', rma_file = None, 
                       silent = True, verbose=False, pause=False,
                       report=False, cargs=None):
         """

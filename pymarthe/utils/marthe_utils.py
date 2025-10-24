@@ -1360,9 +1360,15 @@ def read_obsfile(obsfile, nodata = None):
     obs_df = read_obsfile(obsfile = 'myobs.dat')
     """
     # ---- Read obsfile
-    data = pd.read_csv(obsfile, delim_whitespace=True,
-                                header=None, skiprows=1,
-                                index_col=0, parse_dates=True)
+    data = pd.read_csv(
+        obsfile,
+        # delim_whitespace=True,  # deprecated
+        sep=r'\s+',
+        header=None,
+        skiprows=1,
+        index_col=0,
+        parse_dates=True
+    )
     # ---- Set standard column names
     df = data.rename(columns = {1 :'value'})
     df.index.name = 'date'

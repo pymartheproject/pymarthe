@@ -17,7 +17,7 @@ from .utils import marthe_utils, shp_utils, pest_utils
 from .utils.grid_utils import MartheGrid
 
 encoding = 'latin-1'
-dmv = [-9999., 0., 9999] # Default field masked values
+dmv = [-9999., 0., 9999]  # Default field masked values
 
 
 class MartheField():
@@ -67,11 +67,10 @@ class MartheField():
         self.use_imask = use_imask
         self.set_data(data)
         self.maxlayer = len(self.to_grids(inest=0))
-        self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
+        self.maxnest = len(self.to_grids(layer=0)) - 1  # inest = 0 is the main grid
 
         # ---- Set property style
         self._proptype = 'grid'
-
 
 
     def get_xyvertices(self, stack=False):
@@ -181,7 +180,7 @@ class MartheField():
 
 
 
-    def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values= list()):
+    def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values=list()):
         """
         Function to select/subset NON-masked values.
 
@@ -369,7 +368,7 @@ class MartheField():
 
 
 
-    def set_data_from_parfile(self, parfile, izone, btrans='none'):
+    def set_data_from_parfile(self, parfile, izone, btrans='none', fmt_lite=False):
         """
         Set field data from parameter file inplace.
 
@@ -383,6 +382,9 @@ class MartheField():
         btrans (str, optional) : string function to back-transform
                                  field values.
                                  Default is 'none'.
+        
+        fmt_lite (bool, optional) : use a lighter format for parameter names.
+                                    allow the use of PEST_HP (<12 char)
 
         Examples:
         --------
@@ -393,7 +395,7 @@ class MartheField():
 
         """
         # ---- Parse grid parameter file
-        ptype, rec = pest_utils.parse_mgp_parfile(parfile, btrans)
+        ptype, rec = pest_utils.parse_mgp_parfile(parfile, btrans, fmt_lite)
 
         # ---- Manage zone of piecewise constancy (zpc) data
         if ptype == 'zpc':
@@ -728,7 +730,7 @@ class MartheField():
 
     def plot(self,  ax=None, layer=0, inest=None, vmin=None,
                     vmax=None, log = False, extent = None,
-                    masked_values = dmv, basemap=False, **kwargs):
+                    masked_values = dmv, basemap=False, rc_font=False, **kwargs):
         """
         Plot data by layer
 
@@ -774,6 +776,8 @@ class MartheField():
                                                              ... ,
                                                              'crs': 'EPSG:2154'}
                                         Default is False.
+        
+        rc_font (bool, optionnal): change rc_font to 'serif', default is False.
 
         **kwargs (optional) : matplotlib.PathCollection arguments.
                               (ex: cmap, lw, ls, edgecolor, ...)
@@ -816,8 +820,9 @@ class MartheField():
         
         # ---- Prepare basic axe if not provided
         if ax is None:
+            if rc_font:
                 plt.rc('font', family='serif', size=10)
-                fig, ax = plt.subplots(figsize=(10,8))
+            fig, ax = plt.subplots(figsize=(10,8))
 
         # ---- Build a collection from rectangles patches and values
         collection = PathCollection(rec['patches'])

@@ -63,28 +63,38 @@ def write_mgp_parfile(parfile, param_df, trans, ptype='zpc'):
 
 
 
-def parse_mgp_parfile(parfile, btrans):
+def parse_mgp_parfile(parfile, btrans, fmt_lite=False):
     """
     """
     # ---- Get parameter file name and path
     path, f = os.path.split(parfile)
 
     # ---- Set regex expression to parse layer and zone
-    re_lz = r"_l(\d+)_z(\d+)"
+    if fmt_lite:
+        re_lz = r"_z(\d+)" 
+    else:
+        re_lz = r"_l(\d+)_z(\d+)"
 
     # ---- Manage parser according to parameter type
     if '_zpc' in f:
         # -- Get parameter type and Dataframe
         ptype = 'zpc'
-        par_df = pd.read_csv(parfile, header=None,
-                                  delim_whitespace=True,
-                                  names = ['parname', 'value'])
+        par_df = pd.read_csv(
+            parfile, header=None,
+            # delim_whitespace=True,  # deprecation warning
+            sep=r'\s+',
+            names = ['parname', 'value']
+        )
         # -- Back-transform values
         par_df['bvalue'] = transform(par_df['value'], btrans)
         # -- Parse names adding new columns
         parse_df = par_df.parname.str.extract(re_lz)
-        par_df['layer'] = parse_df.iloc[:,0].astype(int)-1 # back to 0-based
-        par_df['zone'] = parse_df.iloc[:,1].astype(int).mul(-1) # zpc negative for ZPCs
+        if fmt_lite:
+            par_df['layer'] = parse_df.iloc[:,0].astype(str).str.slice(0,1).astype(int)-1 # back to 0-based
+            par_df['zone']  = parse_df.iloc[:,0].astype(int).mul(-1) # zpc negative for ZPCs
+        else:
+            par_df['layer'] = parse_df.iloc[:,0].astype(int)-1 # back to 0-based
+            par_df['zone']  = parse_df.iloc[:,1].astype(int).mul(-1) # zpc negative for ZPCs
         # -- Transform to records to iteration process easielayer are r
         rec = par_df[['layer','zone', 'bvalue']].to_records(index=False)
         # -- Return zpc parsed as recarray
@@ -494,13 +504,13 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
 
 
 def run_from_config(configfile, run_model=True, **kwargs):
-    """
+    """ Load and Run model from a config file
     """
     print('PERFORMING FORWARD RUN ...')
     # -- Load MartheModel with parametrized properties
     print('\t-> Reading model with updated parameters')
     from pymarthe import MartheModel
-    mm = MartheModel.from_config(configfile)
+    mm = MartheModel.from_config(configfile, fmt_lite=kwargs.pop('fmt_lite', False))
     # -- Overwrite new data from parfiles
     print('\t-> Writing model properties')
     mm.write_prop()

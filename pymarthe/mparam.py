@@ -18,7 +18,8 @@ from copy import deepcopy
 
 # ---- SET UP FORMATTERS ---- #
 # ZPC name format (layer are 0-based within Python ; 1-based out of Python)
-ZPCFMT = lambda name, lay, zone: '{0}_zpc_l{1:02d}_z{2:02d}'.format(name,int(lay)+1,int(abs(zone)))
+ZPCFMT = lambda name, lay, zone: '{0}_zpc_l{1:02d}_z{2:02d}'.format(name, int(lay)+1, int(abs(zone)))
+ZPCFMT_lite = lambda name, zone: '{0}_zpc_z{1:02d}'.format(name, int(abs(zone)))
 FFMT = lambda x: "{0:<20.10E} ".format(float(x))
 IFMT = lambda x: "{0:<10d} ".format(int(x))
 def SFMT(item):
@@ -297,8 +298,8 @@ class MartheGridParam():
     """
     Class for handling Marthe grid-like properties.
     """
-    def __init__(self, parname, mobj, izone=None,  pp_data=None, trans = 'none', 
-                       btrans = 'none', defaultvalue=None, **kwargs):
+    def __init__(self, parname, mobj, izone=None,  pp_data=None, trans='none', 
+                       btrans='none', defaultvalue=None, fmt_lite=False, **kwargs):
         """
         Generator of grid parameter instance base on `izone` (field id zones).
         2 kinds of parameters can be set by zone:
@@ -351,6 +352,9 @@ class MartheGridParam():
                                          If None, the current values of provided field will be taken.
                                          Default is None.
 
+        fmt_lite (bool, optional) : if true, choose a lighter fmt for ZPC parameters name.
+                                    This option make easier to keep params name <12 char,
+                                    as needed by PEST_HP.
 
         **kwargs :  - additional arguments based on pyemu parameter data such as:
                         - parchlim (str)
@@ -385,7 +389,7 @@ class MartheGridParam():
         self.trans = trans
         self.btrans = btrans
         # -- Manage izone
-        self.set_izone(izone)
+        self.set_izone(izone, fmt_lite)
         # -- Manage PEST/pyEMU parameters
         self.parchglim = kwargs.get('parchglim', 'factor')
         self.parlbnd = kwargs.get('parlbnd', 1e-10) 
@@ -401,7 +405,7 @@ class MartheGridParam():
 
 
 
-    def set_izone(self, izone = None):
+    def set_izone(self, izone=None, fmt_lite=False):
         """
         Manage izone (MartheField) input.
         It will detect zone ids:
@@ -459,7 +463,7 @@ class MartheGridParam():
             self.izone_file = izone
 
         # ---- Initialize zpc/pp data
-        self.init_zpc_df()
+        self.init_zpc_df(fmt_lite)
         self.init_pp_dic()
 
 
@@ -538,7 +542,7 @@ class MartheGridParam():
 
 
 
-    def init_zpc_df(self):
+    def init_zpc_df(self, fmt_lite=False):
         """
         Initialise zone of piecewise constancy DataFrame
         """
@@ -553,7 +557,10 @@ class MartheGridParam():
                 # -- Perform zpc computation only when zone id < 0
                 if zone < 0 :
                     # -- Build parname
-                    _names.append(ZPCFMT(self.parname, ilay, zone))
+                    if fmt_lite:
+                        _names.append(ZPCFMT_lite(self.parname, zone))
+                    else:
+                        _names.append(ZPCFMT(self.parname, ilay, zone))
                     _layers.append(ilay)
                     _zones.append(int(zone))
                     # -- Manage not provided default value
