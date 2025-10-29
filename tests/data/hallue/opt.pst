@@ -13,9 +13,9 @@ pcf
   10000000    1.000000E-06
 1
 * parameter groups
-hk_zpc                 relative              1.0000000000E-02      0.0 switch                2.0000000000E+00      parabolic             1.0000000000E-05      5.0000000000E-01      smaller              
+____zpc                relative              1.0000000000E-02      0.0 switch                2.0000000000E+00      parabolic             1.0000000000E-05      5.0000000000E-01      smaller              
 * parameter data
-hk_zpc_z01            none                  factor                1.0000000000E-04      1.0000000000E-10      1.0000000000E+10      hk_zpc                1.0000000000E+00      0.0000000000E+00      1          
+___zpc01z001          none                  factor                1.0000000000E-04      1.0000000000E-10      1.0000000000E+10      ____zpc               1.0000000000E+00      0.0000000000E+00      1          
 * observation groups
 00464X0013           
 00471X0010           
@@ -37287,10 +37287,10 @@ loc005n6209           8.3417560000E+01      1.0000000000E+00      P4
 * model command line
 python3 forward_run.py
 * model input/output
-./tests/data/hallue/tpl/hk_zpc.tpl ./tests/data/hallue/par/hk_zpc.dat
-./tests/data/hallue/ins/00464X0013.ins ./tests/data/hallue/sim/00464X0013.dat
-./tests/data/hallue/ins/00471X0010.ins ./tests/data/hallue/sim/00471X0010.dat
-./tests/data/hallue/ins/P1.ins ./tests/data/hallue/sim/P1.dat
-./tests/data/hallue/ins/P2.ins ./tests/data/hallue/sim/P2.dat
-./tests/data/hallue/ins/P3.ins ./tests/data/hallue/sim/P3.dat
-./tests/data/hallue/ins/P4.ins ./tests/data/hallue/sim/P4.dat
+./data/hallue\tpl\____zpc.tpl ./data/hallue\par\____zpc.dat
+./data/hallue\ins\00464X0013.ins ./data/hallue\sim\00464X0013.dat
+./data/hallue\ins\00471X0010.ins ./data/hallue\sim\00471X0010.dat
+./data/hallue\ins\P1.ins ./data/hallue\sim\P1.dat
+./data/hallue\ins\P2.ins ./data/hallue\sim\P2.dat
+./data/hallue\ins\P3.ins ./data/hallue\sim\P3.dat
+./data/hallue\ins\P4.ins ./data/hallue\sim\P4.dat

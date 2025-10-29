@@ -23,7 +23,7 @@ from pymarthe.utils import marthe_utils, pest_utils
 def main():
 	# -- Run preproc functions
 	# -- Run model from .config file
-	pymarthe.utils.pest_utils.run_from_config("./tests/data/hallue/configuration.config", exe_name="marthe")
+	pymarthe.utils.pest_utils.run_from_config("./data/hallue\configuration.config", exe_name="marthe", fmt_lite=True)
 	# -- Run extra functions
 
 

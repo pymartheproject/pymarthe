@@ -41,7 +41,7 @@ class MartheOptim():
     instruction, template, control from a Marthe model
     and other external data.
     """
-    def __init__(self, mm, name = None, **kwargs):
+    def __init__(self, mm, name = None,fmt_lite=False, **kwargs):
         """
         Parameters
         ----------
@@ -49,6 +49,10 @@ class MartheOptim():
                           to interface with PEST utilities.
 
         name (str, optional) : name of optimisation process.
+
+        fmt_lite (bool, optional) : If True, generates shorter or simplified
+        parameter names when building PEST-related files. This option is
+        useful when working with PESTHP. Default is False.
 
         kwargs : some paths to usefull organized folder such as:
                     - `par_dir` : parameter folder
@@ -71,6 +75,7 @@ class MartheOptim():
         # ---- Set arguments as atributes
         self.mm = mm
         self.name = f'{mm.mlname}_optim' if name is None else name
+        self.fmt_lite = fmt_lite
         # ---- Get model time window bounds from .mart file
         self.tw_min, self.tw_max = self.mm.get_time_window()
         # ---- Initialize observation and parameters
@@ -800,14 +805,10 @@ class MartheOptim():
 
         - kwargs (dict): kwargs parameters to the MartheGridParam
                          or MartheListParam classes.
-                         Example: `fmt_lite` for a lighter format of
-                         parameter name (lenght <12 char ; compatible
-                         with PEST_HP)
 
         Examples
         -----------
         # -- Example on pumping data
-        mm.load_prop('soil')
         mp = mm.prop['aqpump']
         kmi_p31 = pest_utils.get_kmi(mp, keys = ['boundname', 'layer', 'istep'], boundname = 'p31')
         mgp.add_param(parname='p31', mobj=mp,
@@ -830,6 +831,14 @@ class MartheOptim():
                        btrans='lambda x: 10**x')
 
         """
+        # Cutting parname to the first 3 characters if fmt_lite is True
+        if self.fmt_lite and len(parname) > 3:
+            warnings.warn(
+                f"fmt_lite option activated: parameter name '{parname}' will be shortened to '{parname[:3]}'",
+                UserWarning
+            )
+            parname = parname[:3]
+
         # ---- Avoid adding same parameter multiple times
         if parname in self.param.keys():
             # -- Raise warning message
@@ -849,6 +858,7 @@ class MartheOptim():
             # -- Build a MartheGridParam instance
             par = MartheGridParam(parname= parname,
                                   mobj= mobj,
+                                  fmt_lite=self.fmt_lite,
                                   tplpath= tplpath,
                                   parpath= parpath,
                                   **kwargs)
@@ -874,6 +884,7 @@ class MartheOptim():
                                   mobj= mobj,
                                   kmi=kmi,
                                   value_col=value_col,
+                                  fmt_lite=self.fmt_lite,
                                   parpath = parpath,
                                   tplpath = tplpath,
                                   **kwargs)
@@ -943,10 +954,8 @@ class MartheOptim():
         if cleanup:
             print('Cleanup Warning : ')
             print('Factor files from previous call to write_kriging_factors will be removed')
-            files = [os.path.join(self.par_dir, f)
-                     for f in os.listdir(self.par_dir)
-                     if f.endswith('.fac')]
-            for f in files: os.remove(f)
+            self._clean_dir('.fac')
+
         # ---- Manage parname inputs
         if parname is None:
             parnames = [pn for pn in self.param.keys() if self.param[pn].type == 'grid']
@@ -963,7 +972,7 @@ class MartheOptim():
 
         # ---- Iterate over parmeters to use the internal method .write_kfac()
         for pn in parnames:
-            self.param[pn].write_kfac(vgm_range, krig_transform = krig_transform, save_cov = save_cov)
+            self.param[pn].write_kfac(vgm_range, krig_transform = krig_transform, save_cov = save_cov,)
 
 
 
@@ -1038,7 +1047,7 @@ class MartheOptim():
             for mp in self.param.values():
                 f.write(mp.to_config())
                 f.write('\n'*2)
-            # -- Write parameter configuration block
+            # -- Write observation configuration block
             for mo in self.obs.values():
                 f.write(mo.to_config())
                 f.write('\n'*2)
@@ -1068,10 +1077,8 @@ class MartheOptim():
         """
         # -- Cleanup folder if required
         if cleanup:
-            files = [os.path.join(self.par_dir, f)
-                     for f in os.listdir(self.par_dir)
-                     if f.endswith('.dat')]
-            for f in files: os.remove(f)
+            self._clean_dir('.dat')
+
         # -- Manage parameter name to write
         if parname is None:
             pnmes = self.param.keys()
@@ -1081,11 +1088,13 @@ class MartheOptim():
             not_found = [n for n in pnmes if n not in self.param.keys()]
             err_msg = "ERROR : Some provided parameters not added yet: {}.".format(', '.join(not_found))
             assert len(not_found) == 0, err_msg
+
         # -- Write parameter file for each provided parameter
         for pnme in pnmes:
-            self.param[pnme].write_parfile()
-
-
+            if type(self.param[pnme]) is MartheGridParam :
+                self.param[pnme].write_parfile()
+            else:
+                self.param[pnme].write_parfile()
 
     def write_tplfile(self, parname= None, cleanup=True):
         """
@@ -1109,10 +1118,8 @@ class MartheOptim():
         """
         # -- Cleanup folder if required
         if cleanup:
-            files = [os.path.join(self.tpl_dir, f)
-                     for f in os.listdir(self.tpl_dir)
-                     if f.endswith('.tpl')]
-            for f in files: os.remove(f)
+            self._clean_dir('.tpl')
+
         # -- Manage parameter name to write
         if parname is None:
             pnmes = self.param.keys()
@@ -1125,10 +1132,22 @@ class MartheOptim():
 
         # -- Write parameter file for each provided parameter
         for pnme in pnmes:
-            self.param[pnme].write_tplfile()
+            if type(self.param[pnme]) is MartheGridParam :
+                self.param[pnme].write_tplfile()
+            else:
+                self.param[pnme].write_tplfile()
 
-
-
+    def _clean_dir(self, ext_file: str):
+        if ext_file == ".tpl":
+            dir_to_clean = self.tpl_dir
+        elif ext_file == ".dat" or ext_file == ".fac":
+            dir_to_clean = self.par_dir
+        else:
+            raise NotImplementedError
+        files = [os.path.join(dir_to_clean, f)
+                 for f in os.listdir(dir_to_clean)
+                 if f.endswith(ext_file)]
+        for f in files: os.remove(f)
 
     def write_forward_run(self, fr_file, configfile, extra_py_imports=[], extra_functions=[], preproc_functions=[], **kwargs):
         """
@@ -1151,7 +1170,7 @@ class MartheOptim():
                                                     to import.
                                                     Default is [].
 
-        kwargs : additional argument of MartheModel.run_model() method and `fmt_lite` (bool).
+        kwargs : additional argument of MartheModel.run_model() method.
                  Can be :
                     - `exe_name` (str)
                     - `verbose` (bool)
@@ -1248,6 +1267,7 @@ class MartheOptim():
             run_lines = ['\tpymarthe.utils.pest_utils.run_from_config(',
                         f'"{configfile}"',
                         *[f', {k}={v}' if isinstance(v,(type(None), bool)) else f', {k}="{v}"' for k,v in kwargs.items()],
+                         f', fmt_lite={self.fmt_lite}',
                         ')\n']
             f.write(''.join(run_lines))
             # -- Perform additional functions
@@ -1443,10 +1463,11 @@ class MartheOptim():
                     'defaultvalue':'parval1'},
                     axis=1)
             )
-        param_df['parnme'] = param_df['parnme'].str.replace('__','_')
-        # am: inplace not allowed since pandas >= 2.0
-        # param_df.set_index('parnme', drop = False, inplace = True)
-        param_df = param_df.set_index('parnme', drop = False)
+        # param_df['parnme'] = param_df['parnme'].str.replace('__','_')
+        # param_df = param_df.set_index('parnme', drop = False)
+        # pst.parameter_data['parnme'] = pst.parameter_data['parnme'].str.replace('__','_')
+        # pst.parameter_data = pst.parameter_data.set_index('parnme',drop=False)
+
 
         # -- Disable parameter transformation (already done by pyMarthe)
         param_df['partrans'] = 'none'
