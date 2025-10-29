@@ -1330,8 +1330,12 @@ class MartheModel():
             rma_file = os.path.join(self.mldir, self.rma_file)
 
         if disable_popen:
-            buff = sp.run([exe, rma_file],capture_output=True, text=True, check=True)
-            success = True
+            result = sp.run([exe, rma_file], capture_output=True, text=True, check=True)
+            buff = result.stdout.splitlines()
+            for line in buff:
+                if normal_msg in line.lower():
+                    success = True
+                    break
 
         else:
 

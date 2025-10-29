@@ -997,7 +997,10 @@ class MartheGridParam():
         vgmr = {}
         if np.isscalar(vgm_range):
             # -- Same range for all variograms (layers and zones)
-            vgmr = {k: {zone: vgm_range} for k,v in self.pp_dic.items() for zone in v.zone.unique()}
+            vgmr = {
+                k: {zone: vgm_range for zone in v.zone.unique()}
+                for k, v in self.pp_dic.items()
+            }
         elif isinstance(vgm_range, dict):
             # -- Verify layer keys matching between pilot point and variogram dictionaries
             err_msg =  "ERROR : `vgm_range` must have same layer keys as pilot point " 
