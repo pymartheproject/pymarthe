@@ -507,7 +507,10 @@ def run_from_config(configfile, run_model=True, **kwargs):
     # -- Run model
     print('\t-> Running model with updated parameters')
     if run_model:
-        mm.run_model(**kwargs)
+        success, output_lines = mm.run_model(**kwargs)
+        if not success:
+            print("\n".join(output_lines))
+            raise RuntimeError("Model run failed. See output above.")
     # -- Extract simulated data
     print('\t-> Extracting simulated values')
     prn = marthe_utils.read_prn(os.path.join(mm.mldir,'historiq.prn'))

@@ -3,16 +3,18 @@ Contains the MartheModel and Spatial Reference classes.
 Designed for structured and nested grid.
 """
 
-import os, sys
+import os
+import platform
 import warnings
 import subprocess as sp
 from shutil import which
 from copy import deepcopy
-import queue
-import threading
+# import queue
+# import threading
+# from datetime import datetime
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
 
 from .mfield import MartheField
 from .mpump import MarthePump
@@ -1272,14 +1274,14 @@ class MartheModel():
                 )
             )
 
-    def run_model(self, exe_name='marthe', rma_file=None, disable_popen=False,
-                  silent=True, verbose=False, pause=False,
-                  report=False, cargs=None):
+    def run_model(self, exe_name='marthe', rma_file=None, silent=True,
+                  #live_stdout=False,
+                  ):
         """
         Run Marthe model using subprocess.Popen. It communicates 
         with the model's stdout asynchronously and reports progress 
         to the screen with timestamps
-
+        TODO : Currently only sp.run implemented. Implement Popen for futur only if needed.
         Parameters
         ----------
         exe_name (str, optional) : Marthe executable name.
@@ -1287,16 +1289,7 @@ class MartheModel():
                                    exename is not in environment path
                                    Default is 'marthe'.
         rma_file (str, optional) : .rma file of model to run.
-        silent (bool, optional) : run marthe model as silent 
-        verbose (bool, optional) : echo run information to screen
-                                   Default is False.
-        pause (bool, optional) : pause upon completion
-                                 Default is False.
-        report (bool, optional) : save stdout lines to a list (buff) 
-                                  which is returned by the method
-                                  Default is True.
-        cargs (str/list, optional) : additional command line arguments to pass to the executable.
-                                     Default is None.
+        silent (bool, optional) : run marthe model as silent
 
         Returns
         -------
@@ -1304,107 +1297,121 @@ class MartheModel():
         success (bool) : Binary success of the run 
         buff (list) :  stdout
         """
-        # ---- Initialize variable
-        success = False
-        buff = []
-        normal_msg = 'normal termination'
-
-        # ---- Set the verbosity of the model
         self.set_verbosity(silent)
-
-        # ---- Check to make sure that program and namefile exist
+        # ---- Find executable
         exe = which(exe_name)
+        if exe is None and platform.system() == 'Windows':
+            exe = which(exe_name + '.exe')
         if exe is None:
-            # -- Try which() function for window user 
-            import platform
-            if platform.system() in 'Windows':
-                exe = which(exe_name + '.exe')
+            raise FileNotFoundError(f"The program {exe_name} does not exist or is not executable.")
 
-        if exe is None:
-            s = 'The program {} does not exist or is not executable.'.format(
-                exe_name)
-            raise Exception(s)
-
-        # ---- Fetch Marthe .rma file if not provided
+        # ---- Determine rma file
         if rma_file is None:
             rma_file = os.path.join(self.mldir, self.rma_file)
 
-        if disable_popen:
+        # ---- Run the model (blocking)
+        try:
             result = sp.run([exe, rma_file], capture_output=True, text=True, check=True)
-            buff = result.stdout.splitlines()
-            for line in buff:
-                if normal_msg in line.lower():
-                    success = True
-                    break
+            output_lines = result.stdout.splitlines()
+            print("STDOUT:\n", result.stdout)
+            print("STDERR:\n", result.stderr)
+            success = any('normal termination' in line.lower() for line in output_lines)
+            print("je suis jackie",output_lines)
+        except sp.CalledProcessError as e:
+            output_lines = e.stdout.splitlines() if e.stdout else []
+            print(f"Model failed: {e.returncode}\n{e.stderr}")
+            success = False
 
-        else:
+        return success, output_lines
+        # # TODO sma Popen blocks
+        # else:
+        #     # ---- Run the model with real-time output
+        #     try:
+        #         with sp.Popen([exe, rma_file], stdout=sp.PIPE, stderr=sp.STDOUT, text=True) as proc:
+        #             for line in proc.stdout:
+        #                 line = line.rstrip()
+        #                 output_lines.append(line)
+        #                 print(line)
+        #                 if normal_msg in line.lower():
+        #                     success = True
+        #             proc.wait()
+        #             if proc.returncode != 0 and not success:
+        #                 print(f"Model exited with return code {proc.returncode}")
+        #                 success = False
+        #     except Exception as e:
+        #         print(f"Failed to run model: {e}")
+        #         success = False
 
-            # ---- Simple function for the thread to target
-            def q_output(output, q):
-                for line in iter(output.readline, b''):
-                    q.put(line)
 
-            # ---- Create a list of arguments to pass to Popen
-            argv = [exe_name]
-            if rma_file is not None:
-                argv.append(rma_file)
-
-            # ---- Add additional arguments to Popen arguments
-            if cargs is not None:
-                cargs = [arg for arg in cargs if isinstance(cargs, str)]
-                for t in cargs:
-                    argv.append(t)
-
-            # ---- Run the model with Popen
-            proc = sp.Popen(argv, stdout=sp.PIPE, stderr=sp.STDOUT)
-
-            # ---- Some tricks for the async stdout reading
-            q = queue.Queue()
-            thread = threading.Thread(target=q_output, args=(proc.stdout, q))
-            thread.daemon = True
-            thread.start()
-            failed_words = ["fail", "error"]
-            last = datetime.now()
-            lastsec = 0.
-            while True:
-                try:
-                    line = q.get_nowait()
-                except queue.Empty:
-                    pass
-                else:
-                    if line == '':
-                        break
-                    line = line.decode('latin-1').lower().strip()
-                    if line != '':
-                        now = datetime.now()
-                        dt = now - last
-                        tsecs = dt.total_seconds() - lastsec
-                        line = "elapsed:{0}-->{1}".format(tsecs, line)
-                        lastsec = tsecs + lastsec
-                        buff.append(line)
-                        if not verbose:
-                            print(line)
-                        for fword in failed_words:
-                            if fword in line:
-                                success = False
-                                break
-                if proc.poll() is not None:
-                    break
-            proc.wait()
-            thread.join(timeout=1)
-            buff.extend(proc.stdout.readlines())
-            proc.stdout.close()
-            # -- Examine run buff
-            for line in buff:
-                if normal_msg in line:
-                    print("success")
-                    success = True
-                    break
-
-            if pause:
-                input('Press Enter to continue...')
-
-        return success, buff
+        # TODO keeping the olds Popen blocks whenever it's needed
+        # it decided to go back with
+        # else:
+        #
+        #     # ---- Simple function for the thread to target
+        #     def q_output(output, q):
+        #         for line in iter(output.readline, b''):
+        #             q.put(line)
+        #
+        #     # ---- Create a list of arguments to pass to Popen
+        #     argv = [exe_name]
+        #     if rma_file is not None:
+        #         argv.append(rma_file)
+        #
+        #     # ---- Add additional arguments to Popen arguments
+        #     if cargs is not None:
+        #         cargs = [arg for arg in cargs if isinstance(cargs, str)]
+        #         for t in cargs:
+        #             argv.append(t)
+        #
+        #     # ---- Run the model with Popen
+        #     proc = sp.Popen(argv, stdout=sp.PIPE, stderr=sp.STDOUT)
+        #
+        #     # ---- Some tricks for the async stdout reading
+        #     q = queue.Queue()
+        #     thread = threading.Thread(target=q_output, args=(proc.stdout, q))
+        #     thread.daemon = True
+        #     thread.start()
+        #     failed_words = ["fail", "error"]
+        #     last = datetime.now()
+        #     lastsec = 0.
+        #     while True:
+        #         try:
+        #             line = q.get_nowait()
+        #         except queue.Empty:
+        #             pass
+        #         else:
+        #             if line == '':
+        #                 break
+        #             line = line.decode('latin-1').lower().strip()
+        #             if line != '':
+        #                 now = datetime.now()
+        #                 dt = now - last
+        #                 tsecs = dt.total_seconds() - lastsec
+        #                 line = "elapsed:{0}-->{1}".format(tsecs, line)
+        #                 lastsec = tsecs + lastsec
+        #                 buff.append(line)
+        #                 if not verbose:
+        #                     print(line)
+        #                 for fword in failed_words:
+        #                     if fword in line:
+        #                         success = False
+        #                         break
+        #         if proc.poll() is not None:
+        #             break
+        #     proc.wait()
+        #     thread.join(timeout=1)
+        #     buff.extend(proc.stdout.readlines())
+        #     proc.stdout.close()
+        #     # -- Examine run buff
+        #     for line in buff:
+        #         if normal_msg in line:
+        #             print("success")
+        #             success = True
+        #             break
+        #
+        #     if pause:
+        #         input('Press Enter to continue...')
+        # return success, buff
 
     def get_vtk(self, vertical_exageration=0.05, hws=None,
                 smooth=False, binary=True, xml=False,
