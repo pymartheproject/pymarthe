@@ -1274,14 +1274,12 @@ class MartheModel():
                 )
             )
 
-    def run_model(self, exe_name='marthe', rma_file=None, silent=False,
-                  # live_stdout=False,
-                  ):
+    def run_model(self, exe_name='marthe', rma_file=None, silent=True,):
         """
-        Run Marthe model using subprocess.Popen. It communicates 
-        with the model's stdout asynchronously and reports progress 
-        to the screen with timestamps
-        TODO : Currently only sp.run implemented. Implement Popen for futur only if needed.
+        Run Marthe model using subprocess.run. stdout and stderr are
+        not handled by this function. Actually, Marthe writes stdout
+        in bilandeb.txt and stderr in mart_ver.txt.
+
         Parameters
         ----------
         exe_name (str, optional) : Marthe executable name.
@@ -1289,14 +1287,11 @@ class MartheModel():
                                    exename is not in environment path
                                    Default is 'marthe'.
         rma_file (str, optional) : .rma file of model to run.
-        silent (bool, optional) : run marthe model as silent
-
-        Returns
-        -------
-        (success, buff)
-        success (bool) : Binary success of the run 
-        buff (list) :  stdout
+        silent (bool, optional) : whether to run Marthe quietly or not.
+        This argument can usually be True, except if you want to check the
+        output lines in the graphical Windows executable.
         """
+        
         self.set_verbosity(silent)
 
         # ---- Find executable
@@ -1310,44 +1305,29 @@ class MartheModel():
         if rma_file is None:
             rma_file = os.path.join(self.mldir, self.rma_file)
 
-        output_lines = []
-        success = False
-        normal_msg = "Fin normale du calcul"
-
         # ---- Run the model
-        if silent:
-            # Blocking mode
-            try:
-                result = sp.run([exe, rma_file], capture_output=True, text=True, check=False)
-                output_lines = result.stdout.splitlines()
-                success = any(normal_msg.lower() in line.lower() for line in output_lines)
-                if result.returncode != 0 and not success:
-                    print(f"[Erreur] Le modèle s’est terminé avec le code {result.returncode}")
-            except Exception as e:
-                print(f"[Erreur] L’exécution a échoué : {e}")
-                success = False
+        sp.run([exe, rma_file], check=True)
 
-        else:
-            # Live stdout mode
-            try:
-                with sp.Popen([exe, rma_file], stdout=sp.PIPE, stderr=sp.STDOUT, text=True, bufsize=1) as proc:
-                    for line in proc.stdout:
-                        line = line.rstrip()
-                        output_lines.append(line)
-                        print(line)
-                        if normal_msg.lower() in line.lower():
-                            success = True
-
-                    proc.wait()
-                    if proc.returncode != 0 and not success:
-                        print(f"[Erreur] Le modèle s’est terminé avec le code {proc.returncode}")
-                        success = False
-
-            except Exception as e:
-                print(f"[Erreur] Impossible d’exécuter le modèle : {e}")
-                success = False
-
-        return success, output_lines
+        # NEW POPEN BLOCK BY SMA, IN CASE IT'S NEEDED (run time issue fixed)
+        # else:
+        #     # Live stdout mode
+        #     try:
+        #         with sp.Popen([exe, rma_file], stdout=sp.PIPE, stderr=sp.STDOUT, text=True, bufsize=1) as proc:
+        #             for line in proc.stdout:
+        #                 line = line.rstrip()
+        #                 output_lines.append(line)
+        #                 print(line)
+        #                 if normal_msg.lower() in line.lower():
+        #                     success = True
+        #
+        #             proc.wait()
+        #             if proc.returncode != 0 and not success:
+        #                 print(f"[Erreur] Le modèle s’est terminé avec le code {proc.returncode}")
+        #                 success = False
+        #
+        #     except Exception as e:
+        #         print(f"[Erreur] Impossible d’exécuter le modèle : {e}")
+        #         success = False
 
         # TODO keeping the olds Popen blocks whenever it's needed
         # it decided to go back with
