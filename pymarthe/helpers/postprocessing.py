@@ -5,22 +5,15 @@ Contains some helper functions for Marthe/PEST model postprocessing
 
 
 # -- Import global modules
-import os, sys
+import os
 import numpy as np
 import pandas as pd
 import pyemu
-from copy import deepcopy
-
 
 # -- Import plot modules
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from pymarthe.utils import marthe_utils, shp_utils, pest_utils, pp_utils
-
-
-
-
-
 
 
 class PestPostProcessing():

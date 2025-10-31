@@ -4,13 +4,13 @@ This script was higly inspired by the flopy package.
 https://github.com/modflowpy/flopy
 """
 
-import os
-import numpy as np
-from copy import deepcopy
 import warnings
-warnings.simplefilter("always", DeprecationWarning)
+
+import numpy as np
+
 from pymarthe.utils import marthe_utils, pest_utils
 
+warnings.simplefilter("always", DeprecationWarning)
 
 
 def gridlist_to_verts(gridlist):

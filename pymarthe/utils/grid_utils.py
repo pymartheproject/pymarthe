@@ -5,11 +5,10 @@ Handle single Marthe grid
 
 import numpy as np
 import pandas as pd
-import re
+
 from matplotlib.path import Path
 
 from . import shp_utils, marthe_utils
-
 
 
 class MartheGrid():

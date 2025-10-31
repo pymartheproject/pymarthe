@@ -3,15 +3,13 @@ Contains some helper functions for Marthe model preprocessing
 
 """
 
-import os, sys
-import re
+import os
+
 import numpy as np
 import pandas as pd
-from copy import deepcopy
+
 from pymarthe import MartheModel
 from pymarthe.utils import *
-
-
 
 
 def spatial_aggregation(mm, x, y, layer, value, agg = 'sum', trans ='none', only_active = True, base=0):

@@ -13,19 +13,13 @@ import numpy as np
 import pandas as pd
 import pyemu
 
-from .utils import marthe_utils, pest_utils, pp_utils, shp_utils
 from pymarthe.mfield import MartheField
-
+from .utils import marthe_utils, pest_utils, pp_utils, shp_utils
 from .utils.formatters import zpc_fmt, zpc_fmt_lite, input_file_fmt
 from .utils.formatters import str_fmt, int_fmt, float_fmt
 
-
 PP_NAMES = ["name","x","y","zone","value"]
 PP_FMT = {"name": str_fmt, "x": float_fmt, "y": float_fmt, "zone": int_fmt, "tpl": str_fmt, "value": float_fmt, "log_value": float_fmt}
-
-base_param = ['parnme', 'trans', 'btrans', 'parchglim',
-                  'defaultvalue', 'parlbnd', 'parubnd',
-                  'pargp', 'scale', 'offset', 'dercom']
 
 
 class MartheListParam():

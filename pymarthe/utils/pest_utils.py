@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import os
+import re
+
 import numpy as np
 import pandas as pd
-import re, ast
 import pyemu
 
 from pymarthe.utils import ts_utils, marthe_utils
 from .formatters import float_fmt, int_fmt, str_fmt
+from .formatters import ENCODING
+
 ############################################################
 #        Utils for pest preprocessing for Marthe
 ############################################################
@@ -16,20 +19,12 @@ from .formatters import float_fmt, int_fmt, str_fmt
 #https://github.com/jtwhite79/pyemu/
 # ----------------------------------------------------------------------------------------------------------
 
-
-# ---- Set encoding
-encoding = 'latin-1'
-
-
-
 FMT_DIC = {"obsnme": str_fmt, "obsval": float_fmt, "ins_line": str_fmt, "date": str_fmt,"value": float_fmt,
            "name": str_fmt, "parnme": str_fmt, "x": float_fmt, "y": float_fmt, "zone": int_fmt,
            "transformed":float_fmt, "tplnme": str_fmt,"defaultvalue": float_fmt}
 
-
 # ---- Set observation character start and length
 VAL_START, VAL_END = 23, 39
-
 
 
 def write_mgp_parfile(parfile, param_df, trans, ptype='zpc'):
@@ -45,7 +40,7 @@ def write_mgp_parfile(parfile, param_df, trans, ptype='zpc'):
     elif ptype == 'pp':
         cols = ['parname', 'x', 'y', 'zone', 'transformed']
     # ---- Write parameter file with correct formatted columns
-    with open(parfile, 'w', encoding=encoding) as f:
+    with open(parfile, 'w', encoding=ENCODING) as f:
             f.write(df.to_string( col_space=0, columns=cols,
                                   formatters=FMT_DIC, justify="left",
                                   header=False, index=False, index_names=False,
@@ -133,7 +128,7 @@ def write_mgp_tplfile(tplfile, param_df, ptype='zpc'):
         cols = ['parname', 'tplnme']
     elif ptype == 'pp':
         cols = ['parname', 'x', 'y', 'zone', 'tplnme']
-    with open(tplfile, 'w', encoding=encoding) as f:
+    with open(tplfile, 'w', encoding=ENCODING) as f:
         f.write('ptf ~\n')
         f.write(df.to_string(col_space=0, columns=cols,
                                    formatters=FMT_DIC, justify="left",
@@ -147,7 +142,7 @@ def write_mlp_tplfile(tplfile, param_df):
     """
     df = param_df.copy(deep=True)
     df['tplnme'] = '~' + df['parnme']  + '~'
-    with open(tplfile, 'w', encoding=encoding) as f:
+    with open(tplfile, 'w', encoding=ENCODING) as f:
         f.write('ptf ~\n')
         f.write(df.to_string(col_space=0, columns=['parnme', 'tplnme'],
                                    formatters=FMT_DIC, justify="left",
@@ -160,7 +155,7 @@ def write_mlp_parfile(parfile, param_df, trans='none', value_col='defaultvalue')
     """
     df = param_df.copy(deep=True)
     df['transformed'] = transform(param_df[value_col], trans)
-    with open(parfile, 'w', encoding=encoding) as f:
+    with open(parfile, 'w', encoding=ENCODING) as f:
         f.write(df.to_string(col_space=0, columns=['parnme', 'transformed'],
                              formatters=FMT_DIC, justify="left",
                              header=False, index=False, index_names=False,
@@ -264,7 +259,7 @@ def read_config(configfile):
     """
     """
     # -- Get content
-    with open(configfile, 'r', encoding=encoding) as f:
+    with open(configfile, 'r', encoding=ENCODING) as f:
         content = f.read()
 
     # -- Set usefull regex
@@ -378,7 +373,7 @@ def write_insfile(obsnmes, insfile):
     df = pd.DataFrame(dict(obsnme = obsnmes))
     df['ins_line'] = df['obsnme'].apply(lambda s: 'l1 ({}){}:{}'.format(s,VAL_START,VAL_END))
     # ---- Write formated instruction file
-    with open(insfile,'w', encoding=encoding) as f:
+    with open(insfile,'w', encoding=ENCODING) as f:
         f.write('pif ~\n')
         f.write(df.to_string(col_space=0, columns=["ins_line"],
                              formatters=FMT_DIC, justify="left",
@@ -418,7 +413,7 @@ def write_simfile(dates, values, simfile):
     # ---- Build instruction lines
     df = pd.DataFrame(dict(date= dates, value = values))
     # ---- Write formated instruction file
-    with open(simfile,'w', encoding=encoding) as f:
+    with open(simfile,'w', encoding=ENCODING) as f:
         f.write(df.to_string(col_space=0, columns=["date", "value"],
                              formatters=FMT_DIC, justify="left",
                              header=False, index=False, index_names=False,

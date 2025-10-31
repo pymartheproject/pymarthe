@@ -3,17 +3,14 @@ Contains the MartheSoil class
 Designed for Marthe model soil properties management.
 """
 
+import re
 
-import os, sys
 import numpy as np
 import pandas as pd
-import re
-from copy import deepcopy
 
 from pymarthe.mfield import MartheField
 from .utils import marthe_utils, pest_utils
-
-encoding = 'latin-1'
+from .utils.formatters import ENCODING
 
 
 class MartheSoil():
@@ -420,7 +417,7 @@ class MartheSoil():
         # ---- Write data in .pastp file
         if 'pastp' in self.mode:
             # ---- Fetch .pastp file content by lines
-            with open(self.pastpfile, 'r', encoding=encoding) as f:
+            with open(self.pastpfile, 'r', encoding=ENCODING) as f:
                 pastp_content = f.read()
             # ---- Extract indices when a new time tsep begin
             idx = [m.start(0) for m in re.finditer(from_istep, pastp_content)]
@@ -451,7 +448,7 @@ class MartheSoil():
                     pastp_content = until_istep + new_from_istep
             # ---- Write new content
             out = self.pastpfile if filename is None else filename
-            with open(out, 'w', encoding=encoding) as f:
+            with open(out, 'w', encoding=ENCODING) as f:
                 f.write(pastp_content)
 
 
@@ -459,7 +456,7 @@ class MartheSoil():
         elif 'mart' in self.mode:
 
             # ---- Fetch actual .mart file content as text
-            with open(self.martfile, 'r', encoding=encoding) as f:
+            with open(self.martfile, 'r', encoding=ENCODING) as f:
                 mart_content = f.read()
             # ---- Iterate over each soil DataFrame line
             for d in self.data.itertuples():
@@ -478,7 +475,7 @@ class MartheSoil():
                 mart_content=re.sub(pattern, rf"\1V={d.value:>10.4E};",mart_content)
             # ---- Write new content
             out = self.martfile if filename is None else filename
-            with open(out, 'w', encoding=encoding) as f:
+            with open(out, 'w', encoding=ENCODING) as f:
                 f.write(mart_content)
 
 

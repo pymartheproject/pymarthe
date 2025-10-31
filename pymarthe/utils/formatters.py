@@ -6,6 +6,8 @@ formatters.py — Utility functions for formatting filenames and numeric/string 
 # === CONSTANT FORMATTERS ===
 # =========================
 
+ENCODING = 'latin-1'
+
 # ---- ZPC formatters ---- #
 ZPCFMT = "{0}_zpc_l{1:02d}_z{2:03d}"
 ZPCFMT_LITE = "{0}zpc{1:02d}z{2:03d}"

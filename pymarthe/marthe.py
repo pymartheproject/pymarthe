@@ -3,23 +3,22 @@ Contains the MartheModel and Spatial Reference classes.
 Designed for structured and nested grid.
 """
 
-import os, sys
+import os
+from datetime import datetime
 import warnings
 import subprocess as sp
 from shutil import which
 from copy import deepcopy
 import queue 
 import threading
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
 
 from .mfield import MartheField
 from .mpump import MarthePump
 from .msoil import MartheSoil
 from .utils import marthe_utils, shp_utils, pest_utils
-
-encoding = 'latin-1'
 
 
 class MartheModel():
@@ -1661,8 +1660,8 @@ class MartheModel():
                                           istep= istep,
                                           external= external,
                                           new_pastpfile= new_pastpfile)
-
-    def _check_si_input(self, spatial_index: str) -> str:
+    @staticmethod
+    def _check_si_input( spatial_index: str) -> str:
         """
         Removes '.dat' or '.idx' if provde by the user.
         Intent to capture a FileNotFoundError if index files are not found.
@@ -1715,7 +1714,7 @@ class SpatialReference():
         """
         Parameters
         ----------
-        ml : instance of MartheModel
+        mm : instance of MartheModel
         """
         mg = mm.imask.to_grids(layer=0, inest=0)[0]
         self.nrow, self.ncol = mg.nrow, mg.ncol

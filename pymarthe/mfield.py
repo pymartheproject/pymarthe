@@ -5,18 +5,20 @@ Designed for handling distributed Marthe properties
 (structured and unstructured grid)
 """
 
-import os, sys
+import os
+from copy import deepcopy
+import shutil
+
 import numpy as np
 import numpy.lib.recfunctions
 import pandas as pd
-from copy import copy, deepcopy
-import shutil
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
+
 from .utils import marthe_utils, shp_utils, pest_utils
 from .utils.grid_utils import MartheGrid
+from .utils.formatters import ENCODING
 
-encoding = 'latin-1'
 dmv = [-9999., 0., 9999]  # Default field masked values
 
 
@@ -656,7 +658,7 @@ class MartheField():
         rl = self.mm.extract_refine_levels()
 
         # ---- Write field data from list of MartheGrid instance
-        with open(f, 'w', encoding = marthe_utils.encoding) as f:
+        with open(f, 'w', encoding = ENCODING) as f:
             for mg in self.to_grids():
                 f.write(
                             mg.to_string(

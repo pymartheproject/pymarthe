@@ -4,20 +4,18 @@ for handling observations by locations
 One instance per obs location. 
 """
 
-
-import os, sys
+import os
 import pandas as pd
 import numpy as np
-pd.options.mode.chained_assignment = None  # Ignore pandas SettingWithCopyWarning
-from pymarthe import *
+
 from .utils import marthe_utils, pest_utils
 
 
-base_obs = ['obsnme', 'date', 'obsval',
+BASE_OBS= ['obsnme', 'date', 'obsval',
             'datatype', 'locnme', 'obsfile',
             'weight', 'obgnme', 'trans' ]
 
-
+pd.options.mode.chained_assignment = None  # Ignore pandas SettingWithCopyWarning
 
 class MartheObs():
     """
@@ -130,7 +128,7 @@ class MartheObs():
         # ---- Fill observations DataFrame with input data
         self.obs_df = pd.DataFrame(index=self.obsnmes)
         # TODO should be fixed to keep datetime format for date column
-        self.obs_df[base_obs] = np.array( [ self.obsnmes, self.date, self.value,
+        self.obs_df[BASE_OBS] = np.array( [ self.obsnmes, self.date, self.value,
                                             self.datatype, self.locnme, self.obsfile,
                                             self.weight, self.obgnme, self.trans ],
                                           dtype=object)

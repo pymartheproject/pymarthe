@@ -3,7 +3,6 @@ Pilot Points tools
 
 '''
 
-
 import os
 import platform
 import warnings
@@ -15,10 +14,8 @@ import matplotlib.pyplot as plt
 from pymarthe.utils import marthe_utils, shp_utils
 from .formatters import  pp_fmt, pp_fmt_lite
 
-'''
-Set some usefull fixed elements 
-'''
-
+# TODO: These are each used only once throughout the pymarthe package.
+# Defining them as constants might therefore not be necessary.
 ZONE_KWARGS = {'color':'black', 'lw':1.5, 'label':'pilot points active zone'}
 BUFFER_KWARGS = {'color':'green', 'ls':'--', 'lw':1.2, 'label':'pilot points active zone (buffer)'}
 PP_KWARGS = {'s':20, 'marker':'+','lw':0.8 , 'color':'red', 'zorder':50, 'label':'pilot points'}

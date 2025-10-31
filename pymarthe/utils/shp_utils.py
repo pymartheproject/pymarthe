@@ -4,13 +4,15 @@ Contains geospatial export utils
 (not much dependencies required)
 
 """
-import sys 
+import sys
+import shutil
+
 import numpy as np
 import pandas as pd
-import shutil
+
 import shapefile
 
-srefhttp = "https://spatialreference.org"
+SREFHTTP = "https://spatialreference.org"
 PYSHP_TYPES = {'Null':0, 'Point':1, 'LineString':3, 'Polygon':5}
 
 
@@ -617,7 +619,7 @@ class CRS:
         )
         urls = []
         for cat in epsg_categories:
-            url = f"{srefhttp}/ref/{cat}/{epsg}/{text}/"
+            url = f"{SREFHTTP}/ref/{cat}/{epsg}/{text}/"
             urls.append(url)
             result = get_url_text(url)
             if result is not None:
