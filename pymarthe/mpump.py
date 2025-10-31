@@ -2,15 +2,14 @@
 Contains the MarthePump class (Subclass of MartheModel)
 for handling pumping conditions by locations.
 """
-
-import os
-import numpy as np
-import pandas as pd
-import re, ast
-from .utils import marthe_utils, pest_utils
 import warnings
+import re
+import ast
 
-encoding = 'latin-1'
+import pandas as pd
+
+from .utils import marthe_utils, pest_utils
+from .utils.formatters import ENCODING
 
 
 class MarthePump():
@@ -611,7 +610,7 @@ class MarthePump():
             IFMT = lambda x: "{0:>6d} ".format(int(x))
             fmt_dic = {'i': IFMT, 'f': FFMT}
             formatters = [fmt_dic[df[c].dtype.kind] for c in df]
-            with open(qfilename, 'w', encoding=encoding) as f:
+            with open(qfilename, 'w', encoding=ENCODING) as f:
                 f.write(df.to_string(col_space=0,
                                      formatters=formatters,
                                      justify="left", header=False, index=False,

@@ -4,13 +4,15 @@ This script was higly inspired by the flopy package.
 https://github.com/modflowpy/flopy
 """
 
-import os
-import numpy as np
-from copy import deepcopy
 import warnings
-warnings.simplefilter("always", DeprecationWarning)
-from pymarthe.utils import marthe_utils, pest_utils
 
+import numpy as np
+
+from . import marthe_utils
+from .import_utils import import_package
+from .pest_utils import transform
+
+warnings.simplefilter("always", DeprecationWarning)
 
 
 def gridlist_to_verts(gridlist):
@@ -50,7 +52,6 @@ def gridlist_to_verts(gridlist):
     return verts, iverts
 
 
-
 def area_of_polygon(x, y):
     """
     Calculates the signed area of an arbitrary polygon given its vertices
@@ -78,7 +79,6 @@ def area_of_polygon(x, y):
     return abs(area / 2.0)
 
 
-
 def centroid_of_polygon(points):
     """
     Compute the centroid coordinates of a given polygon
@@ -99,10 +99,7 @@ def centroid_of_polygon(points):
     """
 
     # -- Try to import itertools
-    try:
-        import itertools
-    except:
-        ImportError('Could not import `itertools` package. Try : `pip install itertools`.')
+    itertools = import_package("itertools")
 
     # -- Find centroid
     area = area_of_polygon(*zip(*points))
@@ -120,8 +117,6 @@ def centroid_of_polygon(points):
     result_x /= area * 6.0
     result_y /= area * 6.0
     return (result_x, result_y)
-
-
 
 
 class Point:
@@ -159,7 +154,6 @@ def is_between(a, b, c, epsilon=0.001):
     return True
 
 
-
 def shared_face(ivlist1, ivlist2):
     """
     Boolean response whatever 2 lists of vertices share face.
@@ -171,7 +165,6 @@ def shared_face(ivlist1, ivlist2):
             if ivlist2[i2 : i2 + 1] == [iv2, iv1]:
                 return True
     return False
-
 
 
 def segment_face(ivert, ivlist1, ivlist2, vertices):
@@ -225,8 +218,6 @@ def segment_face(ivert, ivlist1, ivlist2, vertices):
                     return True
 
     return False
-
-
 
 
 def to_cvfd(vertdict, nodestart=None, nodestop=None,
@@ -353,12 +344,6 @@ def to_cvfd(vertdict, nodestart=None, nodestop=None,
     return verts, iverts
 
 
-
-
-
-
-
-
 class Vtk:
     """
     Class to build and manage unstructured vtk grid.
@@ -408,11 +393,8 @@ class Vtk:
         myvtk = Vtk(mm, vertical_exageration=0.02, smooth=True)
 
         """
-        # -- Handle vtk package import issues
-        try:
-            import vtk
-        except ImportError as error:
-            print("Could not load `vtk` package.")
+        # -- Try to impoty vtk
+        vtk = import_package("vtk")
 
         # -- Set basic attributs
         self.mm = mm
@@ -455,7 +437,6 @@ class Vtk:
         self.__vtk = vtk
         self._set_vtk_grid_geometry()
 
-
     def _create_smoothed_elevation_graph(self, adjk):
         """
         Method to create a dictionary of shared point
@@ -484,9 +465,6 @@ class Vtk:
             elevations[key] = np.mean(elevations[key])
 
         return elevations
-
-
-
 
     def _build_grid_geometry(self):
         """
@@ -571,8 +549,6 @@ class Vtk:
         self.points = points
         self.faces = faces
 
-
-
     def _set_vtk_grid_geometry(self):
         """
         Method to set vtk's geometry and add it to the vtk grid object
@@ -607,9 +583,6 @@ class Vtk:
         # -- Flag to inform that geometry has been added
         self._vtk_geometry_set = True
 
-
-
-
     def _mask_values(self, array, masked_values = None):
         """
         Method to mask values in array with nan
@@ -627,8 +600,6 @@ class Vtk:
         mv = [] if masked_values is None else marthe_utils.make_iterable(masked_values)
         array[np.isin(array, mv)] = np.nan
         return array
-
-
 
     def add_array(self, array, name, trans='none', masked_values=None, dtype=None):
         """
@@ -658,9 +629,6 @@ class Vtk:
         myvtk.add_array(array, 'permh', trans='log10', masked_values=mv)
 
         """
-        # -- Dynamic import of vtk numpy utils
-        from vtk.util import numpy_support
-
         # -- Build vtk geometry if not yet provided
 
         if not self._vtk_geometry_set:
@@ -675,7 +643,7 @@ class Vtk:
         assert array.size == self.nnodes, err_msg
 
         # -- Convert masked values to NaN and apply transformation
-        array = pest_utils.transform(
+        array = transform(
                         self._mask_values(array, masked_values),
                         trans
                         ).to_numpy()
@@ -693,14 +661,15 @@ class Vtk:
             if np.issubdtype(array[0], np.dtype(int)):
                 dtype = self.__vtk.VTK_INT
 
+        # -- Try to import numpy_support function from vtk.util module
+        numpy_support = import_package("vtk.util.numpy_support","vtk")
+
         # -- Convert numpy array to vtk array
         vtk_arr = numpy_support.numpy_to_vtk(num_array=array, array_type=dtype)
         vtk_arr.SetName(name)
 
         # -- Broadcast array to cells
         self.vtk_grid.GetCellData().AddArray(vtk_arr)
-
-
 
     def _get_writer(self):
         """
@@ -727,8 +696,6 @@ class Vtk:
 
         return writer, ext
 
-
-
     def write(self, filename):
         """
         Method to write a unstructured grid from the VTK object
@@ -748,5 +715,3 @@ class Vtk:
         w.Update()
         w.Write()
         print(f'Unstructured grid successfully written in {filename+ext}.')
-
-

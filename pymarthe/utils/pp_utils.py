@@ -3,7 +3,6 @@ Pilot Points tools
 
 '''
 
-
 import os
 import platform
 import warnings
@@ -12,13 +11,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pymarthe.utils import marthe_utils, shp_utils
+from .import_utils import import_package
 from .formatters import  pp_fmt, pp_fmt_lite
+from .marthe_utils import make_iterable
+from .shp_utils import recarray2shp
 
-'''
-Set some usefull fixed elements 
-'''
-
+# Defining them as constants might therefore not be necessary.
 ZONE_KWARGS = {'color':'black', 'lw':1.5, 'label':'pilot points active zone'}
 BUFFER_KWARGS = {'color':'green', 'ls':'--', 'lw':1.2, 'label':'pilot points active zone (buffer)'}
 PP_KWARGS = {'s':20, 'marker':'+','lw':0.8 , 'color':'red', 'zorder':50, 'label':'pilot points'}
@@ -49,16 +47,13 @@ class PilotPoints():
 
         """
         # -- Import high level modules from `shapely` dynamically
-        from importlib import import_module
-        try:
-            # Specific modules
-            self.speedups = import_module('shapely.speedups')
-            self.ops = import_module('shapely.ops')
-            # Usefull classes
-            self.MultiPoint = getattr(import_module('shapely.geometry'), 'MultiPoint')
-            self.Polygon = getattr(import_module('shapely.geometry'), 'Polygon')
-        except:
-            ImportError("Could not import python `shapely` package!")
+        self.speedups = import_package('shapely.speedups','shapely')
+        self.ops = import_package('shapely.ops','shapely')
+
+        shapely_geom = import_package('shapely.geometry', 'shapely')
+        self.MultiPoint = shapely_geom.MultiPoint
+        self.Polygon = shapely_geom.Polygon
+
         # -- Disable speed up on Windows system
         if platform.system() == 'Windows':
             self.speedups.disable()
@@ -74,8 +69,6 @@ class PilotPoints():
                                 )
                             for l in self.polygons.index.levels[0]
                         }
-
-
 
     def extract_active_polygons(self):
         """
@@ -114,9 +107,6 @@ class PilotPoints():
         # -- Return
         return polygons
 
-
-
-
     def check_layer_zone(self, layer, zone):
         """
         Raise assertion errors if the provided layer and zone ids 
@@ -129,9 +119,6 @@ class PilotPoints():
         # -- Check zone existence
         zone_err = layer_err.replace('.', f' and `zone={zone}`.')
         assert zone in self.data[layer].keys(), zone_err
-
-
-
 
     def get_polygon(self, layer, zone):
         """
@@ -156,9 +143,6 @@ class PilotPoints():
         self.check_layer_zone(layer, zone)
         # -- Return required polygon
         return self.polygons.loc[(layer,zone)]
-
-
-
 
     def add_spacing_pp(self, layer, zone, xspacing, yspacing, xoffset=0, yoffset=0, buffer=0):
         """
@@ -230,9 +214,6 @@ class PilotPoints():
             'Check spatial index and zonation for this layer' )
         else : 
             self.data[layer][zone] = {**metadata, 'n':len(mp.geoms), 'pp':mp}
-
-
-
 
     def add_n_pp(self, layer, zone, n, tol=1, xoffset=0, yoffset=0, buffer=0):
         """
@@ -315,9 +296,6 @@ class PilotPoints():
                                                   'yspacing':spacing,
                                                   'pp':self.MultiPoint(list(mp.geoms)[point_counter-n:])} 
                                               
-
-
-
     def plot(self,
         layer, zone, buffer=0, ax=None,
         zone_kwargs={}, buffer_kwargs={}, pp_kwargs={},
@@ -418,10 +396,6 @@ class PilotPoints():
         # -- Return axe
         return ax
 
-
-
-
-
     def to_pp_data(self):
         """
         Convert generated pilot point data into a standard `.pp_data`
@@ -443,9 +417,6 @@ class PilotPoints():
                                     for layer, d in self.data.items()
                                     for zone, mp in d.items()}
         return pp_data
-
-
-
 
     @staticmethod
     def pp_df_from_coords(parname, coords, layer, zone, fmt_lite=False, value= 1e-3):
@@ -484,7 +455,7 @@ class PilotPoints():
 
         """
         # -- Manage value input
-        if len(marthe_utils.make_iterable(value)) == 1:
+        if len(make_iterable(value)) == 1:
             value = np.tile(value, len(coords))
         # -- Generate names
         if fmt_lite:
@@ -498,9 +469,6 @@ class PilotPoints():
                                     ).set_index('parname', drop=False)
         # -- Return pilot point DataFrame
         return pp_df
-
-
-
 
     def extract_vgm_range(self, factor=3):
         '''
@@ -532,10 +500,6 @@ class PilotPoints():
                                        for zone, d in zdic.items()
                                        }
         return vgm_range
-
-
-
-
 
     def to_shapefile(self, path='.', onefile=False, epsg=None, prj=None):
         """
@@ -584,7 +548,7 @@ class PilotPoints():
             # -- Manage shapefile name
             shpname = 'pilot_points.shp' if path == '.' else path
             # -- Export to shapefile
-            shp_utils.recarray2shp(recarray, geoms, shpname=shpname,
+            recarray2shp(recarray, geoms, shpname=shpname,
                                    geomtype='Point', epsg=epsg, prj=prj)
         else:
             # -- Iterate over layer and zone
@@ -596,13 +560,11 @@ class PilotPoints():
                 # -- Build shapefile name
                 shpname = os.path.join(path, 'pp_l{0:02d}_z{1:02d}.shp'.format(*idx))
                 # -- Export to shapefile
-                shp_utils.recarray2shp(recarray, geoms, shpname=shpname,
+                recarray2shp(recarray, geoms, shpname=shpname,
                                        geomtype='Point', epsg=epsg, prj=prj)
-
 
     def __str__(self):
         """
         Internal string method.
         """
         return 'PilotPoints'
-

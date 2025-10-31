@@ -13,19 +13,9 @@ import numpy as np
 import pandas as pd
 import pyemu
 
+from .mfield import MartheField
 from .utils import marthe_utils, pest_utils, pp_utils, shp_utils
-from pymarthe.mfield import MartheField
-
 from .utils.formatters import zpc_fmt, zpc_fmt_lite, input_file_fmt
-from .utils.formatters import str_fmt, int_fmt, float_fmt
-
-
-PP_NAMES = ["name","x","y","zone","value"]
-PP_FMT = {"name": str_fmt, "x": float_fmt, "y": float_fmt, "zone": int_fmt, "tpl": str_fmt, "value": float_fmt, "log_value": float_fmt}
-
-base_param = ['parnme', 'trans', 'btrans', 'parchglim',
-                  'defaultvalue', 'parlbnd', 'parubnd',
-                  'pargp', 'scale', 'offset', 'dercom']
 
 
 class MartheListParam():
@@ -143,7 +133,6 @@ class MartheListParam():
         self.parpath = kwargs.get('parpath', '.')
         self.tplpath = kwargs.get('tplpath', '.')
 
-
     def gen_parnmes(self, fmt_lite: bool):
         """
         Internal method to generate parmaeters names from `kmi`.
@@ -198,8 +187,6 @@ class MartheListParam():
         # ---- Return paramater DataFrame
         return par_df
 
-
-
     def to_config(self):
         """
         Return the essential informations of current set of parameters to be
@@ -230,8 +217,6 @@ class MartheListParam():
         lines.append('[END_PARAM]')
         return '\n'.join(lines)
 
-
-
     def write_parfile(self, parpath=None):
         """
         Write parameter file(s) in parameter folder.
@@ -250,8 +235,6 @@ class MartheListParam():
         path = self.parpath if parpath is None else parpath
         pf = os.path.join(path, self.parname + '.dat')
         pest_utils.write_mlp_parfile(pf, self.param_df,  self.trans)
-
-
 
     def write_tplfile(self, tplpath=None):
         """
@@ -272,15 +255,11 @@ class MartheListParam():
         tf = os.path.join(path, self.parname + '.tpl')
         pest_utils.write_mlp_tplfile(tf, self.param_df)
 
-
     def __str__(self):
         """
         Internal string method.
         """
         return 'MartheListParam'
-
-
-
 
 
 class MartheGridParam():
@@ -392,9 +371,6 @@ class MartheGridParam():
         self.parpath = kwargs.get('parpath', '.')
         self.tplpath = kwargs.get('tplpath', '.')
 
-
-
-
     def set_izone(self, izone=None,):
         """
         Manage izone (MartheField) input.
@@ -460,9 +436,6 @@ class MartheGridParam():
         self.init_zpc_df()
         self.init_pp_dic()
 
-
-
-
     def get_dv_from_lz(self, layer, zone, agg=None):
         """
         Extract 'default value' as field mean for a given layer and zone id.
@@ -499,9 +472,6 @@ class MartheGridParam():
         else:
             return pd.Series(dv).agg(agg)
 
-
-
-
     def get_dv_from_xy(self, x, y, layer, agg=None):
         """
         Extract 'default value' as field mean for at given xy-coordinates
@@ -533,9 +503,6 @@ class MartheGridParam():
         else:
             return pd.Series(dv).agg(agg)
 
-
-
-
     def init_zpc_df(self,):
         """
         Initialise zone of piecewise constancy DataFrame
@@ -564,9 +531,6 @@ class MartheGridParam():
         # ---- Set zpc DataFrame from data
         zpc_df = pd.DataFrame({'parname':_names, 'layer':_layers, 'zone':_zones, 'value': _dvs})
         self.zpc_df = zpc_df.set_index('parname', drop=False)
-
-
-
 
     def set_zpc_value(self, value, layer=None, zone=None):
         """
@@ -606,8 +570,6 @@ class MartheGridParam():
                      self.zpc_df.zone.isin(_zone) ]
                      )
         self.zpc_df.loc[mask,'value'] = value
-
-
 
     def init_pp_dic(self,) :
         """
@@ -653,9 +615,6 @@ class MartheGridParam():
                 if not pp_df.empty:
                     self.pp_dic[ilay] = pp_df
 
-
-
-
     def zone_interp_coords(self, layer, zone) :
         """
         Fetch centroid coordinates of required zone to perform
@@ -689,8 +648,6 @@ class MartheGridParam():
         yc = self.izone.data[mask]['y']
         # ---- Return coordinates
         return xc, yc
-
-
 
     def default_pp_coords(self, layer, zone):
         """
@@ -750,9 +707,6 @@ class MartheGridParam():
 
         # ---- Return generated pilot points
         return np.array(pp_coords)
-
-
-
 
     def build_pp_df(self, coords, layer, zone, ):
         """
@@ -814,8 +768,6 @@ class MartheGridParam():
         # ---- Return DataFrame of pilot point
         return pp_df
 
-
-
     def write_parfile(self, parpath=None, only_zpc=False, only_pp=False,):
         """
         Write parameter file(s) in parameter folder.
@@ -872,10 +824,6 @@ class MartheGridParam():
         if np.all([only_zpc, only_pp]):
             print("Careful: passing both `only_zpc` and `only_pp`" \
                   " to `True` will not generate any parameter files.")
-
-
-
-
 
     def write_tplfile(self, tplpath=None, only_zpc=False, only_pp=False,):
         """
@@ -934,9 +882,6 @@ class MartheGridParam():
         if np.all([only_zpc, only_pp]):
             print("Careful: passing both `only_zpc` and `only_pp`" \
                   " to `True` will not generate any template files.")
-
-
-
 
     def write_kfac(self, vgm_range, krig_transform= 'none', parpath=None , save_cov = False, ):
         """
@@ -1055,8 +1000,6 @@ class MartheGridParam():
                     cov = gs.covariance_matrix(zpp_df.x, zpp_df.y, zpp_df.parname)
                     cov.to_coo(kfac_file.replace('.fac', '.jcb')) # Format = `coo` to avoid 12 char length limit
 
-
-
     def get_param_df(self, transformed=False):
         """
         Join all parameter informations in a single DataFrame
@@ -1110,9 +1053,6 @@ class MartheGridParam():
         # ---- Return parameter DataFrame
         return par_df
 
-
-
-
     def to_config(self):
         """
         Return the essential informations of current set of parameters to be
@@ -1157,8 +1097,6 @@ class MartheGridParam():
         lines.extend(data)
         lines.append('[END_PARAM]')
         return '\n'.join(lines)
-
-
 
     def __str__(self):
         """

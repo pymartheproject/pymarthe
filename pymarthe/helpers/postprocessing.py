@@ -2,25 +2,15 @@
 Contains some helper functions for Marthe/PEST model postprocessing
 
 """
+import os
 
-
-# -- Import global modules
-import os, sys
 import numpy as np
 import pandas as pd
 import pyemu
-from copy import deepcopy
-
-
-# -- Import plot modules
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from pymarthe.utils import marthe_utils, shp_utils, pest_utils, pp_utils
 
-
-
-
-
+from utils.marthe_utils import make_iterable
 
 
 class PestPostProcessing():
@@ -47,7 +37,7 @@ class PestPostProcessing():
 
 
 
-    def phi_progress(self, pest_exe='++', log=True, phimlim=False, phimaccept=False, filename=None, edit_plot_rc=False):
+    def phi_progress(self, pest_exe='++', log=True, phimlim=False, phimaccept=False, filename=None, rc_font=False):
         """
         Plot the objective function (phi) evolution.
 
@@ -175,7 +165,7 @@ class PestPostProcessing():
 
         """
         # ---- Manages observation group names
-        obs_groups = self.pst.obs_groups if obs_groups is None else marthe_utils.make_iterable(obs_groups)
+        obs_groups = self.pst.obs_groups if obs_groups is None else make_iterable(obs_groups)
         # ---- Fetch phi components data from pst
         pcompo_dic = {key : self.pst.phi_components[key] for key in obs_groups}
         # ---- Get component labels & values
@@ -320,7 +310,7 @@ class PestPostProcessing():
 
         """
         # ---- Manage required observation groups
-        obgnmes = self.pst.nnz_obs_groups if obs_groups is None else marthe_utils.make_iterable(obs_groups)
+        obgnmes = self.pst.nnz_obs_groups if obs_groups is None else make_iterable(obs_groups)
 
         # ---- Get/set résiduals values
         if reifile is not None:
@@ -481,7 +471,7 @@ class PestPostProcessing():
         # ---- Fetch `.isen` file from pst filename
         senfile = self.pst.filename.replace(".pst",".isen")
         # ---- Manage required parameters names to include
-        pn = self.pst.adj_par_names if parnames is None else marthe_utils.make_iterable(parnames)
+        pn = self.pst.adj_par_names if parnames is None else make_iterable(parnames)
         # ---- Read and subset
         css_df = pd.read_csv(senfile, index_col=0).loc[:,pn]
         # ---- Return as DataFrame
@@ -621,8 +611,8 @@ class PestPostProcessing():
 
         """
         # ---- Manage required parameters names and groups
-        pg = self.pst.adj_par_groups if pargroups is None else marthe_utils.make_iterable(pargroups)
-        pn = self.pst.adj_par_names if parnames is None else marthe_utils.make_iterable(parnames)
+        pg = self.pst.adj_par_groups if pargroups is None else make_iterable(pargroups)
+        pn = self.pst.adj_par_names if parnames is None else make_iterable(parnames)
 
         # ---- Extract parameter evolution through pest iteration
         if pest_exe == '++':
@@ -744,7 +734,7 @@ class PestPostProcessing():
 #     hds = np.ma.array(heads, ndmin = 3, mask = np.isin(heads, masked_values))
 
 #     # -- Manage istep to perform
-#     _istep = list(range(mm.nstep)) if istep is None else marthe_utils.make_iterable(istep)
+#     _istep = list(range(mm.nstep)) if istep is None else make_iterable(istep)
 
 #     # -- Get top of each layer
 #     try:

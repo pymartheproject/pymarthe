@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
+import re
+
 import numpy as np
 import pandas as pd
-import re, ast
 import pyemu
 
-from pymarthe.utils import ts_utils, marthe_utils
+from .ts_utils import interpolate
+from .marthe_utils import read_prn
 from .formatters import float_fmt, int_fmt, str_fmt
+from .formatters import ENCODING
+
 ############################################################
 #        Utils for pest preprocessing for Marthe
 ############################################################
@@ -16,20 +20,12 @@ from .formatters import float_fmt, int_fmt, str_fmt
 #https://github.com/jtwhite79/pyemu/
 # ----------------------------------------------------------------------------------------------------------
 
-
-# ---- Set encoding
-encoding = 'latin-1'
-
-
-
 FMT_DIC = {"obsnme": str_fmt, "obsval": float_fmt, "ins_line": str_fmt, "date": str_fmt,"value": float_fmt,
            "name": str_fmt, "parnme": str_fmt, "x": float_fmt, "y": float_fmt, "zone": int_fmt,
            "transformed":float_fmt, "tplnme": str_fmt,"defaultvalue": float_fmt}
 
-
 # ---- Set observation character start and length
 VAL_START, VAL_END = 23, 39
-
 
 
 def write_mgp_parfile(parfile, param_df, trans, ptype='zpc'):
@@ -45,7 +41,7 @@ def write_mgp_parfile(parfile, param_df, trans, ptype='zpc'):
     elif ptype == 'pp':
         cols = ['parname', 'x', 'y', 'zone', 'transformed']
     # ---- Write parameter file with correct formatted columns
-    with open(parfile, 'w', encoding=encoding) as f:
+    with open(parfile, 'w', encoding=ENCODING) as f:
             f.write(df.to_string( col_space=0, columns=cols,
                                   formatters=FMT_DIC, justify="left",
                                   header=False, index=False, index_names=False,
@@ -133,7 +129,7 @@ def write_mgp_tplfile(tplfile, param_df, ptype='zpc'):
         cols = ['parname', 'tplnme']
     elif ptype == 'pp':
         cols = ['parname', 'x', 'y', 'zone', 'tplnme']
-    with open(tplfile, 'w', encoding=encoding) as f:
+    with open(tplfile, 'w', encoding=ENCODING) as f:
         f.write('ptf ~\n')
         f.write(df.to_string(col_space=0, columns=cols,
                                    formatters=FMT_DIC, justify="left",
@@ -147,7 +143,7 @@ def write_mlp_tplfile(tplfile, param_df):
     """
     df = param_df.copy(deep=True)
     df['tplnme'] = '~' + df['parnme']  + '~'
-    with open(tplfile, 'w', encoding=encoding) as f:
+    with open(tplfile, 'w', encoding=ENCODING) as f:
         f.write('ptf ~\n')
         f.write(df.to_string(col_space=0, columns=['parnme', 'tplnme'],
                                    formatters=FMT_DIC, justify="left",
@@ -160,7 +156,7 @@ def write_mlp_parfile(parfile, param_df, trans='none', value_col='defaultvalue')
     """
     df = param_df.copy(deep=True)
     df['transformed'] = transform(param_df[value_col], trans)
-    with open(parfile, 'w', encoding=encoding) as f:
+    with open(parfile, 'w', encoding=ENCODING) as f:
         f.write(df.to_string(col_space=0, columns=['parnme', 'transformed'],
                              formatters=FMT_DIC, justify="left",
                              header=False, index=False, index_names=False,
@@ -264,7 +260,7 @@ def read_config(configfile):
     """
     """
     # -- Get content
-    with open(configfile, 'r', encoding=encoding) as f:
+    with open(configfile, 'r', encoding=ENCODING) as f:
         content = f.read()
 
     # -- Set usefull regex
@@ -378,7 +374,7 @@ def write_insfile(obsnmes, insfile):
     df = pd.DataFrame(dict(obsnme = obsnmes))
     df['ins_line'] = df['obsnme'].apply(lambda s: 'l1 ({}){}:{}'.format(s,VAL_START,VAL_END))
     # ---- Write formated instruction file
-    with open(insfile,'w', encoding=encoding) as f:
+    with open(insfile,'w', encoding=ENCODING) as f:
         f.write('pif ~\n')
         f.write(df.to_string(col_space=0, columns=["ins_line"],
                              formatters=FMT_DIC, justify="left",
@@ -418,7 +414,7 @@ def write_simfile(dates, values, simfile):
     # ---- Build instruction lines
     df = pd.DataFrame(dict(date= dates, value = values))
     # ---- Write formated instruction file
-    with open(simfile,'w', encoding=encoding) as f:
+    with open(simfile,'w', encoding=ENCODING) as f:
         f.write(df.to_string(col_space=0, columns=["date", "value"],
                              formatters=FMT_DIC, justify="left",
                              header=False, index=False, index_names=False,
@@ -460,7 +456,7 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
     if isinstance(prn, pd.DataFrame):
         prn_df = prn
     else:
-        prn_df = marthe_utils.read_prn(prn)
+        prn_df = read_prn(prn)
 
     # -- Manage if fluctuation
     if len(fluc_dic) == 0:
@@ -490,7 +486,7 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
 
     # -- Interpolate values on observations if required
     if not dates_out is None:
-        df = ts_utils.interpolate(df['value'],
+        df = interpolate(df['value'],
                                   dates_out,
                                   method = interp_method).to_frame()
 
@@ -516,7 +512,7 @@ def run_from_config(configfile, run_model=True, **kwargs):
         mm.run_model(**kwargs)
     # -- Extract simulated data
     print('\t-> Extracting simulated values')
-    prn = marthe_utils.read_prn(os.path.join(mm.mldir,'historiq.prn'))
+    prn = read_prn(os.path.join(mm.mldir,'historiq.prn'))
     hdic, _, odics = read_config(configfile)
     for odic in odics:
         # try to parse dates 
