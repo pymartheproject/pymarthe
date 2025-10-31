@@ -127,20 +127,19 @@ class MartheObs():
         #NOTE : it would be advantageous to make obs_df a class property
         # doing so, self.date, self. value and others could be modified by the property setter
         # this happends whens self.obs_df is edited by the user
+
         # ---- Fill observations DataFrame with input data
         self.obs_df = pd.DataFrame(index=self.obsnmes)
-        # TODO should be fixed to keep datetime format for date column
-        self.obs_df[base_obs] = np.array( [ self.obsnmes, self.date, self.value,
-                                            self.datatype, self.locnme, self.obsfile,
-                                            self.weight, self.obgnme, self.trans ],
-                                          dtype=object)
+        self.obs_df[base_obs] = pd.Series([
+            self.obsnmes, self.date, self.value,
+            self.datatype, self.locnme, self.obsfile,
+            self.weight, self.obgnme, self.trans
+        ])
 
         # ---- Store fluctuation arguments
         self.fluc_dic = kwargs.get('fluc_dic', dict())
         # ---- Store simulated data interpolation
         self.interp_method = kwargs.get('interp_method', 'index')
-
-
 
     def get_obs_df(self, transformed=False):
         """
