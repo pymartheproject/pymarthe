@@ -298,8 +298,8 @@ class MartheField():
         _none = all(x is None for x in [layer, inest])
         _str = isinstance(data, str)
         _num = isinstance(data, (int, float))
-        _rec = isinstance(data, np.recarray)
-        _arr = isinstance(data, np.ndarray)
+        _rec = type(data) is np.recarray
+        _arr = type(data) is np.ndarray
         _list = isinstance(data, list)
 
         # ---- Manage Marthe filename as input
@@ -336,7 +336,7 @@ class MartheField():
         # ---- Manage 2D-3D-array input
         if _arr:
 
-            err_msg = (f"ERROR: `data` array must be 2D with a layer argmuent or"
+            err_msg = (f"ERROR: `data` array must be 2D with a layer argmuent or "
                        f"3D with layer=None. Given shape: {len(data.shape)}, given layer = {layer}.")
 
             if len(data.shape) == 3 and layer is None:
