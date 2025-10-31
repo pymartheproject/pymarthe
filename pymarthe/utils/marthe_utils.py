@@ -1,25 +1,22 @@
 # -*- coding: utf-8 -*-
-import os, sys
-from copy import deepcopy
-import numpy as np
-import pandas as pd
-from pathlib import Path
-import re, ast
+
+import os
+import sys
+import re
+import ast
 import warnings
 import functools
+from copy import deepcopy
+from io import StringIO
 
-import pymarthe
-from pymarthe import *
+import numpy as np
+import pandas as pd
+
 from .grid_utils import MartheGrid
-
-# Set encoding
-encoding = 'latin-1'
-
+from .formatters import ENCODING
 
 # Set commun no data values
 NO_DATA_VALUES = [-9999., -8888.]
-
-
 
 
 def deprecated(func):
@@ -44,9 +41,6 @@ def deprecated(func):
     return new_func
 
 
-
-
-
 def unanimous(obj):
     """
     Check if all elements in object (obj) has same length.
@@ -65,7 +59,6 @@ def unanimous(obj):
     res = True if len(set(map(len, seq))) == 1 else False
     # -- Return boolean
     return res
-
 
 
 def get_mlfiles(rma_file):
@@ -88,7 +81,7 @@ def get_mlfiles(rma_file):
     """
     # ---- Get .rma content as text
     mldir, mlname = os.path.split(rma_file)
-    with open(rma_file, 'r', encoding=encoding) as f:
+    with open(rma_file, 'r', encoding=ENCODING) as f:
         content = f.read()
 
     # ---- Fetch all marthe file paths
@@ -101,7 +94,6 @@ def get_mlfiles(rma_file):
                         os.path.normpath(
                             os.path.join(mldir, mlfile)) for mlfile in mlfiles}
     return mlfiles_dic
-
 
 
 def progress_bar(percent, barlen=50):
@@ -134,7 +126,6 @@ def progress_bar(percent, barlen=50):
     sys.stdout.write('\r')
     sys.stdout.write(f"[{'='*int(barlen * percent):{barlen}s}] {int(100*percent)}%")
     sys.stdout.flush()
-
 
 
 def get_layers_infos(layfile, base = 1):
@@ -170,7 +161,7 @@ def get_layers_infos(layfile, base = 1):
     nnest, layers_infos = get_layers_infos(layfile, base = 1)
     """
     # ---- Get .layer content as text
-    with open(layfile, 'r', encoding=encoding) as f:
+    with open(layfile, 'r', encoding=ENCODING) as f:
         content = f.read()
     # ---- set regular expressions
     regex = [r"Cou=\s*(\d+)", r"[Epais|Épais]=\s*([-+]?\d*\.?\d+|\d+)",
@@ -281,9 +272,6 @@ def extract_soildf(text, istep=None):
     return soil_df
 
 
-
-
-
 def read_zonsoil_prop(martfile, pastpfile):
     """
     Description:
@@ -323,12 +311,12 @@ def read_zonsoil_prop(martfile, pastpfile):
 
     """
     # -- Check if martfile contains soil property(ies)
-    with open(martfile, 'r',encoding=encoding) as f:
+    with open(martfile, 'r',encoding=ENCODING) as f:
         mart_content = f.read()
     _mart = True if has_soilprop(mart_content) else False
 
     # -- Check if pastp contains soil property(ies)
-    with open(pastpfile, 'r', encoding=encoding) as f:
+    with open(pastpfile, 'r', encoding=ENCODING) as f:
         pastp_content = f.read()
     _pastp = True if has_soilprop(pastp_content) else False
 
@@ -368,8 +356,6 @@ def read_zonsoil_prop(martfile, pastpfile):
     return mode, soil_df
 
 
-
-
 def remove_autocal(rmafile, martfile):
     """
     Function to make marthe auto calibration / optimisation silent
@@ -389,7 +375,7 @@ def remove_autocal(rmafile, martfile):
     """
 
     # ---- Fetch .rma file content
-    with open(rmafile, 'r', encoding=encoding) as f:
+    with open(rmafile, 'r', encoding=ENCODING) as f:
         lines = f.readlines()
 
     # ---- Define pattern to search
@@ -408,7 +394,7 @@ def remove_autocal(rmafile, martfile):
             replace_text_in_file(rmafile, line, new_line)
 
     # ---- Fetch .mart file content
-    with open(martfile, 'r', encoding=encoding) as f:
+    with open(martfile, 'r', encoding=ENCODING) as f:
         lines = f.readlines()
 
     # ---- Define pattern to search
@@ -423,6 +409,7 @@ def remove_autocal(rmafile, martfile):
             right = re.sub('1','0', wrong)
             new_line  = re.sub(wrong, right, line)
             replace_text_in_file(martfile, line, new_line)
+
 
 def set_verbosity(martfile, silent: bool):
 
@@ -443,7 +430,7 @@ def set_verbosity(martfile, silent: bool):
     set_verbosity('mymodel.mart',silent=True)
     """
     # ---- Fetch .mart file content
-    with open(martfile, 'r', encoding=encoding) as f:
+    with open(martfile, 'r', encoding=ENCODING) as f:
         lines = f.readlines()
 
     # ---- Define pattern to search
@@ -463,7 +450,6 @@ def set_verbosity(martfile, silent: bool):
             new_line = re.sub(wrong, right, line)
 
             replace_text_in_file(martfile, line, new_line)
-
 
 
 def get_chasim_indexer(chasim):
@@ -496,7 +482,7 @@ def get_chasim_indexer(chasim):
 
     """
     # -- Extract chasim content as string
-    with open(chasim, 'r', encoding = encoding) as f:
+    with open(chasim, 'r', encoding = ENCODING) as f:
         content = f.read()
 
     # -- Set regular expressions
@@ -557,7 +543,7 @@ def read_grid_file(grid_file, keep_adj=False, start=None, end=None):
 
     """
     # ---- Extract data as large string
-    with open(grid_file, 'r', encoding = encoding) as f:
+    with open(grid_file, 'r', encoding = ENCODING) as f:
         allcontent = f.read()
         # -- Manage start/end input 
         starts = [0] if start is None else make_iterable(start)
@@ -648,7 +634,7 @@ def read_grid_file(grid_file, keep_adj=False, start=None, end=None):
                 args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # -- Append MartheGrid instance to the grid list
-        grid_list.append(pymarthe.utils.grid_utils.MartheGrid(*args))
+        grid_list.append(MartheGrid(*args))
 
     # ---- Raise error if marthe grid file headers are not provided
     err_msg = f"ERROR : uncorrect headers values in `{grid_file}` grid file.\n" \
@@ -661,9 +647,6 @@ def read_grid_file(grid_file, keep_adj=False, start=None, end=None):
 
     # ---- Return all MartheGrid instances and xcc, ycc if required
     return tuple(grid_list)
-
-
-
 
 
 def replace_text_in_file(file, match, subs, flags=0):
@@ -694,7 +677,7 @@ def replace_text_in_file(file, match, subs, flags=0):
     replace_text_in_file(file, match, subs)
     """
     # ---- Open file in r+ mode
-    with open(file, "r+", encoding=encoding) as f:
+    with open(file, "r+", encoding=ENCODING) as f:
         # ---- Extract file content as string
         text = f.read()
         # ---- Search matches
@@ -743,7 +726,7 @@ def get_units_dic(martfile):
               'jour':'J', 'semaine':'W', 'mois': 'M', 'année':'Y'}
 
     # ---- Fetch .mart file content
-    with open(martfile, 'r', encoding=encoding) as f:
+    with open(martfile, 'r', encoding=ENCODING) as f:
         content = f.read()
 
     # ---- Set block regex
@@ -806,7 +789,7 @@ def get_dates(pastp_file, mart_file):
     # ---- Set date regular expression
     re_anydate = r'date\s*:\s*(\d{2}/\d{2}/\d{4}|[-+]?\d*\.?\d+|\d+)\s*;'
     # ---- Fetch pastp file content as string
-    with open(pastp_file, 'r', encoding=encoding) as f:
+    with open(pastp_file, 'r', encoding=ENCODING) as f:
         dates_str = re.findall(re_anydate, f.read())
     # ---- Distinguish classic dates / timedelta dates
     if not '/' in ''.join(dates_str):
@@ -850,7 +833,7 @@ def read_prn(prnfile = 'historiq.prn'):
     assert file in os.listdir(os.path.normpath(path)), msg
     # ---- Build Multiple index columns
     add_skip = 1
-    with open(prnfile, 'r', encoding=encoding) as f:
+    with open(prnfile, 'r', encoding=ENCODING) as f:
         # ----Fetch 5 first lines of prn file 
         
         # am 2023-11-24 : in some version of marthe, no empty col at the end of file.
@@ -888,7 +871,7 @@ def read_prn(prnfile = 'historiq.prn'):
         # ---- Get all headers as tuple
         tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][2:]
         # ---- Read prn file without headers (with date format)
-        df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
+        df = pd.read_csv(prnfile, sep='\t', encoding=ENCODING,
                          skiprows=mask.count(True) + add_skip, index_col = 0,
                          parse_dates = True, dayfirst=True)
         # am 2023-11-24: in recent version of pandas, inplace is not authorized anymore
@@ -898,7 +881,7 @@ def read_prn(prnfile = 'historiq.prn'):
         # ---- Get all headers as tuple
         tuples = [tuple(map(str.strip,list(t)) ) for t in list(zip(*headers))][1:]
         # ---- Read prn file without headers (time is not a date)
-        df = pd.read_csv(prnfile, sep='\t', encoding=encoding, 
+        df = pd.read_csv(prnfile, sep='\t', encoding=ENCODING,
                          skiprows=mask.count(True) + add_skip, index_col = 0,
                          )
     # ---- Format DateTimeIndex or float
@@ -918,8 +901,6 @@ def read_prn(prnfile = 'historiq.prn'):
         df.columns = df.columns.set_levels(levels = levels, level='inest')
     # ---- Return prn DataFrame
     return df
-
-
 
 
 def read_histo_file(histo_file):
@@ -947,7 +928,7 @@ def read_histo_file(histo_file):
     re_nest = r'^\s*\d*/\w+'
     re_names = r";\s*(.*)"
     # ---- Fetch histo file content by line
-    with open(histo_file, encoding = encoding) as f:
+    with open(histo_file, encoding = ENCODING) as f:
         lines = [line.rstrip() for line in f]
     # ---- Iterate over all lines
     data = []
@@ -982,7 +963,6 @@ def read_histo_file(histo_file):
     return df
 
 
-
 def isiterable(object):
     """
     Detect if a object is a iterable.
@@ -1014,7 +994,6 @@ def isiterable(object):
         return True
 
 
-
 def make_iterable(var):
     """
     Make any variable iterable
@@ -1037,8 +1016,6 @@ def make_iterable(var):
     return it
 
 
-
-
 def read_listm_qfile(qfile, istep, fmt):
     """
     """
@@ -1046,7 +1023,7 @@ def read_listm_qfile(qfile, istep, fmt):
         # ---- Set data types
         dt = {'value':'f8','j':'i4','i':'i4','layer':'i4'}
         # ---- Read qfile as DataFrame (separator = any whitespace)
-        df = pd.read_csv(qfile, encoding=encoding, delim_whitespace=True,
+        df = pd.read_csv(qfile, encoding=ENCODING, delim_whitespace=True,
                          header=None, names=list(dt.keys()), dtype=dt)
         # ---- Pass t0 0-based
         df[['j','i','layer']] = df[['j','i','layer']].sub(1)
@@ -1065,7 +1042,7 @@ def read_listm_qfile(qfile, istep, fmt):
         # ---- Set data types
         dt = {'x':'f8','y':'f8','layer':'i4', 'value':'f8'}
         # ---- Read qfile as DataFrame (separator = any whitespace)
-        df = pd.read_csv(qfile, encoding=encoding, delim_whitespace=True,
+        df = pd.read_csv(qfile, encoding=ENCODING, delim_whitespace=True,
                          header=None, names=list(dt.keys()), dtype=dt)
         # ---- Pass t0 0-based
         df['layer'] = df['layer'].sub(1)
@@ -1084,7 +1061,7 @@ def read_listm_qfile(qfile, istep, fmt):
         # ---- Set data types
         dt = {'x':'f8','y':'f8', 'value':'f8'}
         # ---- Read qfile as DataFrame (separator = any whitespace)
-        df = pd.read_csv(qfile, encoding=encoding, delim_whitespace=True,
+        df = pd.read_csv(qfile, encoding=ENCODING, delim_whitespace=True,
                          header=None, names=list(dt.keys()), dtype=dt)
         # ---- Add layer info (=0)
         df['layer'] = 0
@@ -1100,14 +1077,11 @@ def read_listm_qfile(qfile, istep, fmt):
         return df[cols], df[_cols]
 
 
-
-
-
 def read_record_qfile(i,j,k,v,qfile,qcol):
     """
     """
     # ---- Read just qcol column in qfile
-    data = pd.read_csv(qfile, encoding=encoding, delim_whitespace=True)
+    data = pd.read_csv(qfile, encoding=ENCODING, delim_whitespace=True)
     # ---- Extract boundname and value
     bdnme = 'boundname'
     value = [v] + data.iloc[:,qcol].to_list()
@@ -1121,8 +1095,6 @@ def read_record_qfile(i,j,k,v,qfile,qcol):
     metacols =  ['qfilename', 'qtype', 'qrow', 'qcol']
     _cols = cols + metacols
     return df[cols], df[_cols]
-
-
 
 
 def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
@@ -1166,7 +1138,7 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
     mm_ws = os.path.split(pastpfile)[0]
 
     # ---- Fetch pastp data by block (each block = data for step i)
-    with open(pastpfile, 'r', encoding=encoding) as f:
+    with open(pastpfile, 'r', encoding=ENCODING) as f:
         content = f.read()
         # ---- Set special tag according to pumping mode
         mode_tag = '/DEBIT/' if mode == 'aquifer' else '/Q_EXTER_RIVI/'
@@ -1218,9 +1190,6 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
     return data, metadata
 
 
-
-
-
 def convert_at2clp(pastpfile, mm):
     """
     Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
@@ -1252,11 +1221,12 @@ def convert_at2clp(pastpfile, mm):
     # ---- Add aff and trc column in modelgrid
     for ext in ['aff_r', 'trc_r']:
         fname = ext.replace('_r', '')
-        field = pymarthe.mfield.MartheField(fname, mm.mlfiles[ext], mm)
+        from ..mfield import MartheField
+        field = MartheField(fname, mm.mlfiles[ext], mm)
         mm.modelgrid[fname] = field.data['value']
 
     # ---- Extract .pastp file content
-    with open(pastpfile, 'r', encoding=encoding) as f:
+    with open(pastpfile, 'r', encoding=ENCODING) as f:
         # ---- Extract pastp by block 
         blocks = re.findall(re_block, f.read(), re.DOTALL)
     
@@ -1294,8 +1264,6 @@ def convert_at2clp(pastpfile, mm):
         warnings.warn(msg)
 
 
-
-
 def remove_no_data_values(df, column = 'value', nodata = NO_DATA_VALUES):
     """
     -----------
@@ -1330,7 +1298,6 @@ def remove_no_data_values(df, column = 'value', nodata = NO_DATA_VALUES):
             df.loc[df[column] == nd, column] = pd.NA
         # ---- Return clean DataFrame
         return df.dropna()
-
 
 
 def read_obsfile(obsfile, nodata = None):
@@ -1377,7 +1344,6 @@ def read_obsfile(obsfile, nodata = None):
     return remove_no_data_values(df, nodata = nodata)
 
 
-
 def write_obsfile(date, value, obsfile):
     """
     Write a standard obsfile from observation dates and value.
@@ -1406,8 +1372,6 @@ def write_obsfile(date, value, obsfile):
     df.to_csv(obsfile,  sep = '\t', header = True, index = True)
 
 
-
-
 def get_run_times(logfile = 'bilandeb.txt'):
     """
     Extract run times for model processes from log file.
@@ -1431,7 +1395,7 @@ def get_run_times(logfile = 'bilandeb.txt'):
     rtdf = get_run_times(logfile='model/bilandeb.txt')
     """
     # -- Extract logs
-    with(open(logfile, 'r', encoding='latin-1')) as f:
+    with(open(logfile, 'r', encoding=ENCODING)) as f:
         content = f.read()
 
     # -- Regex pattern to find in log
@@ -1456,9 +1420,6 @@ def get_run_times(logfile = 'bilandeb.txt'):
 
     # -- Return output DataFrame
     return pd.DataFrame({'Process':process,'CPU time':times}).set_index('Process')
-
-
-
 
 
 def bordered_array(a, v):
@@ -1496,8 +1457,6 @@ def bordered_array(a, v):
     return bar.T
 
 
-
-
 def read_budget(filename= 'histobil_nap_pastp.prn'):
     """
     Global budget reader (.prn).
@@ -1530,16 +1489,8 @@ def read_budget(filename= 'histobil_nap_pastp.prn'):
     flow_df, riv_df, criv_df = read_budget(filename= 'histobil_debit.prn')
 
     """
-    # ---- Try to import io package (needed)
-    try:
-        from io import StringIO
-    except:
-        err_msg = 'Could not load python `io` module. '
-        err_msg += 'Try `pip install io`.'
-        raise(ImportError(err_msg))
-
     # ---- Read raw data as string
-    with open(filename, 'r', encoding=encoding) as f:
+    with open(filename, 'r', encoding=ENCODING) as f:
         content = f.read()
 
     # ---- Match specific tables
@@ -1566,11 +1517,6 @@ def read_budget(filename= 'histobil_nap_pastp.prn'):
         return bud_dfs[0]
     else:
         return bud_dfs
-
-
-
-
-
 
 
 def read_zonebudget(filename= 'histobil_debit.prn'):
@@ -1600,16 +1546,8 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
     zb_df = read_zonebudget()
 
     """
-    # ---- Try to import io package (needed)
-    try:
-        from io import StringIO
-    except:
-        err_msg = 'Could not load python `io` module. '
-        err_msg += 'Try `pip install io`.'
-        raise(ImportError(err_msg))
-
     # ---- Read raw data as string
-    with open(filename, 'r', encoding=encoding) as f:
+    with open(filename, 'r', encoding=ENCODING) as f:
         content = f.read()
 
     # ---- Manage regex expression/generation
@@ -1654,9 +1592,6 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
 
     # ---- Return MultiIndex DataFrame
     return zb_df
-
-
-
 
 
 def hydrodyn_periodicity(pastpfile, istep, external=False, new_pastpfile=None):
@@ -1705,7 +1640,7 @@ def hydrodyn_periodicity(pastpfile, istep, external=False, new_pastpfile=None):
 
     """
     # ---- Read .pastp file by lines
-    with open(pastpfile, 'r', encoding = encoding) as f:
+    with open(pastpfile, 'r', encoding = ENCODING) as f:
         init = f.readlines()
 
     # ---- Clear existing hydrodynamic action
@@ -1777,7 +1712,7 @@ def hydrodyn_periodicity(pastpfile, istep, external=False, new_pastpfile=None):
                     s += f'0\t{date}\n'
 
             # -- Write external file
-            with open(ext_path, 'w', encoding =encoding) as f:
+            with open(ext_path, 'w', encoding =ENCODING) as f:
                 f.write(s)
 
         # -- Manage internal mode
@@ -1799,14 +1734,12 @@ def hydrodyn_periodicity(pastpfile, istep, external=False, new_pastpfile=None):
 
     # -- (Over-)write pastp file 
     out = pastpfile if new_pastpfile is None else new_pastpfile
-    with open(out, 'w', encoding=encoding) as f:
+    with open(out, 'w', encoding=ENCODING) as f:
         f.write(''.join(nlines))
 
     # -- Print final message
     print("==> Hydrodynamic computation periodicity " \
           f"had been set successfully in '{out}'") 
-
-
 
 
 def set_tw(start=None, end=None, mm=None, martfile=None, pastpfile=None):
@@ -1911,7 +1844,7 @@ def set_tw(start=None, end=None, mm=None, martfile=None, pastpfile=None):
     assert np.logical_or(istart < iend, iend == 0) , err_msg
 
     # ---- Extract .mart file content
-    with open(martfile, encoding=encoding) as f:
+    with open(martfile, encoding=ENCODING) as f:
         lines = f.readlines()
 
     # ---- Set usefull regex
@@ -1941,9 +1874,6 @@ def set_tw(start=None, end=None, mm=None, martfile=None, pastpfile=None):
     # -- Print final message
     print(f"==> Model time window had been set from istep " \
           f"{istart} to {iend} successfully. ")
-
-
-
 
 
 def get_tw(mm=None, martfile=None, pastpfile=None, tw_type='date'):
@@ -1994,7 +1924,7 @@ def get_tw(mm=None, martfile=None, pastpfile=None, tw_type='date'):
         assert all(f is not None for f in [martfile, pastpfile]), err_msg
 
     # ---- Extract .mart file content
-    with open(martfile, encoding=encoding) as f:
+    with open(martfile, encoding=ENCODING) as f:
         lines = f.readlines()
 
     # ---- Set usefull regex

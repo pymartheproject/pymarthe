@@ -9,6 +9,8 @@ import warnings
 import subprocess as sp
 from shutil import which
 from copy import deepcopy
+import rtree
+
 # import queue
 # import threading
 # from datetime import datetime
@@ -20,8 +22,6 @@ from .mfield import MartheField
 from .mpump import MarthePump
 from .msoil import MartheSoil
 from .utils import marthe_utils, shp_utils, pest_utils
-
-encoding = 'latin-1'
 
 
 class MartheModel():
@@ -132,17 +132,17 @@ class MartheModel():
         # From existing external file
         if isinstance(spatial_index, str):
             spatial_index = self._check_si_input(spatial_index)
+            self.si_state = 1       # activate spatial index
+            self.spatial_index = rtree.Index(spatial_index)
             self.sifile = spatial_index
-            self.si_state = 1  # activate spatial index
-            from rtree.index import Index
-            self.spatial_index = Index(spatial_index)
+
         # From custom dictionary
         elif isinstance(spatial_index, dict):
             name = spatial_index.get('name', f'{self.mlname}_si')
             only_active = spatial_index.get('only_active', False)
             self.build_spatial_index(name, only_active)
         # From generic
-        elif spatial_index is True:
+        elif spatial_index:
             self.build_spatial_index()
         # Without
         elif spatial_index is False:
@@ -261,13 +261,6 @@ class MartheModel():
         """
         # -- Activate iterator by setting spatial index to 1
         self.si_state = 1
-
-        # -- Import rtree package
-        try:
-            import rtree
-        except:
-            ImportError('Could not import `rtree` package.')
-
         # -- Manage spatial index properties
         p = rtree.index.Property()
         si_name = self.rma_path.replace('.rma', '_si') if name is None else name
@@ -1502,7 +1495,6 @@ class MartheModel():
         # -- Print on console
         try:
             # -- Fancier table print
-            import tabulate
             print(df.to_markdown(tablefmt=tablefmt, colalign=("left", "right")))
         except:
             # -- Classic table print
@@ -1625,12 +1617,12 @@ class MartheModel():
 
         """
         # ---- Wrapper to utils
-        marthe_utils.hydrodyn_periodicity(pastpfile=self.mm.mlfiles['pastp'],
-                                          istep=istep,
-                                          external=external,
-                                          new_pastpfile=new_pastpfile)
-
-    def _check_si_input(self, spatial_index: str) -> str:
+        marthe_utils.hydrodyn_periodicity(pastpfile= self.mm.mlfiles['pastp'],
+                                          istep= istep,
+                                          external= external,
+                                          new_pastpfile= new_pastpfile)
+    @staticmethod
+    def _check_si_input( spatial_index: str) -> str:
         """
         Removes '.dat' or '.idx' if provde by the user.
         Intent to capture a FileNotFoundError if index files are not found.
@@ -1683,7 +1675,7 @@ class SpatialReference():
         """
         Parameters
         ----------
-        ml : instance of MartheModel
+        mm : instance of MartheModel
         """
         mg = mm.imask.to_grids(layer=0, inest=0)[0]
         self.nrow, self.ncol = mg.nrow, mg.ncol

@@ -1,23 +1,24 @@
-
 """
 Contains the classes related to field data.
 Designed for handling distributed Marthe properties
 (structured and unstructured grid)
 """
+import os
+from copy import deepcopy
+import shutil
 
-import os, sys
 import numpy as np
 import numpy.lib.recfunctions
 import pandas as pd
-from copy import copy, deepcopy
-import shutil
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
-from .utils import marthe_utils, shp_utils, pest_utils
-from .utils.grid_utils import MartheGrid
 
-encoding = 'latin-1'
-dmv = [-9999., 0., 9999]  # Default field masked values
+from .utils import marthe_utils, shp_utils, pest_utils
+from .utils import import_utils
+from .utils.grid_utils import MartheGrid
+from .utils.formatters import ENCODING
+
+DMV = [-9999., 0., 9999]
 
 
 class MartheField():
@@ -69,7 +70,7 @@ class MartheField():
         # ---- Set attributes
         self.mm = mm
         self.field = field
-        self.dmv = dmv
+        self.dmv = DMV
         self.use_imask = use_imask
         self.set_data(data)
         self.maxlayer = len(self.to_grids(inest=0))
@@ -77,7 +78,6 @@ class MartheField():
 
         # ---- Set property style
         self._proptype = 'grid'
-
 
     def get_xyvertices(self, stack=False):
         """
@@ -117,9 +117,6 @@ class MartheField():
             return np.column_stack([xvertices, yvertices])
         else:
             return np.array(xvertices), np.array(yvertices)
-
-
-
 
     def sample(self, x, y, layer, masked_values=None, as_mask=False, as_idx=False):
         """
@@ -184,9 +181,7 @@ class MartheField():
         else:
             return self.data[mask]
 
-
-
-    def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values=list()):
+    def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values=None):
         """
         Function to select/subset NON-masked values.
 
@@ -231,6 +226,8 @@ class MartheField():
         else: 
             inests = marthe_utils.make_iterable(inest)
         # ---- Manage masked_values
+        if masked_values is None:
+            masked_values = list()
         mv = marthe_utils.make_iterable(masked_values)
         # ---- Apply required mask
         mask   = np.logical_and.reduce([np.isin(self.data['layer'], layers),
@@ -377,8 +374,6 @@ class MartheField():
         # -- Return masked rec.array
         return mrec
 
-
-
     def set_data_from_parfile(self, parfile, izone, btrans='none', fmt_lite=False):
         """
         Set field data from parameter file inplace.
@@ -414,7 +409,7 @@ class MartheField():
             for l,z,v in rec:
                 # -- Mask and set
                 mask = np.logical_and.reduce(
-                            [ self.get_data(layer=l, masked_values=dmv, as_mask=True),
+                            [ self.get_data(layer=l, masked_values=self.dmv, as_mask=True),
                               izone.data['value'] == z]
                               )
                 self.data['value'][mask] = v
@@ -424,13 +419,10 @@ class MartheField():
             # -- Mask and set 
             l,z,v = rec
             mask = np.logical_and.reduce(
-                            [ self.get_data(layer=l, masked_values=dmv, as_mask=True),
+                            [ self.get_data(layer=l, masked_values=self.dmv, as_mask=True),
                               izone.data['value'] == z]
                               )
             self.data['value'][mask] = v
-
-
-
 
     def as_3darray(self):
         """
@@ -461,7 +453,6 @@ class MartheField():
 
         # ---- Return 3D-array
         return self.get_data(inest=0, as_array=True)
-
 
     @staticmethod
     def grids2rec(grids):
@@ -581,9 +572,6 @@ class MartheField():
         # ---- Return MartheGrid instance
         return MartheGrid(*args, field = self.field)
 
-
-
-
     def to_grids(self, layer=None, inest=None):
         """
         Converting internal data (recarray) to a list of
@@ -617,8 +605,6 @@ class MartheField():
 
         # ---- Return list of grids
         return mgrids
-
-
 
     def write_data(self, filename=None, keep_uniform_fmt=False):
         """
@@ -656,7 +642,7 @@ class MartheField():
         rl = self.mm.extract_refine_levels()
 
         # ---- Write field data from list of MartheGrid instance
-        with open(f, 'w', encoding = marthe_utils.encoding) as f:
+        with open(f, 'w', encoding = ENCODING) as f:
             for mg in self.to_grids():
                 f.write(
                             mg.to_string(
@@ -666,11 +652,8 @@ class MartheField():
                                 keep_uniform_fmt = keep_uniform_fmt )
                                                                         )
 
-
-
-
     def to_shapefile(self,  filename = None, layer=0, inest=None,
-                            masked_values = dmv, log = False,
+                            masked_values = "default", log = False,
                             epsg=None, prj=None):
         """
         Write field data as shapefile by layer.
@@ -687,8 +670,8 @@ class MartheField():
         inest (int, optional) : nested grid numerical id to export.
                                 If None, all nested grid are considered.
                                 Default is None.
-        masked_values (list, optional) : field values to ignore.
-                                         Default is [-9999., 0., 9999].
+        masked_values (str/list/None, optional) : field values to ignore.
+                                                  Default is 'default' => self.dmv.
         log (bool, optional) : logarithmic transformation of all values.
                                Default is False.
         epsg (int, optional) : Geodetic Parameter Dataset.
@@ -725,8 +708,12 @@ class MartheField():
         df = pd.DataFrame.from_records(data).assign(parts=parts)
 
         # ---- Apply mask values
-        mv = [] if masked_values is None else masked_values
+        if masked_values == "default":
+            mv = self.dmv
+        else:
+            mv = [] if masked_values is None else masked_values
         df = df[~df['value'].isin(mv)]
+
         # ---- Fetch subset parts (goemetries)
         parts = df.pop('parts')
 
@@ -746,11 +733,9 @@ class MartheField():
         # ---- Sum up export
         print("\n ---> Shapefile wrote in {} succesfully.".format(filename))
 
-
-
     def plot(self,  ax=None, layer=0, inest=None, vmin=None,
                     vmax=None, log = False, extent = None,
-                    masked_values = dmv, basemap=False, rc_font=False, **kwargs):
+                    masked_values = "default", basemap=False, rc_font=False, **kwargs):
         """
         Plot data by layer
 
@@ -779,8 +764,8 @@ class MartheField():
                                        entire model domain.
                                        Default is None.
 
-        masked_values (list, optional) : field values to ignore.
-                                         Default is [-9999., 0., 9999].
+        masked_values (str/list/None, optional) : field values to ignore.
+                                                  Default is "default" <=> self.dmv.
 
         basemap (dict/bool, optional) : add base map to AxesSubplot.
                                         /!/ Required python `contextily` module /!/
@@ -833,7 +818,10 @@ class MartheField():
         df = pd.DataFrame.from_records(data).assign(patches=patches)
         
         # ---- Apply mask values
-        if masked_values is None:
+        if masked_values == "default":
+            mv = self.dmv
+            rec = df[~df['value'].isin(mv)].to_records(index=False)
+        elif masked_values is None:
             rec = df.to_records(index=False)
         else:
             rec = df[~df['value'].isin(masked_values)].to_records(index=False)
@@ -879,11 +867,7 @@ class MartheField():
 
         # ---- Add basemap if required
         if basemap is True or isinstance(basemap, dict):
-            # -- Try to import contextily
-            try:
-                import contextily as ctx
-            except:
-                ImportError('Could not import `contextily` module to add basemap.')
+            ctx = import_utils.import_package("contextily")
             if basemap is True:
                 # -- Add standard basemap (Stamen Terrain, EPSG:3857)
                 ctx.add_basemap(ax)
@@ -893,9 +877,6 @@ class MartheField():
 
         # ---- Return axe
         return ax
-
-
-
 
     def zonal_stats(self, stats, polygons, layer=None, names = None, trans='none'):
         """
@@ -974,11 +955,7 @@ class MartheField():
         # ---- Return
         return zstats_df
 
-
-
-
-
-    def to_vtk(self, filename=None, trans='none', masked_values = dmv, **kwargs):
+    def to_vtk(self, filename=None, trans='none', masked_values = "default", **kwargs):
         """
         Build vtk unstructured grid from model geometry and 
         add current field to cell dataset.
@@ -996,8 +973,8 @@ class MartheField():
         trans (str, optional) : transformation to apply to the values.
                                 See pymarthe.utils.pest_utils.transform.
                                 Default is 'none'.
-        masked_values (float/it, optional) : values to mask of the current field data.
-                                             Default are [9999, 0, -9999].
+        masked_values (str/float/it/None, optional) : values to mask of the current field data.
+                                                      Default is 'default' => self.dmv.
         vertical_exageration (float, kwargs) : floating point value to scale vertical
                                                exageration of the vtk points.
                                                Default is 0.05.
@@ -1039,6 +1016,8 @@ class MartheField():
         f = self.field if filename is None else filename
 
         # -- Manage masked values
+        if masked_values == 'default':
+            masked_values = self.dmv
         mv = marthe_utils.make_iterable(masked_values)
 
         # -- Get Vtk instance
@@ -1056,19 +1035,11 @@ class MartheField():
         # -- Return Vtk instance
         return vtk
 
-
-
-
     def __str__(self):
         """
         Internal string method.
         """
         return 'MartheField'
-
-
-
-
-
 
 
 class MartheFieldSeries():
@@ -1098,6 +1069,7 @@ class MartheFieldSeries():
         """
         # -- Store arguments
         self.mm = mm
+        self.dmv = DMV
         self.chasim = os.path.join(self.mm.mldir, 'chasim.out') if chasim is None else chasim
         # -- Get file indexer
         self.indexer = marthe_utils.get_chasim_indexer(self.chasim)
@@ -1105,8 +1077,6 @@ class MartheFieldSeries():
         self.fields = self.indexer.field.unique()
         # -- Prepare dictionary of sim data
         self.data = dict.fromkeys(self.fields)
-
-
 
     def check_fieldname(self, fieldname, raise_error=True):
         """
@@ -1147,8 +1117,6 @@ class MartheFieldSeries():
 
         else:
             return exist, loaded
-
-
 
     def load_field(self, field, istep=None):
         """
@@ -1226,11 +1194,7 @@ class MartheFieldSeries():
         # -- Add Marthefield records in main data dictionary
         self.data[field] = mf_dic
 
-
-
-
-
-    def get_tseries(self, field, x, y, layer, names= None, index = 'date', masked_values = dmv[::2], base=0):
+    def get_tseries(self, field, x, y, layer, names= None, index = 'date', masked_values = "default", base=0):
         """
         Sample field data by x, y, layer coordinates and stack timeseries in a DataFrame.
         It will perform simple a spatial intersection with field data.
@@ -1248,8 +1212,8 @@ class MartheFieldSeries():
                                             coordinates. Example: '23i_45j_6k'
                                             Default is None.
 
-        masked_values (None/list): values to ignore during the sampling process
-                                   Default are [-9999, 0, 9999].
+        masked_values (str/None/list): values to ignore during the sampling process
+                                   Default is "default" => masked_values = [-9999.,9999].
 
         index (str, optional) : type of index required for the output DataFrame.
                                 Can be:
@@ -1267,7 +1231,6 @@ class MartheFieldSeries():
         Returns:
         --------
         df (DataFrame): Output timeseries stack in DataFrame.
-
 
         Examples:
         --------
@@ -1288,9 +1251,8 @@ class MartheFieldSeries():
         # -- Manage names input
         if names is not None:
             _names = marthe_utils.make_iterable(names)
-            err_msg = 'ERROR : arguments `x`, `y` and `names` must have the same length. ' \
-                      f'Given: len(x) = {len(_x)}, len(y) = {len(_y)}, len(names) = {len(_names)}.'
-
+            # err_msg = 'ERROR : arguments `x`, `y` and `names` must have the same length. ' \
+            #           f'Given: len(x) = {len(_x)}, len(y) = {len(_y)}, len(names) = {len(_names)}.'
 
         # -- Get node numbers of x,y,layer coordinates
         nodes = self.mm.get_node(_x, _y, _layer)
@@ -1309,6 +1271,8 @@ class MartheFieldSeries():
             df.columns = marthe_utils.make_iterable(names)
 
         # -- Convert basic index to MultiIndex
+        if masked_values == "default":
+            masked_values = [-9999., 9999]
         df = df.set_index( pd.MultiIndex.from_tuples(
                                 [(istep, self.mm.mldates[istep]) for istep in self.data[field].keys()],
                                 names = ['istep', 'date'])
@@ -1323,11 +1287,6 @@ class MartheFieldSeries():
             return df.droplevel('date')
         elif index == 'combined':
             return df
-
-
-
-
-
 
     def save_animation(self, field, filename, dpf = 0.25, dpi=200, **kwargs):
         """
@@ -1359,11 +1318,7 @@ class MartheFieldSeries():
 
         """
         # ---- Try to import imageio package
-        try:
-            import imageio
-        except ImportError:
-            print('ERROR : Could not load `imageio` module. ' \
-                  'Try `pip install imageio`.')
+        imageio = import_utils.import_package("imageio")
 
         # -- Check field
         self.check_fieldname(field)
@@ -1373,7 +1328,7 @@ class MartheFieldSeries():
         if os.path.exists(tdir): shutil.rmtree(tdir)
         os.mkdir(tdir)
         # -- Get min/max value to fix colorbar (vectorize form for better efficiency)
-        mv = kwargs.get('masked_values', dmv[::2])
+        mv = kwargs.get('masked_values', self.dmv[::2])
         values = np.array([ mf.data['value'][ ~np.isin(mf.data['value'], mv) ]
                                                     for mf in self.data[field].values()] )
         kwargs['vmin'] = kwargs.get('vmin', values.min())
@@ -1408,11 +1363,8 @@ class MartheFieldSeries():
         # -- Success message
         print(f'\nAnimation written in {filename}.')
 
-
-
-
-
-    def to_shapefile(self, field, filename = None, layer=0, inest=None, masked_values = dmv, log = False, epsg=None, prj=None):
+    def to_shapefile(self, field, filename = None, layer=0, inest=None, masked_values = "default",
+                     log = False, epsg=None, prj=None):
         """
         Save field series in shapefile.
 
@@ -1430,8 +1382,8 @@ class MartheFieldSeries():
         inest (int, optional) : nested grid numerical id to export.
                                 If None, all nested grid are considered.
                                 Default is None.
-        masked_values (list, optional) : field values to ignore.
-                                         Default is [-9999., 0., 9999].
+        masked_values (str/list/None, optional) : field values to ignore.
+                                         Default is "default" => self.dmv.
         log (bool, optional) : logarithmic transformation of all values.
                                Default is False.
         epsg (int, optional) : Geodetic Parameter Dataset.
@@ -1452,7 +1404,7 @@ class MartheFieldSeries():
 
         # -- Build filename if not provided
         if filename is None:
-            filename = f'{self.field}_{layer}.shp'
+            filename = f'{field}_{layer}.shp'
 
         # -- Get first istep field
         mf0 = list(self.data[field].values())[0]
@@ -1468,7 +1420,10 @@ class MartheFieldSeries():
             parts.extend(mg.to_pyshp())
 
         # ---- Prepare masked_value deletion
-        mv = [] if masked_values is None else masked_values
+        if masked_values == "default":
+            mv = self.dmv
+        else:
+            mv = [] if masked_values is None else masked_values
 
         # ---- Fetch data for all isteps
         dfs = []
@@ -1492,7 +1447,7 @@ class MartheFieldSeries():
 
         # ---- Log transform if required
         if log:
-            mask = df.columns.str.startswith(self.field)
+            mask = df.columns.str.startswith(field)
             df.loc[:,mask] = df.loc[:,mask].apply(
                                 lambda col: col.transform('log10'))
             df =  df.loc[:,mask].add_prefix('log_')
@@ -1501,20 +1456,8 @@ class MartheFieldSeries():
         shp_utils.recarray2shp(df.to_records(index=False), np.array(parts),
                                shpname=filename, epsg=epsg, prj=prj)
 
-
-
-
     def __str__(self):
         """
         Internal string method.
         """
         return 'MartheFieldSeries'
-
-
-
-
-
-
-
-
-
