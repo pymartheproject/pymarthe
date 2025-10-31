@@ -77,8 +77,8 @@ def parse_mgp_parfile(parfile, btrans):
         # -- Get parameter type and Dataframe
         ptype = 'zpc'
         par_df = pd.read_csv(parfile, header=None,
-                                  delim_whitespace=True,
-                                  names = ['parname', 'value'])
+                             sep=r'\s+',
+                             names = ['parname', 'value'])
         # -- Back-transform values
         par_df['bvalue'] = transform(par_df['value'], btrans)
         # -- Parse names adding new columns
