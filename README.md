@@ -40,6 +40,16 @@ PyMarthe (v1.0) is a python wrapper acting as a "coupling interface" between [MA
 Architecture
 -----------------------------------------------
 
+
+- Les **deux premières** lignes sont les dernières lignes **Mermaid**.  
+- La **troisième** ligne (juste en dessous) est la **fermeture du bloc de code** → ` ``` `
+
+Si tu veux le bloc complet prêt à coller, le revoilà — la **dernière ligne** est la fermeture :
+
+```markdown
+Architecture
+-----------------------------------------------
+
 ```mermaid
 flowchart TD
   %% PyMarthe architecture overview
@@ -85,6 +95,8 @@ flowchart TD
   OUT -->|postprocess| MM
   OUT -->|obs/pars for PEST| MO
 
+
+
 Documentation
 -----------------------------------------------
 
@@ -126,7 +138,7 @@ mm.prop['permh'].sample(x = [323.1,333.4],
 
 # -- Modify/Write field values
 mm.prop['permh'].set_data(2.3e-3, layer=2, inest=0)
-mm.prop['permh'.write_data()
+mm.prop['permh'].write_data()
 
 # -- Plot field values
 plt.rc('font', family='serif', size=8)
