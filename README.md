@@ -37,6 +37,53 @@ PyMarthe (v1.0) is a python wrapper acting as a "coupling interface" between [MA
 
 
 <br></br>
+Architecture
+-----------------------------------------------
+
+```mermaid
+flowchart TD
+  %% PyMarthe architecture overview
+
+  U[User - Notebook/Script]
+
+  subgraph P[pymarthe package]
+    direction TB
+    MM[MartheModel<br/>- load/modify/run MARTHE<br/>- read/write model files]
+    MO[MartheOptim<br/>- build PEST++ workflow<br/>- generate pst/tpl/ins/par]
+    H[helpers<br/>- preprocessing<br/>- postprocessing]
+    UT[utils<br/>- grid_utils, pest_utils,<br/>- shp_utils, vtk_utils, ts_utils]
+    MM --- H
+    MM --- UT
+    MO --- UT
+  end
+
+  subgraph FS[File System]
+    direction LR
+    IN[(Inputs<br/>.rma .zonep .layer .debit ...)]
+    OUT[(Outputs<br/>.sim .histo .out .pst .par ...)]
+    IN --- OUT
+  end
+
+  subgraph XB[External Binaries]
+    direction TB
+    MAR[MARTHE executable]
+    PEST[PEST++ executables]
+  end
+
+  %% data flow
+  U -->|API calls| P
+  MM -->|read/write| IN
+  MM -->|write results| OUT
+  MM -->|run via subprocess| MAR
+  MAR -->|produce simulation files| OUT
+
+  MO -->|generate pst tpl ins par| OUT
+  MO -->|run optimization| PEST
+  PEST -->|estimation outputs| OUT
+
+  %% feedback loops
+  OUT -->|postprocess| MM
+  OUT -->|obs/pars for PEST| MO
 
 Documentation
 -----------------------------------------------
