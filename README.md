@@ -40,16 +40,6 @@ PyMarthe (v1.0) is a python wrapper acting as a "coupling interface" between [MA
 Architecture
 -----------------------------------------------
 
-
-- Les **deux premières** lignes sont les dernières lignes **Mermaid**.  
-- La **troisième** ligne (juste en dessous) est la **fermeture du bloc de code** → ` ``` `
-
-Si tu veux le bloc complet prêt à coller, le revoilà — la **dernière ligne** est la fermeture :
-
-```markdown
-Architecture
------------------------------------------------
-
 ```mermaid
 flowchart TD
   %% PyMarthe architecture overview
@@ -94,7 +84,7 @@ flowchart TD
   %% feedback loops
   OUT -->|postprocess| MM
   OUT -->|obs/pars for PEST| MO
-
+```
 
 
 Documentation
