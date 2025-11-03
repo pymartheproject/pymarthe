@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 import pyemu
 
-from pymarthe.utils import ts_utils, marthe_utils
+from .ts_utils import interpolate
+from .marthe_utils import read_prn
 from .formatters import float_fmt, int_fmt, str_fmt
 from .formatters import ENCODING
 
@@ -455,7 +456,7 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
     if isinstance(prn, pd.DataFrame):
         prn_df = prn
     else:
-        prn_df = marthe_utils.read_prn(prn)
+        prn_df = read_prn(prn)
 
     # -- Manage if fluctuation
     if len(fluc_dic) == 0:
@@ -485,7 +486,7 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
 
     # -- Interpolate values on observations if required
     if not dates_out is None:
-        df = ts_utils.interpolate(df['value'],
+        df = interpolate(df['value'],
                                   dates_out,
                                   method = interp_method).to_frame()
 
@@ -512,7 +513,7 @@ def run_from_config(configfile, run_model=True, **kwargs):
         mm.run_model(**kwargs)
     # -- Extract simulated data
     print('\t-> Extracting simulated values')
-    prn = marthe_utils.read_prn(os.path.join(mm.mldir,'historiq.prn'))
+    prn = read_prn(os.path.join(mm.mldir,'historiq.prn'))
     hdic, _, odics = read_config(configfile)
     for odic in odics:
         # try to parse dates 

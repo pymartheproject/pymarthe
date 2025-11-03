@@ -10,7 +10,6 @@ import numpy as np
 
 from .utils import marthe_utils, pest_utils
 
-
 BASE_OBS= ['obsnme', 'date', 'obsval',
             'datatype', 'locnme', 'obsfile',
             'weight', 'obgnme', 'trans' ]

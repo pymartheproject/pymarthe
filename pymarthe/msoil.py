@@ -8,7 +8,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from pymarthe.mfield import MartheField
+from .mfield import MartheField
 from .utils import marthe_utils, pest_utils
 from .utils.formatters import ENCODING
 

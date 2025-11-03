@@ -1,10 +1,8 @@
-
 """
 Contains the classes related to field data.
 Designed for handling distributed Marthe properties
 (structured and unstructured grid)
 """
-
 import os
 from copy import deepcopy
 import shutil

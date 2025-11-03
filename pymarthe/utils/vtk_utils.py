@@ -8,7 +8,8 @@ import warnings
 
 import numpy as np
 
-from pymarthe.utils import marthe_utils, pest_utils
+from . import marthe_utils
+from .pest_utils import transform
 
 warnings.simplefilter("always", DeprecationWarning)
 
@@ -675,7 +676,7 @@ class Vtk:
         assert array.size == self.nnodes, err_msg
 
         # -- Convert masked values to NaN and apply transformation
-        array = pest_utils.transform(
+        array = transform(
                         self._mask_values(array, masked_values),
                         trans
                         ).to_numpy()

@@ -11,8 +11,8 @@ import functools
 import numpy as np
 import pandas as pd
 
-import pymarthe
-from utils.formatters import ENCODING
+from .grid_utils import MartheGrid
+from .formatters import ENCODING
 
 # Set commun no data values
 NO_DATA_VALUES = [-9999., -8888.]
@@ -271,9 +271,6 @@ def extract_soildf(text, istep=None):
     return soil_df
 
 
-
-
-
 def read_zonsoil_prop(martfile, pastpfile):
     """
     Description:
@@ -358,8 +355,6 @@ def read_zonsoil_prop(martfile, pastpfile):
     return mode, soil_df
 
 
-
-
 def remove_autocal(rmafile, martfile):
     """
     Function to make marthe auto calibration / optimisation silent
@@ -414,6 +409,7 @@ def remove_autocal(rmafile, martfile):
             new_line  = re.sub(wrong, right, line)
             replace_text_in_file(martfile, line, new_line)
 
+
 def set_verbosity(martfile, silent: bool):
 
     """
@@ -453,7 +449,6 @@ def set_verbosity(martfile, silent: bool):
             new_line = re.sub(wrong, right, line)
 
             replace_text_in_file(martfile, line, new_line)
-
 
 
 def get_chasim_indexer(chasim):
@@ -638,7 +633,7 @@ def read_grid_file(grid_file, keep_adj=False, start=None, end=None):
                 args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # args = (istep, layer, inest, nrow, ncol, xl, yl, dx, dy, xcc, ycc, array, field)
         # -- Append MartheGrid instance to the grid list
-        grid_list.append(pymarthe.utils.grid_utils.MartheGrid(*args))
+        grid_list.append(MartheGrid(*args))
 
     # ---- Raise error if marthe grid file headers are not provided
     err_msg = f"ERROR : uncorrect headers values in `{grid_file}` grid file.\n" \
@@ -907,8 +902,6 @@ def read_prn(prnfile = 'historiq.prn'):
     return df
 
 
-
-
 def read_histo_file(histo_file):
     """
     Function to read .histo file.
@@ -969,7 +962,6 @@ def read_histo_file(histo_file):
     return df
 
 
-
 def isiterable(object):
     """
     Detect if a object is a iterable.
@@ -1001,7 +993,6 @@ def isiterable(object):
         return True
 
 
-
 def make_iterable(var):
     """
     Make any variable iterable
@@ -1022,8 +1013,6 @@ def make_iterable(var):
     """
     it = var if isiterable(var) else [var]
     return it
-
-
 
 
 def read_listm_qfile(qfile, istep, fmt):
@@ -1087,9 +1076,6 @@ def read_listm_qfile(qfile, istep, fmt):
         return df[cols], df[_cols]
 
 
-
-
-
 def read_record_qfile(i,j,k,v,qfile,qcol):
     """
     """
@@ -1108,8 +1094,6 @@ def read_record_qfile(i,j,k,v,qfile,qcol):
     metacols =  ['qfilename', 'qtype', 'qrow', 'qcol']
     _cols = cols + metacols
     return df[cols], df[_cols]
-
-
 
 
 def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
@@ -1205,9 +1189,6 @@ def extract_pastp_pumping(pastpfile, mode = 'aquifer'):
     return data, metadata
 
 
-
-
-
 def convert_at2clp(pastpfile, mm):
     """
     Function convert 'affluent' / 'tronçon' to column, line, plan (layer)
@@ -1239,7 +1220,8 @@ def convert_at2clp(pastpfile, mm):
     # ---- Add aff and trc column in modelgrid
     for ext in ['aff_r', 'trc_r']:
         fname = ext.replace('_r', '')
-        field = pymarthe.mfield.MartheField(fname, mm.mlfiles[ext], mm)
+        from ..mfield import MartheField
+        field = MartheField(fname, mm.mlfiles[ext], mm)
         mm.modelgrid[fname] = field.data['value']
 
     # ---- Extract .pastp file content
@@ -1281,8 +1263,6 @@ def convert_at2clp(pastpfile, mm):
         warnings.warn(msg)
 
 
-
-
 def remove_no_data_values(df, column = 'value', nodata = NO_DATA_VALUES):
     """
     -----------
@@ -1317,7 +1297,6 @@ def remove_no_data_values(df, column = 'value', nodata = NO_DATA_VALUES):
             df.loc[df[column] == nd, column] = pd.NA
         # ---- Return clean DataFrame
         return df.dropna()
-
 
 
 def read_obsfile(obsfile, nodata = None):
@@ -1364,7 +1343,6 @@ def read_obsfile(obsfile, nodata = None):
     return remove_no_data_values(df, nodata = nodata)
 
 
-
 def write_obsfile(date, value, obsfile):
     """
     Write a standard obsfile from observation dates and value.
@@ -1391,8 +1369,6 @@ def write_obsfile(date, value, obsfile):
     df = pd.DataFrame(dict(value = list(value)), index = date)
     # ---- Write DataFrame
     df.to_csv(obsfile,  sep = '\t', header = True, index = True)
-
-
 
 
 def get_run_times(logfile = 'bilandeb.txt'):
@@ -1445,9 +1421,6 @@ def get_run_times(logfile = 'bilandeb.txt'):
     return pd.DataFrame({'Process':process,'CPU time':times}).set_index('Process')
 
 
-
-
-
 def bordered_array(a, v):
     """
     Border an array with constant value.
@@ -1481,8 +1454,6 @@ def bordered_array(a, v):
     car = np.c_[np.ones(a.shape[0])*v, a, np.ones(a.shape[0])*v]
     bar = np.c_[np.ones(car.shape[1])*v, car.T, np.ones(car.shape[1])*v]
     return bar.T
-
-
 
 
 def read_budget(filename= 'histobil_nap_pastp.prn'):
@@ -1553,11 +1524,6 @@ def read_budget(filename= 'histobil_nap_pastp.prn'):
         return bud_dfs[0]
     else:
         return bud_dfs
-
-
-
-
-
 
 
 def read_zonebudget(filename= 'histobil_debit.prn'):
@@ -1641,9 +1607,6 @@ def read_zonebudget(filename= 'histobil_debit.prn'):
 
     # ---- Return MultiIndex DataFrame
     return zb_df
-
-
-
 
 
 def hydrodyn_periodicity(pastpfile, istep, external=False, new_pastpfile=None):
@@ -1794,8 +1757,6 @@ def hydrodyn_periodicity(pastpfile, istep, external=False, new_pastpfile=None):
           f"had been set successfully in '{out}'") 
 
 
-
-
 def set_tw(start=None, end=None, mm=None, martfile=None, pastpfile=None):
     """
     Function to set/change model time window in .mart file.
@@ -1928,9 +1889,6 @@ def set_tw(start=None, end=None, mm=None, martfile=None, pastpfile=None):
     # -- Print final message
     print(f"==> Model time window had been set from istep " \
           f"{istart} to {iend} successfully. ")
-
-
-
 
 
 def get_tw(mm=None, martfile=None, pastpfile=None, tw_type='date'):

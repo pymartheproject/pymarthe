@@ -11,7 +11,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pymarthe.utils import marthe_utils, shp_utils
+from .marthe_utils import make_iterable
+from .shp_utils import recarray2shp
 from .formatters import  pp_fmt, pp_fmt_lite
 
 # TODO: These are each used only once throughout the pymarthe package.
@@ -481,7 +482,7 @@ class PilotPoints():
 
         """
         # -- Manage value input
-        if len(marthe_utils.make_iterable(value)) == 1:
+        if len(make_iterable(value)) == 1:
             value = np.tile(value, len(coords))
         # -- Generate names
         if fmt_lite:
@@ -581,7 +582,7 @@ class PilotPoints():
             # -- Manage shapefile name
             shpname = 'pilot_points.shp' if path == '.' else path
             # -- Export to shapefile
-            shp_utils.recarray2shp(recarray, geoms, shpname=shpname,
+            recarray2shp(recarray, geoms, shpname=shpname,
                                    geomtype='Point', epsg=epsg, prj=prj)
         else:
             # -- Iterate over layer and zone
@@ -593,7 +594,7 @@ class PilotPoints():
                 # -- Build shapefile name
                 shpname = os.path.join(path, 'pp_l{0:02d}_z{1:02d}.shp'.format(*idx))
                 # -- Export to shapefile
-                shp_utils.recarray2shp(recarray, geoms, shpname=shpname,
+                recarray2shp(recarray, geoms, shpname=shpname,
                                        geomtype='Point', epsg=epsg, prj=prj)
 
 

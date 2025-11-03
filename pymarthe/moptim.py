@@ -11,9 +11,9 @@ from datetime import datetime
 import pandas as pd 
 import pyemu
 
-from pymarthe.marthe import MartheModel
-from pymarthe.mobs import MartheObs
-from pymarthe.mparam import MartheListParam, MartheGridParam
+from .marthe import MartheModel
+from .mobs import MartheObs
+from .mparam import MartheListParam, MartheGridParam
 from .utils import marthe_utils, pest_utils
 from .utils.formatters import ENCODING
 

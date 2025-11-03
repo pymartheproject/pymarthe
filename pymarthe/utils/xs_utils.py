@@ -9,9 +9,9 @@ from matplotlib.path import Path
 from matplotlib.transforms import blended_transform_factory
 
 # -- Import pymarthe objects
-from pymarthe.utils import marthe_utils
-from pymarthe.utils.shp_utils import read_shapefile
-from pymarthe.mfield import MartheField
+from . import marthe_utils
+from .shp_utils import read_shapefile
+from ..mfield import MartheField
 
 # -- Import additionnal geometry module
 try:

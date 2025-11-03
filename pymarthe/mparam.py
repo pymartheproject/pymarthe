@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pyemu
 
-from pymarthe.mfield import MartheField
+from .mfield import MartheField
 from .utils import marthe_utils, pest_utils, pp_utils, shp_utils
 from .utils.formatters import zpc_fmt, zpc_fmt_lite, input_file_fmt
 from .utils.formatters import str_fmt, int_fmt, float_fmt
