@@ -1,6 +1,6 @@
-#----------------------------------------------------------------------
-# ---- Tutorial for model parameterization with ZPC and pilot points ---
-#----------------------------------------------------------------------
+"""
+
+"""
 
 import os, re, shutil
 import unittest
@@ -11,6 +11,7 @@ from pyemu import Pst
 from pymarthe import MartheModel, MartheField
 from pymarthe.moptim import MartheOptim
 from pymarthe.utils import  pp_utils
+
 
 
 # clear directory 
@@ -24,15 +25,14 @@ def clear_dirs(dlist):
 def add_obs(mopt, loc_list, obs_dir):
     for loc in loc_list:
         obsfile = os.path.join(obs_dir, loc+'.dat')
-        df = pd.read_csv(
-            obsfile, 
-            sep=r"\s{2,}", 
-            engine='python',
-            header=None, 
-            skiprows=1,
-            index_col=0, 
-            parse_dates=True
-            )
+        df = pd.read_csv(obsfile,
+                        sep=r"\s{2,}",
+                        engine='python',
+                        header=None,
+                        skiprows=1,
+                        index_col=0,
+                        parse_dates=True
+                        )
         df = df.rename(columns = {1 :'value'})
         df.index.name = 'date'
         mopt.add_obs(data = df,locnme=loc, datatype='head')
@@ -69,7 +69,7 @@ class TestFmtLite(unittest.TestCase):
         # os.chdir()
         clear_dirs(['par', 'tpl', 'ins', 'sim'])
         
-        self.mldir = './tests/data/hallue'
+        self.mldir = './data/hallue'
         self.rma_file = os.path.join(self.mldir,'hallue.rma')
         self.prn_file = os.path.join(self.mldir,'historiq.prn')
         self.obs_dir = os.path.join(self.mldir,'obs')
@@ -79,78 +79,73 @@ class TestFmtLite(unittest.TestCase):
                 for f in ['par', 'tpl', 'ins', 'sim','obs'] }
         self.loc_list = ['00464X0013','00471X0010','P1','P2','P3','P4']
 
-    def set_opt(self):
-        mopt = MartheOptim(self.mm, name='opt', **self.dirs)
+    def set_opt(self,fmt_lite: bool):
+        mopt = MartheOptim(self.mm, name='opt', **self.dirs,fmt_lite=fmt_lite)
         mopt = add_obs(mopt, self.loc_list, self.obs_dir)
         return mopt
 
     def test_fmt_lite_zpc_true(self):
         permh = self.mm.prop['permh']
-        mopt = self.set_opt()
+        mopt = self.set_opt(True)
         # default = zpc
         # test True
         mopt.add_param(
-            parname='hk',
+            parname='___55ttt_8456___',
             mobj=permh,
-            fmt_lite=True
         )
         create_file(mopt, self.mm)
         test = check_outputs('{}/opt.pst'.format(self.mldir))
         self.assertTrue(len(test[0]) <= 12, 'Lite fmt failed for ZPC (len>12)')
-        self.assertTrue(re.match(r'\w+_zpc_z\d+', test[0]), 'Long fmt failed for ZPC')
+        self.assertTrue(re.match(r'^[A-Za-z0-9_]{1,3}zpc\d{2}z\d{3}$', test[0]), 'lite fmt failed for ZPC (wrong pattern)')
     
     def test_fmt_lite_zpc_false(self):
         permh = self.mm.prop['permh']
-        mopt = self.set_opt()
+        mopt = self.set_opt(False)
         # default = zpc
         # test False
         mopt.add_param(
-            parname='hk2',
+            parname='___55ttt_8456___',
             mobj=permh,
-            fmt_lite=False
         )
         create_file(mopt, self.mm)
         test = check_outputs('{}/opt.pst'.format(self.mldir))
-        self.assertTrue(re.match(r'\w+_zpc_l\d{2}_z\d{2}', test[0]), 'Long fmt failed for ZPC')
+        self.assertTrue(re.match(r'^[A-Za-z0-9_]+_zpc_l\d{2}_z\d{3}$', test[0]), 'Long fmt failed for ZPC (wrong pattern)')
     
     def test_fmt_lite_pp_true(self):
         permh = self.mm.prop['permh']
         ipermh = MartheField('ipermh',1, self.mm)
-        mopt = self.set_opt()
+        mopt = self.set_opt(True)
         pp_shpfile = os.path.join(self.mldir,'pp.shp')
         pp_data = {0:{1:pp_shpfile} }
         mopt.add_param(
-            parname='hk', mobj=permh,  trans='log10', btrans='lambda x: 10**x', 
+            parname='___55ttt_8456___', mobj=permh,  trans='log10', btrans='lambda x: 10**x',
             izone=ipermh, pp_data=pp_data, defaultvalue=1e-4,
-            fmt_lite=True
         )
         create_file(mopt, self.mm)
         test = check_outputs('{}/opt.pst'.format(self.mldir))
-        # TODO
-        # self.assertTrue(re.match('', test[0]), 'Lite fmt failed for PP')
+        self.assertTrue(len(test[0]) <= 12, 'Lite fmt failed for pp (len>12)')
+        self.assertTrue(re.match(r'^[a-zA-Z0-9_]{1,3}\d{2}z\d{2}p\d{3}$', test[0]), 'Lite fmt failed for pp (wrong pattern)')
     
     def test_fmt_lite_pp_false(self):
         permh = self.mm.prop['permh']
         ipermh = MartheField('ipermh',1, self.mm)
-        mopt = self.set_opt()
+        mopt = self.set_opt(False)
         pp_shpfile = os.path.join(self.mldir,'pp.shp')
         pp_data = {0:{1:pp_shpfile} }
         mopt.add_param(
-            parname='hk', mobj=permh,  trans='log10', btrans='lambda x: 10**x', 
+            parname='___55ttt_8456___', mobj=permh,  trans='log10', btrans='lambda x: 10**x',
             izone=ipermh, pp_data=pp_data, defaultvalue=1e-4,
-            fmt_lite=False
         )
         create_file(mopt, self.mm)
         test = check_outputs('{}/opt.pst'.format(self.mldir))
-        # TODO
-        # self.assertTrue(re.match('', test[0]), 'Lite fmt failed for PP')
+        self.assertTrue(re.match(r'^[a-zA-Z0-9_]*_l\d{2}_z\d{2}_\d{3}$', test[0]), 'Long fmt failed for pp (wrong pattern)')
 
 
 if __name__ == "__main__":
     
     testcase = TestFmtLite()
     testcase.setUp()
-    # testcase.test_fmt_lite_zpc_true()
-    # testcase.test_fmt_lite_zpc_false()
+    testcase.test_fmt_lite_zpc_true()
+    testcase.test_fmt_lite_zpc_false()
     testcase.test_fmt_lite_pp_true()
-    # testcase.test_fmt_lite_pp_false()
+    testcase.test_fmt_lite_pp_false()

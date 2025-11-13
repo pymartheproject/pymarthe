@@ -277,7 +277,7 @@ class MarthePump():
         # -- Get all data
         df = self._data.copy(deep=True)
         # -- Get kmi and transformed values
-        kmi, bvalues = pest_utils.parse_mlp_parfile(parfile, keys, value_col, btrans)
+        kmi, bvalues = pest_utils.parse_mlp_parfile(parfile, keys, btrans)
         # find intersection of keys with parameter data columns
         for k in kmi.names:
             if k not in df.columns:

@@ -5,39 +5,27 @@ Designed for structured grid and
 layered parameterization
 
 """
-import os 
-import numpy as np
-from matplotlib import pyplot as plt 
-from .utils import marthe_utils, pest_utils, pp_utils, shp_utils
-import pandas as pd 
-import pyemu
-from pymarthe.mfield import MartheField
+import os
+import re
 import warnings
-from copy import deepcopy
 
+import numpy as np
+import pandas as pd
+import pyemu
 
-# ---- SET UP FORMATTERS ---- #
-# ZPC name format (layer are 0-based within Python ; 1-based out of Python)
-ZPCFMT = lambda name, lay, zone: '{0}_zpc_l{1:02d}_z{2:02d}'.format(name, int(lay)+1, int(abs(zone)))
-ZPCFMT_lite = lambda name, zone: '{0}_zpc_z{1:02d}'.format(name, int(abs(zone)))
-FFMT = lambda x: "{0:<20.10E} ".format(float(x))
-IFMT = lambda x: "{0:<10d} ".format(int(x))
-def SFMT(item):
-    try:
-        s = "{0:<20s} ".format(item.decode())
-    except:
-         s = "{0:<20s} ".format(str(item))
-    return s
+from .utils import marthe_utils, pest_utils, pp_utils, shp_utils
+from pymarthe.mfield import MartheField
+
+from .utils.formatters import zpc_fmt, zpc_fmt_lite, input_file_fmt
+from .utils.formatters import str_fmt, int_fmt, float_fmt
+
 
 PP_NAMES = ["name","x","y","zone","value"]
-PP_FMT = {"name": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT, "tpl": SFMT, "value": FFMT, "log_value": FFMT}
-
-
+PP_FMT = {"name": str_fmt, "x": float_fmt, "y": float_fmt, "zone": int_fmt, "tpl": str_fmt, "value": float_fmt, "log_value": float_fmt}
 
 base_param = ['parnme', 'trans', 'btrans', 'parchglim',
                   'defaultvalue', 'parlbnd', 'parubnd',
                   'pargp', 'scale', 'offset', 'dercom']
-
 
 
 class MartheListParam():
@@ -45,7 +33,7 @@ class MartheListParam():
     Class for handling Marthe list-like properties. 
     """
     def __init__(self, parname, mobj, kmi, value_col = 'value', trans = 'none', 
-                       btrans = 'none', defaultvalue=None, **kwargs):
+                       btrans = 'none', defaultvalue=None, fmt_lite=False, **kwargs):
         """
         Generator of list parameter instance base on `kmi` (KeysMultiIndex).
 
@@ -124,7 +112,8 @@ class MartheListParam():
         pest_utils.check_trans(trans, btrans,
                                test_on = marthe_utils.make_iterable(self.defaultvalue))
         # -- Atributs
-        self.parnmes = self.gen_parnmes()
+        self.fmt_lite = fmt_lite
+        self.parnmes = self.gen_parnmes(self.fmt_lite)
         self.trans = trans
         self.btrans = btrans
         self.parchglim = kwargs.get('parchglim', 'factor')
@@ -155,24 +144,24 @@ class MartheListParam():
         self.tplpath = kwargs.get('tplpath', '.')
 
 
-    def gen_parnmes(self):
+    def gen_parnmes(self, fmt_lite: bool):
         """
         Internal method to generate parmaeters names from `kmi`.
 
         Returns
         -------
-        parnmes (list) : parameters names according to keys values of `kmi`.
-                         Note : name will be created as 'item0__item1__..._itemN'
-                                where items are kmi possible values.
+        fmt_lite : If True, cut level 0 index name from `kmi` to the first 8 caracters.
 
         Examples
         --------
         parnmes = mlp.gen_parnmes()
 
         """
-        return ['__'.join(list(map(str, items))) for items in self.kmi]
-
-
+        if fmt_lite:
+            parnames = [f"{str(l0)[:8]}_{int(l1):03d}" for l0, l1 in self.kmi]
+        else:
+            parnames = [f"{str(l0)}_{int(l1):03d}" for l0, l1 in self.kmi]
+        return parnames
 
     def get_param_df(self, transformed=False):
         """
@@ -389,7 +378,8 @@ class MartheGridParam():
         self.trans = trans
         self.btrans = btrans
         # -- Manage izone
-        self.set_izone(izone, fmt_lite)
+        self.fmt_lite = fmt_lite
+        self.set_izone(izone)
         # -- Manage PEST/pyEMU parameters
         self.parchglim = kwargs.get('parchglim', 'factor')
         self.parlbnd = kwargs.get('parlbnd', 1e-10) 
@@ -405,7 +395,7 @@ class MartheGridParam():
 
 
 
-    def set_izone(self, izone=None, fmt_lite=False):
+    def set_izone(self, izone=None,):
         """
         Manage izone (MartheField) input.
         It will detect zone ids:
@@ -462,8 +452,12 @@ class MartheGridParam():
             self.izone = MartheField(f'i{self.parname}', izone, self.mobj.mm, use_imask=self.mobj.use_imask)
             self.izone_file = izone
 
+        # ---- Manage bad izone input
+        else:
+            raise ValueError(f"`izone` must be MartheField or str, not {type(izone).__name__!r}")
+
         # ---- Initialize zpc/pp data
-        self.init_zpc_df(fmt_lite)
+        self.init_zpc_df()
         self.init_pp_dic()
 
 
@@ -542,7 +536,7 @@ class MartheGridParam():
 
 
 
-    def init_zpc_df(self, fmt_lite=False):
+    def init_zpc_df(self,):
         """
         Initialise zone of piecewise constancy DataFrame
         """
@@ -557,10 +551,10 @@ class MartheGridParam():
                 # -- Perform zpc computation only when zone id < 0
                 if zone < 0 :
                     # -- Build parname
-                    if fmt_lite:
-                        _names.append(ZPCFMT_lite(self.parname, zone))
+                    if self.fmt_lite:
+                        _names.append(zpc_fmt_lite(self.parname,ilay, zone))
                     else:
-                        _names.append(ZPCFMT(self.parname, ilay, zone))
+                        _names.append(zpc_fmt(self.parname, ilay, zone))
                     _layers.append(ilay)
                     _zones.append(int(zone))
                     # -- Manage not provided default value
@@ -615,7 +609,7 @@ class MartheGridParam():
 
 
 
-    def init_pp_dic(self) :
+    def init_pp_dic(self,) :
         """
         Initialize pilot points dictionary.
         Format : {  layer_0 : pp_df_0,
@@ -649,7 +643,7 @@ class MartheGridParam():
                             warnings.warn(msg)
                             coords = self.default_pp_coords(layer=ilay, zone=int(zone))
                         # -- Build DataFrame from pilot point coordinates
-                        pp_df = self.build_pp_df(coords, layer=ilay, zone=int(zone))
+                        pp_df = self.build_pp_df(coords, layer=ilay, zone=int(zone),)
                         pp_dfs.append(pp_df)
                     else:
                         pp_dfs.append(pd.DataFrame())
@@ -760,7 +754,7 @@ class MartheGridParam():
 
 
 
-    def build_pp_df(self, coords, layer, zone):
+    def build_pp_df(self, coords, layer, zone, ):
         """
         Create pilot point Dataframe from xy-coordinates with generic names.
         Wrapper to PilotPoints.pp_df_from_coords().
@@ -808,7 +802,7 @@ class MartheGridParam():
             dv = self.defaultvalue
 
         # ---- Build DataFrame with names
-        pp_df = pp_utils.PilotPoints.pp_df_from_coords(self.parname, coords, layer, zone, value= dv)
+        pp_df = pp_utils.PilotPoints.pp_df_from_coords(self.parname, coords, layer, zone, self.fmt_lite, value= dv)
 
         # ---- Check spatial lies distribution
         # msg = f"WARNING : some pilot points are located outside " \
@@ -822,7 +816,7 @@ class MartheGridParam():
 
 
 
-    def write_parfile(self, parpath=None, only_zpc=False, only_pp=False):
+    def write_parfile(self, parpath=None, only_zpc=False, only_pp=False,):
         """
         Write parameter file(s) in parameter folder.
         (wrapper to pymarthe.utils.pest_utils.write_mgp_parfile()) 
@@ -855,7 +849,7 @@ class MartheGridParam():
             if not self.zpc_df.empty:
                 pest_utils.write_mgp_parfile(pf, self.zpc_df, trans= self.trans, ptype=ptype)
             else : 
-                print('No ZPC identified for parameter {0} in izone data.'.format(self.mobj.field))
+                print(f'No ZPC identified for parameter {self.parname} in izone data.')
 
         # ---- Write parameter files for pilot points
         if not only_zpc:
@@ -867,7 +861,7 @@ class MartheGridParam():
                 for ilay, pp_df in self.pp_dic.items():
                     for zone, zpp_df in pp_df.groupby('zone'):
                         # -- Build parameter filename (layer back to 1-based)
-                        f = '{0}_{1}_l{2:02d}_z{3:02d}.dat'.format(self.parname, ptype, ilay+1, zone)
+                        f = input_file_fmt(self.parname, ilay, zone, ext=".dat", fmt_lite=self.fmt_lite)
                         pf = os.path.join(path, f)
                         # -- Write parameter file
                         pest_utils.write_mgp_parfile(pf, zpp_df, trans= self.trans, ptype=ptype)
@@ -883,7 +877,7 @@ class MartheGridParam():
 
 
 
-    def write_tplfile(self, tplpath=None, only_zpc=False, only_pp=False):
+    def write_tplfile(self, tplpath=None, only_zpc=False, only_pp=False,):
         """
         Write template file(s) in template folder.
         (wrapper to pymarthe.utils.pest_utils.write_mgp_tplfile()) 
@@ -917,7 +911,7 @@ class MartheGridParam():
             if not self.zpc_df.empty:
                 pest_utils.write_mgp_tplfile(pf, self.zpc_df, ptype=ptype)
             else : 
-                print('No ZPC identified for parameter {0} in izone data.'.format(self.mobj.field))
+                print(f'No ZPC identified for parameter {self.parname} in izone data.')
 
         # ---- Write template files for pilot points
         if not only_zpc:
@@ -929,7 +923,7 @@ class MartheGridParam():
                 for ilay, pp_df in self.pp_dic.items():
                     for zone, zpp_df in pp_df.groupby('zone'):
                         # -- Build parameter filename (layer back to 1-based)
-                        f = '{0}_{1}_l{2:02d}_z{3:02d}.tpl'.format(self.parname, ptype, ilay+1, zone)
+                        f = input_file_fmt(self.parname, ilay, zone, ext='.tpl', fmt_lite=self.fmt_lite)
                         pf = os.path.join(path, f)
                         # -- Write parameter file
                         pest_utils.write_mgp_tplfile(pf, zpp_df, ptype=ptype)
@@ -944,7 +938,7 @@ class MartheGridParam():
 
 
 
-    def write_kfac(self, vgm_range, krig_transform= 'none', parpath=None , save_cov = False):
+    def write_kfac(self, vgm_range, krig_transform= 'none', parpath=None , save_cov = False, ):
         """
         Compute and write kriging factor files (PEST-like) from exponential variogram
         ranges for each layer and zone of pilot points.
@@ -1004,7 +998,11 @@ class MartheGridParam():
         vgmr = {}
         if np.isscalar(vgm_range):
             # -- Same range for all variograms (layers and zones)
-            vgmr = {k: {zone: vgm_range} for k,v in self.pp_dic.items() for zone in v.zone.unique()}
+            vgmr = {
+                k: {zone: vgm_range for zone in v.zone.unique()}
+                for k, v in self.pp_dic.items()
+            }
+
         elif isinstance(vgm_range, dict):
             # -- Verify layer keys matching between pilot point and variogram dictionaries
             err_msg =  "ERROR : `vgm_range` must have same layer keys as pilot point " 
@@ -1050,7 +1048,7 @@ class MartheGridParam():
                 kfac_df = ok.calc_factors(x_interp, y_interp, pt_zone=zone, num_threads=4)
                 # -- Write kriging factors to file
                 path = self.parpath if parpath is None else parpath
-                kfac_file = os.path.join(path, '{0}_pp_l{1:02d}_z{2:02d}.fac'.format(self.parname, ilay+1, zone))
+                kfac_file = os.path.join(path, input_file_fmt(self.parname, ilay, zone, ext=".fac", fmt_lite=self.fmt_lite))
                 ok.to_grid_factors_file(kfac_file, ncol=len(kfac_df)) # ncol needed for unstructured pp
                 # -- Write covariance matrices (as binary) if required
                 if save_cov:
@@ -1129,13 +1127,20 @@ class MartheGridParam():
         print(mgp.to_config())
         """
         # ---- Get all parameter file names
-        parfiles = [os.path.join(self.parpath, f) for f in sorted(os.listdir(self.parpath))
-                    if np.logical_and.reduce(
-                                [ any(s in f for s in ['_zpc','_pp']),
-                                f.endswith('.dat'),
-                                f.startswith(f'{self.parname}_')]
-                                )
-                    ]
+
+        files = sorted(os.listdir(self.parpath))
+        if self.fmt_lite:
+            pattern_pp = re.compile(r"\d{2}z\d{2}p\.dat$")
+        else:
+            pattern_pp = re.compile(r"_l\d+_z\d+.dat$")
+
+        parfiles = [
+            os.path.join(self.parpath, f)
+            for f in files
+            if f.startswith(self.parname) and (
+                    ("zpc" in f and f.endswith(".dat")) or pattern_pp.search(f)
+            )
+        ]
 
         lines = ['[START_PARAM]']
         data = [
@@ -1155,7 +1160,7 @@ class MartheGridParam():
 
 
 
-    def __str__():
+    def __str__(self):
         """
         Internal string method.
         """

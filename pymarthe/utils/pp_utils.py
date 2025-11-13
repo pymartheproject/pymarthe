@@ -4,26 +4,25 @@ Pilot Points tools
 '''
 
 
-import os, sys
+import os
+import platform
+import warnings
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import platform
-from pymarthe import MartheModel, MartheField
-from pymarthe.utils import marthe_utils, shp_utils
 
-import warnings
+from pymarthe.utils import marthe_utils, shp_utils
+from .formatters import  pp_fmt, pp_fmt_lite
+
 '''
 Set some usefull fixed elements 
 '''
 
-PP_NAMES = ["parname","x","y","zone","value"]
-# pilot point name format (layer number is 0-based within Python ; 1-based out of Python)
-PPFMT = lambda name, lay, zone, ppid, digit: '{0}_l{1:02d}_z{2:02d}_{3}'.format(name,int(lay)+1,int(zone), str(int(ppid)).zfill(digit))
 ZONE_KWARGS = {'color':'black', 'lw':1.5, 'label':'pilot points active zone'}
 BUFFER_KWARGS = {'color':'green', 'ls':'--', 'lw':1.2, 'label':'pilot points active zone (buffer)'}
 PP_KWARGS = {'s':20, 'marker':'+','lw':0.8 , 'color':'red', 'zorder':50, 'label':'pilot points'}
-
+PP_NAMES = ["parname","x","y","zone","value"]
 
 
 class PilotPoints():
@@ -449,7 +448,7 @@ class PilotPoints():
 
 
     @staticmethod
-    def pp_df_from_coords(parname, coords, layer, zone, value= 1e-3):
+    def pp_df_from_coords(parname, coords, layer, zone, fmt_lite=False, value= 1e-3):
         """
         Create pilot point Dataframe from xy-coordinates with generic names.
 
@@ -488,8 +487,10 @@ class PilotPoints():
         if len(marthe_utils.make_iterable(value)) == 1:
             value = np.tile(value, len(coords))
         # -- Generate names
-        digit = len(str(len(coords)))
-        ppn = [PPFMT(parname,layer, zone, i, digit) for i in  range(len(coords))]
+        if fmt_lite:
+            ppn = [pp_fmt_lite(parname,layer, zone, i,) for i in  range(len(coords))]
+        else:
+            ppn = [pp_fmt(parname,layer, zone, i,) for i in  range(len(coords))]
         # -- Build pilot point standart DataFrame
         ppx, ppy = np.column_stack(coords)
         pp_df = pd.DataFrame.from_dict(
