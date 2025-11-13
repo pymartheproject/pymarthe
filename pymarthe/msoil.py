@@ -320,18 +320,26 @@ class MartheSoil():
 
 
 
-    def set_data_from_parfile(self, parfile, keys, value_col, btrans):
+    def set_data_from_parfile(self, parfile, keys, value_col, btrans, fmt_lite):
         """
         """
         # -- Get all data
         df = self.data.copy(deep=True)
-        # -- Get kmi and transformed values
-        kmi, bvalues = pest_utils.parse_mlp_parfile(parfile, keys, value_col, btrans)
-        # -- Convert to MultiIndex Dataframe
-        mi_df = df.set_index(keys)
+
+        # Cut soilprop name if fmt_lite is True
+        if fmt_lite:
+            df.soilprop = df.soilprop.str[:8]
+
+        # -- Get parnames and bvalues from parfile
+        parnames, bvalues = pest_utils.parse_mlp_parfile(parfile, btrans)
+
+        # Set parnames as index
+        df['index'] = df['soilprop'] + df['zone'].apply(lambda x: f"_{int(x):03d}")
+        df.set_index('index',inplace=True)
+
         # -- Set values and back to single index
-        mi_df.loc[kmi, value_col] = bvalues.values
-        data = mi_df.reset_index()
+        df.loc[parnames, value_col] = bvalues.values
+        data = df.reset_index(drop=True)
         # -- Set data inplace
         self.data = data
 

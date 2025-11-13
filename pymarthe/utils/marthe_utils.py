@@ -424,19 +424,15 @@ def remove_autocal(rmafile, martfile):
             new_line  = re.sub(wrong, right, line)
             replace_text_in_file(martfile, line, new_line)
 
+def set_verbosity(martfile, silent: bool):
 
-
-
-
-def make_silent(martfile):
     """
-    Function to make marthe run silent
+    Function to run marthe model either silently or with verbose output
 
     Parameters:
     ----------
-    self : MartheModel instance
     martfile (str) : .mart file path
-                      Default is None
+    silent (bool) : silent mode or not
 
     Returns:
     --------
@@ -444,7 +440,7 @@ def make_silent(martfile):
 
     Examples:
     --------
-    make_silent('mymodel.mart')
+    set_verbosity('mymodel.mart',silent=True)
     """
     # ---- Fetch .mart file content
     with open(martfile, 'r', encoding=encoding) as f:
@@ -459,8 +455,13 @@ def make_silent(martfile):
         # ---- Make run silent 
         if exe_match is not None:
             wrong = exe_match.group()
-            right = re.sub(r'(\s|\w)=','M=', wrong)
-            new_line  = re.sub(wrong, right, line)
+
+            if silent:
+                right = re.sub(r'(\s|\w)=', 'M=', wrong)
+            else:
+                right = re.sub(r'(\s|\w)=', ' =', wrong)
+            new_line = re.sub(wrong, right, line)
+
             replace_text_in_file(martfile, line, new_line)
 
 
@@ -1360,9 +1361,15 @@ def read_obsfile(obsfile, nodata = None):
     obs_df = read_obsfile(obsfile = 'myobs.dat')
     """
     # ---- Read obsfile
-    data = pd.read_csv(obsfile, delim_whitespace=True,
-                                header=None, skiprows=1,
-                                index_col=0, parse_dates=True)
+    data = pd.read_csv(
+        obsfile,
+        # delim_whitespace=True,  # deprecated
+        sep=r'\s+',
+        header=None,
+        skiprows=1,
+        index_col=0,
+        parse_dates=True
+    )
     # ---- Set standard column names
     df = data.rename(columns = {1 :'value'})
     df.index.name = 'date'

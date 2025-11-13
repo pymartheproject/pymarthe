@@ -6,7 +6,7 @@ import re, ast
 import pyemu
 
 from pymarthe.utils import ts_utils, marthe_utils
-
+from .formatters import float_fmt, int_fmt, str_fmt
 ############################################################
 #        Utils for pest preprocessing for Marthe
 ############################################################
@@ -21,20 +21,10 @@ from pymarthe.utils import ts_utils, marthe_utils
 encoding = 'latin-1'
 
 
-# ---- Set formater dictionaries
-def SFMT(item):
-    try:
-        s = "{0:<20s} ".format(item.decode())
-    except:
-        s = "{0:<20s} ".format(str(item))
-    return(s)
 
-FFMT = lambda x: "{0:<20.10E} ".format(float(x))
-IFMT = lambda x: "{0:<10d} ".format(int(x))
-
-FMT_DIC = {"obsnme": SFMT, "obsval": FFMT, "ins_line": SFMT, "date": SFMT,"value": FFMT,
-           "name": SFMT, "parnme": SFMT, "x": FFMT, "y": FFMT, "zone": IFMT,
-           "transformed":FFMT, "tplnme": SFMT,"defaultvalue": FFMT}
+FMT_DIC = {"obsnme": str_fmt, "obsval": float_fmt, "ins_line": str_fmt, "date": str_fmt,"value": float_fmt,
+           "name": str_fmt, "parnme": str_fmt, "x": float_fmt, "y": float_fmt, "zone": int_fmt,
+           "transformed":float_fmt, "tplnme": str_fmt,"defaultvalue": float_fmt}
 
 
 # ---- Set observation character start and length
@@ -62,44 +52,66 @@ def write_mgp_parfile(parfile, param_df, trans, ptype='zpc'):
                                   max_rows = len(df), min_rows = len(df) ) )
 
 
+def parse_mgp_parfile(parfile, btrans, fmt_lite=False):
+    """
+    Parse a grid parameter file (writtern from MartheGridParam.write_parfile method).
 
-def parse_mgp_parfile(parfile, btrans):
+    This function reads a parameter files ('.dat), which may contain either
+    pilot point (PP) parameters or zone parameter coefficient (ZPC) parameters.
+    It supports both standard and "lite" filename formats depending on the `fmt_lite` flag.
+
+    Parameters
+    ----------
+    parfile : str
+        Path to the parameter file to parse. The filename determines the parameter type.
+
+    btrans : callable
+        Transformation function used to back-transform parameter values.
+
+    fmt_lite : bool, optional, default=False
+        If True, uses simplified regular expressions to parse filenames. Otherwise,
+        uses the full `_l<layer>_z<zone>` pattern.
+
+    Returns
+    -------
+    ptype : str
+        Parameter type, either `'zpc'` or `'pp'`.
+
+    records :
     """
-    """
+
     # ---- Get parameter file name and path
-    path, f = os.path.split(parfile)
-
+    path, file = os.path.split(parfile)
     # ---- Set regex expression to parse layer and zone
-    re_lz = r"_l(\d+)_z(\d+)"
-
+    if fmt_lite:
+        re_zpc = r"zpc(\d{2})z(\d{2})"
+        re_pp = r"(\d{2})z(\d{2})p"
+    else:
+        re_pp  = re_zpc =  r"_l(\d+)_z(\d+)"
     # ---- Manage parser according to parameter type
-    if '_zpc' in f:
-        # -- Get parameter type and Dataframe
+    if '_zpc' in file:
         ptype = 'zpc'
-        par_df = pd.read_csv(parfile, header=None,
-                             sep=r'\s+',
-                             names = ['parname', 'value'])
+        par_df = pd.read_csv(
+            parfile, header=None,
+            sep=r'\s+',
+            names = ['parname', 'value']
+        )
         # -- Back-transform values
         par_df['bvalue'] = transform(par_df['value'], btrans)
         # -- Parse names adding new columns
-        parse_df = par_df.parname.str.extract(re_lz)
+        parse_df = par_df.parname.str.extract(re_zpc)
         par_df['layer'] = parse_df.iloc[:,0].astype(int)-1 # back to 0-based
-        par_df['zone'] = parse_df.iloc[:,1].astype(int).mul(-1) # zpc negative for ZPCs
-        # -- Transform to records to iteration process easielayer are r
+        par_df['zone']  = parse_df.iloc[:,1].astype(int).mul(-1) # zpc negative for ZPCs
+        # -- Transform to records to iteration process
         rec = par_df[['layer','zone', 'bvalue']].to_records(index=False)
         # -- Return zpc parsed as recarray
         return ptype, rec
 
-    if '_pp' in f:
-        # -- Get parameter type and Dataframe
+    else:
         ptype = 'pp'
-        par_df = pd.read_csv(parfile, header=None,
-                                  delim_whitespace=True,
-                                  names = ['parname', 'x', 'y', 'zone', 'value'])
         # -- Parse parameter file name
-        ilay, zone = map(int, re.search(re_lz, f).groups())
-        # back to 0-based
-        ilay+=-1
+        layer, zone = map(int, re.search(re_pp, file).groups())
+        layer = int(layer)-1  # back to 0-based
         # -- Passing from factors to real field values (wrapper to pyemu .fac2real())
         values = pyemu.utils.geostats.fac2real(
                                 pp_file = parfile,
@@ -109,9 +121,7 @@ def parse_mgp_parfile(parfile, btrans):
         # -- Back-transform values
         bvalues = transform(values, btrans).to_numpy()
         # -- Return pp parsed as single tuple/record
-        return ptype, (ilay, zone, bvalues)
-
-
+        return ptype, (layer, zone, bvalues)
 
 
 def write_mgp_tplfile(tplfile, param_df, ptype='zpc'):
@@ -136,7 +146,7 @@ def write_mlp_tplfile(tplfile, param_df):
     """
     """
     df = param_df.copy(deep=True)
-    df['tplnme'] = '~' + df['parnme'].str.replace('__', '_')  + '~'
+    df['tplnme'] = '~' + df['parnme']  + '~'
     with open(tplfile, 'w', encoding=encoding) as f:
         f.write('ptf ~\n')
         f.write(df.to_string(col_space=0, columns=['parnme', 'tplnme'],
@@ -157,34 +167,31 @@ def write_mlp_parfile(parfile, param_df, trans='none', value_col='defaultvalue')
                              max_rows = len(df), min_rows = len(df)))
 
 
-
-# def read_mlp_parfile(parfile):
-#     """
-#     """
-#     par_df = pd.read_csv(parfile, header=None,
-#                                   delim_whitespace=True,
-#                                   names = ['parnme','value'])
-#     return par_df
-
-
-
-
-def parse_mlp_parfile(parfile, keys, value_col, btrans):
+def parse_mlp_parfile(parfile, btrans):
     """
+    Parse a list parameter file (from MartheListParam.write_parfile method).
+
+    Parameters
+    ----------
+    parfile : str
+        Path to the list parameter file to parse.
+
+    btrans : callable
+        Transformation function used to back-transform parameter values.
+
+    Returns
+    -------
+    parnme : pandas.Series
+        Series of parameter names.
+
+    bvalues :
     """
+
     par_df = pd.read_csv(parfile, header=None,
-                                  delim_whitespace=True,
+                                  sep=r'\s+',
                                   names = ['parnme','value'])
-    items = []
-    for ipar in par_df.parnme:
-        parsed = ipar.split('__')
-        items.append([ast.literal_eval(s) 
-                          if s.isnumeric() 
-                          else s 
-                          for s in parsed])
-    kmi = pd.MultiIndex.from_tuples(items, names = keys)
     bvalues = transform(par_df['value'], btrans)
-    return kmi, bvalues
+    return par_df.parnme, bvalues
 
 
 
@@ -494,13 +501,13 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
 
 
 def run_from_config(configfile, run_model=True, **kwargs):
-    """
+    """ Load and Run model from a config file
     """
     print('PERFORMING FORWARD RUN ...')
     # -- Load MartheModel with parametrized properties
     print('\t-> Reading model with updated parameters')
     from pymarthe import MartheModel
-    mm = MartheModel.from_config(configfile)
+    mm = MartheModel.from_config(configfile, fmt_lite=kwargs.pop('fmt_lite', False))
     # -- Overwrite new data from parfiles
     print('\t-> Writing model properties')
     mm.write_prop()

@@ -47,7 +47,7 @@ class PestPostProcessing():
 
 
 
-    def phi_progress(self, pest_exe='++', log=True, phimlim=False, phimaccept=False, filename=None):
+    def phi_progress(self, pest_exe='++', log=True, phimlim=False, phimaccept=False, filename=None, edit_plot_rc=False):
         """
         Plot the objective function (phi) evolution.
 
@@ -71,7 +71,9 @@ class PestPostProcessing():
         filename (str, optional): output file name to save plot on disk.
                                   If None, the plot will not be saving on disk.
                                   Default is None.
-
+        
+        rc_font (bool, optionnal): change rc_font to 'serif', default is False.
+        
         Returns:
         --------
         ax (AxeSubplot) : plot axe.
@@ -97,10 +99,14 @@ class PestPostProcessing():
             df = pd.read_csv(iobj_file)
             # -- Extract usefull data for plot
             it, phi, reg_phi = df.iteration, df.measurement_phi, df.regularization_phi
+        
         # ---- Prepare plot figure
         plt.figure(figsize=(9,6))
-        plt.rc('font', family='serif', size=10)
         ax = plt.subplot(1,1,1)
+        
+        if rc_font:
+            plt.rc('font', family='serif', size=10)
+        
         # ---- Plot Phi measured
         a, = ax.plot(it, phi, color='tab:blue', marker='.', label='$\Phi_{measured}$')
         ax.set_xticks(it, [f'it{i}' for i in it])
@@ -139,7 +145,7 @@ class PestPostProcessing():
 
 
 
-    def phi_components(self, obs_groups=None, explode = 0.05, filename = None):
+    def phi_components(self, obs_groups=None, explode=0.05, filename=None, rc_font=False):
         """
         Plot the contribution of each observation group to the total objective function.
 
@@ -155,6 +161,8 @@ class PestPostProcessing():
         filename (str, optional): output file name to save plot on disk.
                                   If None, the plot will not be saving on disk.
                                   Default is None.
+        
+        rc_font (bool, optionnal): change rc_font to 'serif', default is False.
 
         Returns:
         --------
@@ -181,7 +189,8 @@ class PestPostProcessing():
         # ---- Prepare ploting zone
         plt.figure(figsize=(9,9))
         ax = plt.subplot()
-        plt.rc('font', family='serif', size=9)
+        if rc_font:
+            plt.rc('font', family='serif', size=9)
         # ---- Plot pie chart
         ax.pie(sizes, colors = colors, labels=labels, autopct='%1.1f%%',
                startangle=90, pctdistance=0.75, explode = explode)
@@ -251,7 +260,7 @@ class PestPostProcessing():
 
 
 
-    def obs_vs_sim(self, kind='1to1', reifile=None, obs_groups=None, figsize=None, onefile=True, path=None):
+    def obs_vs_sim(self, kind='1to1', reifile=None, obs_groups=None, figsize=None, onefile=True, path=None, rc_font=False):
         """
         Graphical analysis of observed vs simulated values.
 
@@ -290,6 +299,8 @@ class PestPostProcessing():
                                 If `onefile` is True: output file name to save pdf file on disk.
                                 If `onefile` is False: folder path to save plots on disk.
                               Default is None.
+        
+        rc_font (bool, optionnal): change rc_font to 'serif', default is False.
 
         Returns:
         --------
@@ -377,11 +388,13 @@ class PestPostProcessing():
                                     f'Max residual: {round(df["residual"].max(),5)}',
                                     f'RMSE: {round(rmse,5)}']
                                 )
-                ax.text(0.01, 0.98, text, va='top',
-                                           linespacing =1.5,
-                                           fontfamily='serif',
-                                           fontsize = 7,
-                                           transform=ax.transAxes)
+                ax.text(
+                    0.01, 0.98, text, va='top',
+                    linespacing =1.5,
+                    fontfamily='serif' if rc_font else 'DejaVu Sans',
+                    fontsize = 7,
+                    transform=ax.transAxes
+                )
                 # -- Add legend
                 ax.legend(fontsize=10)
                 # -- Remove x-label

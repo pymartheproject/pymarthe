@@ -17,7 +17,7 @@ from .utils import marthe_utils, shp_utils, pest_utils
 from .utils.grid_utils import MartheGrid
 
 encoding = 'latin-1'
-dmv = [-9999., 0., 9999] # Default field masked values
+dmv = [-9999., 0., 9999]  # Default field masked values
 
 
 class MartheField():
@@ -61,17 +61,22 @@ class MartheField():
         -----------
         mm.mobs.compute_weights(lambda_dic)
         """
-        self.field = field
+        # ----Check for mm type, avoid futures checks and uncaptured errors
+        from .marthe import MartheModel
+        if not isinstance(mm, MartheModel):
+            raise TypeError(f"mm must be a MartheModel, not a {type(mm).__name__}")
+
+        # ---- Set attributes
         self.mm = mm
+        self.field = field
         self.dmv = dmv
         self.use_imask = use_imask
         self.set_data(data)
         self.maxlayer = len(self.to_grids(inest=0))
-        self.maxnest = len(self.to_grids(layer=0)) - 1 # inest = 0 is the main grid
+        self.maxnest = len(self.to_grids(layer=0)) - 1  # inest = 0 is the main grid
 
         # ---- Set property style
         self._proptype = 'grid'
-
 
 
     def get_xyvertices(self, stack=False):
@@ -181,7 +186,7 @@ class MartheField():
 
 
 
-    def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values= list()):
+    def get_data(self, layer=None, inest=None,  as_array=False, as_mask=False, masked_values=list()):
         """
         Function to select/subset NON-masked values.
 
@@ -254,10 +259,6 @@ class MartheField():
         else:
             return self.data[mask]
 
-
-
-
-
     def set_data(self, data, layer=None, inest=None):
         """
         Set field data for active cells (where imask is 1) and NON-masked values (see dmv)
@@ -288,6 +289,11 @@ class MartheField():
         mf.set_data(2.3e-3, layer=2, inest=3) # one nest
 
         """
+        # ---- Checks if layer in mm.nlay
+        if layer is not None and layer not in range(self.mm.nlay):
+            raise ValueError(f"layer {layer} does not exist, "
+                             f"choose one from layer 0 to layer {self.mm.nlay-1}")
+
         # ---- Set all useful conditions
         _none = all(x is None for x in [layer, inest])
         _str = isinstance(data, str)
@@ -327,14 +333,18 @@ class MartheField():
         if _rec:
             self.data = self.get_masked(data)
 
-        # ---- Manage 3D-array input
-        if np.logical_and.reduce([_arr, not _rec, _none]):
-            # -- Verify data is a 3D-array
-            err_msg = f"ERROR: `data` array must be 3D. Given shape: {data.shape}."
-            assert len(data.shape) == 3, err_msg
-            self.data = self.get_masked(self._3d2rec(data))
+        # ---- Manage 2D-3D-array input
+        if _arr:
 
+            err_msg = (f"ERROR: `data` array must be 2D with a layer argmuent or"
+                       f"3D with layer=None. Given shape: {len(data.shape)}, given layer = {layer}.")
 
+            if len(data.shape) == 3 and layer is None:
+                self.data = self.get_masked(self._3d2rec(data))
+            elif len(data.shape) == 2 and layer is not None:
+                self.data = self.get_masked(self._2d2rec(data, layer))
+            else:
+                raise ValueError(err_msg)
 
     def get_masked(self, rec):
         """
@@ -369,7 +379,7 @@ class MartheField():
 
 
 
-    def set_data_from_parfile(self, parfile, izone, btrans='none'):
+    def set_data_from_parfile(self, parfile, izone, btrans='none', fmt_lite=False):
         """
         Set field data from parameter file inplace.
 
@@ -383,6 +393,9 @@ class MartheField():
         btrans (str, optional) : string function to back-transform
                                  field values.
                                  Default is 'none'.
+        
+        fmt_lite (bool, optional) : use a lighter format for parameter names.
+                                    allow the use of PEST_HP (<12 char)
 
         Examples:
         --------
@@ -393,7 +406,7 @@ class MartheField():
 
         """
         # ---- Parse grid parameter file
-        ptype, rec = pest_utils.parse_mgp_parfile(parfile, btrans)
+        ptype, rec = pest_utils.parse_mgp_parfile(parfile, btrans, fmt_lite)
 
         # ---- Manage zone of piecewise constancy (zpc) data
         if ptype == 'zpc':
@@ -478,13 +491,11 @@ class MartheField():
         # ---- Stack all recarrays as once
         return rec
 
-
-
     def _3d2rec(self, arr3d):
         """
         Convert 3D-array
         Wrapper of marthe_utils.read_grid_file().
-
+        Note sma : docstring looks deprecated, it should be rewrite
         Parameters:
         ----------
         filename (str) : path to Marthe field property file.
@@ -498,22 +509,12 @@ class MartheField():
         Examples:
         --------
         rec = mf._grid2rec('mymodel.emmca')
-        
+
         """
-        # ---- Assert MartheModel exist
-        err_msg = "ERROR: Building a `MartheField` instance from a 3D-array " \
-                  "require a referenced `MartheModel` instance. " \
-                  "Try MartheField(field, data, mm = MartheModel('mymodel.rma'))."
-        assert self.mm.__str__() == 'MartheModel' , err_msg
-
-        # ---- Assert array is 3D
-        err_msg = f"ERROR: `data` must be a 3D-array. Given shape: {arr3d.shape}"
-        assert len(arr3d.shape) == 3, err_msg
-
         # ---- Fetch basic model structure
         rec = deepcopy(self.mm.imask.data)
         df = pd.DataFrame.from_records(rec)
-        
+
         # ---- Modify rec inplace
         for layer, arr2d in enumerate(arr3d):
             mask = (df.layer == layer) & (df.inest == 0)
@@ -522,8 +523,29 @@ class MartheField():
         # ---- Return recarray
         return df.to_records(index=False)
 
+    def _2d2rec(self, arr, layer=None):
+        """
+        Convert 2D-array to rec array. This method is called by the
+        MartheField.set_data method and should not be called directly.
 
+        Parameters:
+        ----------
+        arr (np.ndarray) : A 2D numpy ndarray.
 
+        Returns:
+        --------
+        rec (np.recarray) : recarray with all usefull informations
+                            for each model grid cell such as layer,
+                            inest, value, ...
+        """
+        # ---- Fetch basic model structure
+        rec = deepcopy(self.mm.imask.data)
+        df = pd.DataFrame.from_records(rec)
+        mask = (df.layer == layer) & (df.inest == 0)
+        df.loc[mask, 'value'] = arr.ravel()
+
+        # ---- Return recarray
+        return df.to_records(index=False)
 
     def _rec2grid(self, layer, inest):
         """
@@ -728,7 +750,7 @@ class MartheField():
 
     def plot(self,  ax=None, layer=0, inest=None, vmin=None,
                     vmax=None, log = False, extent = None,
-                    masked_values = dmv, basemap=False, **kwargs):
+                    masked_values = dmv, basemap=False, rc_font=False, **kwargs):
         """
         Plot data by layer
 
@@ -774,6 +796,8 @@ class MartheField():
                                                              ... ,
                                                              'crs': 'EPSG:2154'}
                                         Default is False.
+        
+        rc_font (bool, optionnal): change rc_font to 'serif', default is False.
 
         **kwargs (optional) : matplotlib.PathCollection arguments.
                               (ex: cmap, lw, ls, edgecolor, ...)
@@ -816,8 +840,9 @@ class MartheField():
         
         # ---- Prepare basic axe if not provided
         if ax is None:
+            if rc_font:
                 plt.rc('font', family='serif', size=10)
-                fig, ax = plt.subplots(figsize=(10,8))
+            fig, ax = plt.subplots(figsize=(10,8))
 
         # ---- Build a collection from rectangles patches and values
         collection = PathCollection(rec['patches'])
