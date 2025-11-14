@@ -14,7 +14,7 @@ BASE_OBS= ['obsnme', 'date', 'obsval',
             'datatype', 'locnme', 'obsfile',
             'weight', 'obgnme', 'trans' ]
 
-pd.options.mode.chained_assignment = None  # Ignore pandas SettingWithCopyWarning
+# pd.options.mode.chained_assignment = None  # Ignore pandas SettingWithCopyWarning
 
 class MartheObs():
     """
@@ -126,11 +126,11 @@ class MartheObs():
         # this happends whens self.obs_df is edited by the user
         # ---- Fill observations DataFrame with input data
         self.obs_df = pd.DataFrame(index=self.obsnmes)
-        # TODO should be fixed to keep datetime format for date column
-        self.obs_df[BASE_OBS] = np.array( [ self.obsnmes, self.date, self.value,
-                                            self.datatype, self.locnme, self.obsfile,
-                                            self.weight, self.obgnme, self.trans ],
-                                          dtype=object)
+        self.obs_df[BASE_OBS] = pd.Series([
+            self.obsnmes, self.date, self.value,
+            self.datatype, self.locnme, self.obsfile,
+            self.weight, self.obgnme, self.trans
+                                           ])
 
         # ---- Store fluctuation arguments
         self.fluc_dic = kwargs.get('fluc_dic', dict())

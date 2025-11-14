@@ -298,8 +298,8 @@ class MartheField():
         _none = all(x is None for x in [layer, inest])
         _str = isinstance(data, str)
         _num = isinstance(data, (int, float))
-        _rec = isinstance(data, np.recarray)
-        _arr = isinstance(data, np.ndarray)
+        _rec = type(data) is np.recarray
+        _arr = type(data) is np.ndarray
         _list = isinstance(data, list)
 
         # ---- Manage Marthe filename as input
