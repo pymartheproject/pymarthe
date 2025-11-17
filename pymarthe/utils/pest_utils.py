@@ -499,14 +499,13 @@ def extract_prn(prn, name, dates_out=None, trans='none', interp_method = 'index'
                   values = transform(df['value'], trans).values,
                   simfile = os.path.join(sim_dir, f'{name}.dat'))
 
-
 def run_from_config(configfile, run_model=True, **kwargs):
     """ Load and Run model from a config file
     """
     print('PERFORMING FORWARD RUN ...')
     # -- Load MartheModel with parametrized properties
     print('\t-> Reading model with updated parameters')
-    from pymarthe import MartheModel
+    from ..marthe import MartheModel
     mm = MartheModel.from_config(configfile, fmt_lite=kwargs.pop('fmt_lite', False))
     # -- Overwrite new data from parfiles
     print('\t-> Writing model properties')

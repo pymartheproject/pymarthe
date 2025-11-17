@@ -3,16 +3,18 @@ Contains the MartheModel and Spatial Reference classes.
 Designed for structured and nested grid.
 """
 
-import os, sys
+import os
+import platform
 import warnings
 import subprocess as sp
 from shutil import which
 from copy import deepcopy
-import queue 
-import threading
+# import queue
+# import threading
+# from datetime import datetime
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
 
 from .mfield import MartheField
 from .mpump import MarthePump
@@ -26,7 +28,8 @@ class MartheModel():
     """
     Wrapper MARTHE --> Python
     """
-    def __init__(self, rma_path, spatial_index = False, modelgrid= False):
+
+    def __init__(self, rma_path, spatial_index=False, modelgrid=False):
         """
         Parameters
         ----------
@@ -37,21 +40,21 @@ class MartheModel():
         spatial_index (bool/str/dict) : model spatial index.
                                         Allows sample and intersect process from xy coordinates.
                                         Each cell will be inserted in a rtree Index instance with
-                                        related cell data (id, layer, inest, ...). 
+                                        related cell data (id, layer, inest, ...).
                                         Can be :
                                             - True  (bool)    : generate generic spatial index (mlname_si.idx/.dat).
                                             - False (bool)    : disable spatial index creation.
                                             - name  (string)  : path to an existing spatial index to read.
                                             - dic   (dict)    : generate custom spatial index.
-                                                                Can contains: 
+                                                                Can contains:
                                                                     - 'name' (str)
                                                                         custom name to external spatial index files
                                                                     - 'only_active' (bool)
-                                                                        disable the insertion of inactive cells in 
+                                                                        disable the insertion of inactive cells in
                                                                         the spatial index. This can be usefull for
-                                                                        fast spatial processings on valid large 
+                                                                        fast spatial processings on valid large
                                                                         models (especially with nested grids).
-                                                                        Careful, some processes could be affected 
+                                                                        Careful, some processes could be affected
                                                                         and not working as usal.
                                                                 Format : {'name':'mymodelsi', 'only_active' : True}
                                         Default is False.
@@ -83,10 +86,10 @@ class MartheModel():
 
         """
         # ---- Get model working directory and rma file
-        self.rma_path = rma_path 
+        self.rma_path = rma_path
         self.mldir, self.rma_file = os.path.split(self.rma_path)
 
-        # ---- Get model name 
+        # ---- Get model name
         self.mlname = self.rma_file.split('.')[0]
 
         # ---- Get model files paths
@@ -97,7 +100,7 @@ class MartheModel():
         self.mldates = marthe_utils.get_dates(self.mlfiles['pastp'], self.mlfiles['mart'])
 
         # ---- Get infos about layers
-        self.nnest, self.layers_infos = marthe_utils.get_layers_infos(self.mlfiles['layer'], base = 0)
+        self.nnest, self.layers_infos = marthe_utils.get_layers_infos(self.mlfiles['layer'], base=0)
         self.nlay = self.layers_infos.layer.max() + 1
 
         # ---- Get refine levels for nested grids
@@ -110,7 +113,7 @@ class MartheModel():
         self.imask = self.build_imask()
 
         # ---- Set number of cell by layer
-        self.ncpl = int(len(self.imask.data)/self.nlay)
+        self.ncpl = int(len(self.imask.data) / self.nlay)
 
         # ---- Set number of simulated timestep
         self.nstep = len(self.mldates)
@@ -120,7 +123,7 @@ class MartheModel():
         self.load_prop('permh')
 
         # ---- Load geometry
-        self.geometry = {g : None for g in ['sepon', 'topog', 'hsubs']}
+        self.geometry = {g: None for g in ['sepon', 'topog', 'hsubs']}
 
         # ---- Set spatial reference (used for compatibility with pyemu geostat utils)
         self.spatial_reference = SpatialReference(self)
@@ -129,21 +132,21 @@ class MartheModel():
         # From existing external file
         if isinstance(spatial_index, str):
             spatial_index = self._check_si_input(spatial_index)
-            self.si_state = 1       # activate spatial index
+            self.sifile = spatial_index
+            self.si_state = 1  # activate spatial index
             from rtree.index import Index
             self.spatial_index = Index(spatial_index)
-            self.sifile = spatial_index
         # From custom dictionary
         elif isinstance(spatial_index, dict):
-            name = spatial_index.get('name', f'{self.mlname}_si' )
+            name = spatial_index.get('name', f'{self.mlname}_si')
             only_active = spatial_index.get('only_active', False)
             self.build_spatial_index(name, only_active)
         # From generic
         elif spatial_index is True:
             self.build_spatial_index()
-        # Without 
+        # Without
         elif spatial_index is False:
-            self.si_state = 0       # desactivate spatial index
+            self.si_state = 0  # desactivate spatial index
             self.sifile = None
             self.spatial_index = None
 
@@ -182,7 +185,7 @@ class MartheModel():
 
         Examples:
         --------
-        it = mm.__iter__() 
+        it = mm.__iter__()
 
         """
         # -- Initialize nodes properties
@@ -199,9 +202,9 @@ class MartheModel():
                     # -- For active cell
                     if r.value == 1:
                         # Store infos of current cell
-                        obj = ( node, r.layer, r.inest, r.i, r.j,
-                                r.x, r.y, r.dx, r.dy, r.dx*r.dy,
-                                r.vertices, int(r.value))
+                        obj = (node, r.layer, r.inest, r.i, r.j,
+                               r.x, r.y, r.dx, r.dy, r.dx * r.dy,
+                               r.vertices, int(r.value))
                         # Compute cell bounds ((xmin, ymin, xmax, ymax))
                         if self.si_state:
                             bounds = (*r.vertices[0], *r.vertices[2])
@@ -216,16 +219,16 @@ class MartheModel():
                     else:
                         node += 1
                     # -- Return user progress bar
-                    marthe_utils.progress_bar((node+1)/nnodes)
+                    marthe_utils.progress_bar((node + 1) / nnodes)
 
-            # -- Enable insertion of inactive cells 
+            # -- Enable insertion of inactive cells
             else:
                 # -- Iterate over structured grid data
                 for r in records:
                     # Store infos of current cell
-                    obj = ( node, r.layer, r.inest, r.i, r.j,
-                            r.x, r.y, r.dx, r.dy, r.dx*r.dy,
-                            r.vertices, int(r.value))
+                    obj = (node, r.layer, r.inest, r.i, r.j,
+                           r.x, r.y, r.dx, r.dy, r.dx * r.dy,
+                           r.vertices, int(r.value))
                     # -- Compute cell bounds
                     if self.si_state:
                         bounds = (*r.vertices[0], *r.vertices[2])
@@ -235,7 +238,7 @@ class MartheModel():
                     else:
                         yield obj
                     # -- Return user progress bar
-                    marthe_utils.progress_bar((node+1)/nnodes)
+                    marthe_utils.progress_bar((node + 1) / nnodes)
                     # -- Incrementation of unique cell id
                     node += 1
 
@@ -273,7 +276,7 @@ class MartheModel():
         print('\nBuilding spatial index ...')
         if only_active:
             warnings.warn('Spatial index will be generated on active cells only.' \
-                ' This can produce some abnormal behaviours on spatial processes.')
+                          ' This can produce some abnormal behaviours on spatial processes.')
         si = rtree.index.Index(si_name,
                                self.__iter__(only_active=only_active),
                                properties=p)
@@ -322,15 +325,15 @@ class MartheModel():
             pd.concat(
                 [pd.DataFrame.from_records(
                     mg.to_records(fmt='full')
-                    )
-                for mg in self.imask.to_grids()],
-                ignore_index=True
                 )
-            # -- Rename few columns 
+                    for mg in self.imask.to_grids()],
+                ignore_index=True
+            )
+            # -- Rename few columns
             .rename(columns=dict(x='xcc', y='ycc', value='active'))
         )
         # -- Insert node ids
-        df.insert(0, 'node', np.arange(self.nlay*self.ncpl))
+        df.insert(0, 'node', np.arange(self.nlay * self.ncpl))
         df.set_index('node', drop=False)
 
         # -- Add vertical dimension information
@@ -338,8 +341,8 @@ class MartheModel():
             # -- Extract geometry top/bottom
             top, botm = map(np.ravel, self._get_top_bottom_arrays())
             # -- Insert z geometry informations in modelgrid
-            df.insert(df.columns.get_loc('ycc') + 1, 'zcc', (top-((top-botm)/2)))
-            df.insert(df.columns.get_loc('dy') + 1, 'dz', (top-botm))
+            df.insert(df.columns.get_loc('ycc') + 1, 'zcc', (top - ((top - botm) / 2)))
+            df.insert(df.columns.get_loc('dy') + 1, 'dz', (top - botm))
             df.insert(df.columns.get_loc('area') + 1, 'bottom', botm)
             df.insert(df.columns.get_loc('area') + 1, 'top', top)
             df.insert(df.columns.get_loc('area') + 1, 'volume', df.dx * df.dy * df.dz)
@@ -372,7 +375,7 @@ class MartheModel():
             except:
                 arr = arr_dc.reshape((self.nlay, self.ncpl))
             # -- Set masked values to nan
-            arr.setflags(write=1) # turn to mutable array
+            arr.setflags(write=1)  # turn to mutable array
             arr[np.isin(arr, mv)] = np.nan
             # -- Fill 2-items list
             geom_arrs.append(arr)
@@ -388,12 +391,12 @@ class MartheModel():
             _sepon[np.isin(_sepon, mv)] = np.nan
 
         # -- Load outcrop layer ids
-        _outcrop = self.get_outcrop().data['value'].reshape((self.nlay, self.ncpl)) # outcrop array
-        _outcrop[np.isin(_outcrop,  [9999, -9999])] = np.nan
+        _outcrop = self.get_outcrop().data['value'].reshape((self.nlay, self.ncpl))  # outcrop array
+        _outcrop[np.isin(_outcrop, [9999, -9999])] = np.nan
 
-        # -- Build a empty top array with right shape 
+        # -- Build a empty top array with right shape
         _top = np.empty((self.nlay, self.ncpl))
-        # -- Iterate 
+        # -- Iterate
         for icell in range(self.ncpl):
             for ilay in range(self.nlay):
 
@@ -401,12 +404,12 @@ class MartheModel():
                 if self.hws == 'explicit':
                     arrs = [_hsubs[:ilay, icell], _topog[:1, icell]]
                 else:
-                    arrs = [ _hsubs[:ilay, icell], _sepon[:ilay+1, icell], _topog[:1, icell]]
+                    arrs = [_hsubs[:ilay, icell], _sepon[:ilay + 1, icell], _topog[:1, icell]]
                 # -- Compute z minimum above substratum
                 ztop = np.fmin.reduce(np.concatenate(arrs))
                 # -- If current cell's top is outcroping
                 if np.isnan(ztop):
-                    oc = np.fmax.reduce(_outcrop[:ilay+1, icell])
+                    oc = np.fmax.reduce(_outcrop[:ilay + 1, icell])
                     if np.isnan(oc):
                         ztop = np.nan
                     elif ilay <= int(oc):
@@ -453,11 +456,11 @@ class MartheModel():
 
         # ---- Load geometry as MartheField instance
         for g in _g:
-            self.geometry[g] = MartheField(g, 
-                                          self.mlfiles[g],
-                                          self,
-                                          use_imask=kwargs.get('use_imask', False)
-                                          )
+            self.geometry[g] = MartheField(g,
+                                           self.mlfiles[g],
+                                           self,
+                                           use_imask=kwargs.get('use_imask', False)
+                                           )
 
     def build_imask(self):
         """
@@ -481,6 +484,8 @@ class MartheModel():
         # ---- Load permh field
         imask = MartheField('imask', self.mlfiles['permh'], self)
         # ---- Change data to binary
+        # Replace 9999 values by 0 for prevent 9999 cells as active
+        imask.data['value'][imask.data['value'] == 9999] = 0
         imask.data['value'] = (imask.data['value'] != 0).astype(int)
         # ---- Return MartheField instance
         return imask
@@ -524,10 +529,10 @@ class MartheModel():
 
         # ---- Manage pumping
         elif prop == 'aqpump':
-            self.prop[prop] = MarthePump(self, mode = 'aquifer', **kwargs)
+            self.prop[prop] = MarthePump(self, mode='aquifer', **kwargs)
 
         elif prop == 'rivpump':
-            self.prop[prop] = MarthePump(self, mode = 'river', **kwargs)
+            self.prop[prop] = MarthePump(self, mode='river', **kwargs)
 
         # ---- Manage soil property
         elif prop == 'soil':
@@ -570,7 +575,7 @@ class MartheModel():
         mm.write_prop('emmca')
 
         """
-        # -- Manage property(ies) to write 
+        # -- Manage property(ies) to write
         props = self.prop.keys() if prop is None else marthe_utils.make_iterable(prop)
         # -- Write required properties
         for p in props:
@@ -579,7 +584,7 @@ class MartheModel():
     @classmethod
     def from_config(cls, configfile, fmt_lite=False):
         """
-        Load an existing Marthe model from a configuration file written from 
+        Load an existing Marthe model from a configuration file written from
         pymarthe.MartheOptim.write_config(). The return MartheModel instance
         contains all parametrizes properties with values from related parameters
         files ('grid' and 'list' prameters).
@@ -613,29 +618,29 @@ class MartheModel():
 
             # -- Set list-like properties
             if pdic['type'] == 'list':
-                #if not prop in mm.prop.keys():
+                # if not prop in mm.prop.keys():
                 mm.load_prop(prop)
                 mm.prop[prop].set_data_from_parfile(
-                    parfile = os.path.normpath(
+                    parfile=os.path.normpath(
                         pdic['parfile']),
-                        keys = pdic['keys'].split(','),
-                        value_col = pdic['value_col'],
-                        btrans = pdic['btrans'],
-                        fmt_lite=fmt_lite
-                    )
+                    keys=pdic['keys'].split(','),
+                    value_col=pdic['value_col'],
+                    btrans=pdic['btrans'],
+                    fmt_lite=fmt_lite
+                )
             # -- Set grid-like properties
             elif pdic['type'] == 'grid':
-                #if not prop in mm.prop.keys():
-                use_imask = pdic['use_imask']=='True'
-                mm.load_prop(prop,use_imask=use_imask)
+                # if not prop in mm.prop.keys():
+                use_imask = pdic['use_imask'] == 'True'
+                mm.load_prop(prop, use_imask=use_imask)
                 # -- Get izone as MartheField instance
                 izone = MartheField(f'i{prop}', os.path.normpath(pdic['izone']), mm, use_imask=use_imask)
                 # -- Set all field values (zpc and pp)
-                for pf in  pdic['parfile'].split(','):
+                for pf in pdic['parfile'].split(','):
                     mm.prop[prop].set_data_from_parfile(
-                        parfile= os.path.normpath(pf),
-                        izone= izone,
-                        btrans= pdic['btrans'],
+                        parfile=os.path.normpath(pf),
+                        izone=izone,
+                        btrans=pdic['btrans'],
                         fmt_lite=fmt_lite
                     )
 
@@ -660,7 +665,7 @@ class MartheModel():
         if self.spatial_index is None:
             mg0 = self.imask.to_grids(layer=0)[0]
             xmin, ymin = mg0.xl, mg0.yl
-            xmax, ymax = mg0.xl+mg0.Lx, mg0.yl+mg0.Ly
+            xmax, ymax = mg0.xl + mg0.Lx, mg0.yl + mg0.Ly
             extent = [xmin, ymin, xmax, ymax]
         # -- Extract extent from spatial index
         else:
@@ -723,7 +728,7 @@ class MartheModel():
         mm = MartheModel(rma_file)
         mm.remove_autocal()
         """
-        marthe_utils.remove_autocal(self.rma_file, self.mlfiles['mart'])    
+        marthe_utils.remove_autocal(self.rma_file, self.mlfiles['mart'])
 
     def set_verbosity(self, silent: bool) -> None:
         """
@@ -792,24 +797,22 @@ class MartheModel():
                 pd.DataFrame.from_records(self.imask.data)
                 # -- Adoptaing layer number to user demand
                 .apply(lambda x: x + base if x.name == 'layer' else x)
-                # -- Giving similar node ids for each layer (from 0 to ncpl) 
+                # -- Giving similar node ids for each layer (from 0 to ncpl)
                 .assign(inpl=np.tile(np.arange(self.ncpl), self.nlay))
                 # -- Mask active cell only
                 .loc[mask]
-                # -- Compute minimum layer id per node 
+                # -- Compute minimum layer id per node
                 .groupby('inpl')
                 .min()['layer']
             )
             # -- Building Marthefield object response
-            outcrop =  MartheField('outcrop', 9999, self)
-            # -- Set inactive cell to 9999 instead of 0 for plotting (and understanding) purpose 
+            outcrop = MartheField('outcrop', 9999, self)
+            # -- Set inactive cell to 9999 instead of 0 for plotting (and understanding) purpose
             outcrop.data['value'][~mask] = 9999
             # -- Set layer ids values previously calculated
             outcrop.data['value'][oc.index] = oc.values
             # -- Return MartheField instance
             return outcrop
-
-
 
     def query_grid(self, target=None, **kwargs):
         """
@@ -838,7 +841,7 @@ class MartheModel():
         --------
         df (DataFrame) : subset DataFrame.
                          Index : query variable(s).
-                         Columns : target(s) variables. 
+                         Columns : target(s) variables.
 
         Examples:
         --------
@@ -848,19 +851,19 @@ class MartheModel():
                            j = [45,67,89],
                            layer = [0,5,4],
                            inest = [0,0,0])
-        
+
         """
         # -- Build modelgrid if not exists
         if self.modelgrid is None:
             self.build_modelgrid()
 
         # -- Make all kwargs values iterable
-        d = {k:marthe_utils.make_iterable(v) for k,v in kwargs.items()}
+        d = {k: marthe_utils.make_iterable(v) for k, v in kwargs.items()}
 
         # -- Check kwargs names validity
         nf = [f"'{kw}'" for kw in d.keys() if kw not in self.modelgrid.columns]
         err_msg = 'ERROR : some query names not found in ' \
-                   'modelgrid : {}.'.format(', '.join(nf))
+                  'modelgrid : {}.'.format(', '.join(nf))
         assert len(nf) == 0, err_msg
 
         # -- Check kwargs values validity
@@ -881,16 +884,14 @@ class MartheModel():
         # -- Check target validity
         nf = [f"'{t}'" for t in target if t not in self.modelgrid.set_index(kidx).columns]
         err_msg = 'ERROR : some `target` values not found in ' \
-                   'modelgrid or already use for grid query: {}.'.format(', '.join(nf))
+                  'modelgrid or already use for grid query: {}.'.format(', '.join(nf))
         assert len(nf) == 0, err_msg
 
         # -- Query modelgrid DataFrame
-        df = self.modelgrid.set_index(kidx).loc[vidx,target]
+        df = self.modelgrid.set_index(kidx).loc[vidx, target]
 
         # -- Return subset DataFrame
         return df
-
-
 
     def isin_extent(self, x, y):
         """
@@ -914,12 +915,10 @@ class MartheModel():
         # -- Get model domain extension as polygon
         ext = self.get_edges(closed=True)
         # -- Make coords iterable
-        _x,_y = [np.array(marthe_utils.make_iterable(coord)) for coord in [x,y]]
+        _x, _y = [np.array(marthe_utils.make_iterable(coord)) for coord in [x, y]]
         res = shp_utils.point_in_polygon(_x, _y, ext)
         # -- Return boolean response
         return res
-
-
 
     def get_node(self, x, y, layer=None, only_active=False):
         """
@@ -939,16 +938,16 @@ class MartheModel():
 
         Returns:
         --------
-        nodes (list) : intersected nodes. 
+        nodes (list) : intersected nodes.
 
         Examples:
         --------
         x, y = [456788.78, 459388.78], [6789567.2, 6789569.89]
         nodes = get_nodes(x, y, layer=2, only_active=True)
-        
+
         """
         # -- Manage xy coordinates
-        _x, _y = [marthe_utils.make_iterable(var) for var in [x,y]]
+        _x, _y = [marthe_utils.make_iterable(var) for var in [x, y]]
 
         # -- Check if xy-coordinates are in model extension
         inext = self.isin_extent(_x, _y)
@@ -969,7 +968,7 @@ class MartheModel():
                 for ix, iy in zip(_x, _y):
                     inodes = []
                     # -- Intercept spatial index on objects only (slower)
-                    for hit in sorted(self.spatial_index.intersection((ix,iy), objects='raw')):
+                    for hit in sorted(self.spatial_index.intersection((ix, iy), objects='raw')):
                         # -- Verify whatever the cell is active
                         if hit[-1] == 1:
                             inodes.append(hit[0])
@@ -978,14 +977,14 @@ class MartheModel():
                     nodes.append(inodes)
             else:
                 # -- Intercept spatial index on node id only (faster)
-                nodes = [sorted(self.spatial_index.intersection((ix,iy))) for ix, iy in zip(_x, _y)]
+                nodes = [sorted(self.spatial_index.intersection((ix, iy))) for ix, iy in zip(_x, _y)]
 
         else:
             # -- Manage layer input
             _layer = marthe_utils.make_iterable(layer)
 
             # ---- Allowed layer to be a simple integer for all xy-coordinates
-            if (len(_layer) == 1) and (len(_x) > 1) :
+            if (len(_layer) == 1) and (len(_x) > 1):
                 _layer = list(_layer) * len(_x)
 
             # ---- Assertion on variables length
@@ -996,7 +995,7 @@ class MartheModel():
             nodes = []
             for ix, iy, ilay in zip(_x, _y, _layer):
                 # -- Intercept spatial index on objects only (slower)
-                for hit in self.spatial_index.intersection((ix,iy), objects='raw'):
+                for hit in self.spatial_index.intersection((ix, iy), objects='raw'):
                     # -- Verify in intersect required layer
                     if hit[1] == ilay:
                         if only_active:
@@ -1009,8 +1008,6 @@ class MartheModel():
                             nodes.append(hit[0])
         # -- Return nodes
         return nodes
-
-
 
     def all_active(self, node):
         """
@@ -1027,7 +1024,7 @@ class MartheModel():
         Examples:
         --------
         mm.is_active(6794)
-        
+
         """
         # -- Get node as iterable
         n = marthe_utils.make_iterable(node)
@@ -1035,9 +1032,6 @@ class MartheModel():
         res = all(x > 0 for x in self.imask.data['value'][n])
         # -- Return
         return res
-
-
-
 
     def any_active(self, node):
         """
@@ -1054,7 +1048,7 @@ class MartheModel():
         Examples:
         --------
         mm.is_active(6794)
-        
+
         """
         # -- Get node as iterable
         n = marthe_utils.make_iterable(node)
@@ -1062,8 +1056,6 @@ class MartheModel():
         res = any(x > 0 for x in self.imask.data['value'][n])
         # -- Return
         return res
-
-
 
     @marthe_utils.deprecated
     def get_ij(self, x, y, stack=False):
@@ -1094,7 +1086,7 @@ class MartheModel():
 
         """
         # ---- Make i and j iterable
-        _x, _y = [marthe_utils.make_iterable(var) for var in [x,y]]
+        _x, _y = [marthe_utils.make_iterable(var) for var in [x, y]]
 
         # ---- Assert that i and j have the same length
         err_msg = "ERROR: x and y must have the same length." \
@@ -1108,14 +1100,12 @@ class MartheModel():
 
         # ---- Manage output
         if len(_x) == 1:
-            out = np.column_stack([i,j]) if stack else (i[0], j[0])
+            out = np.column_stack([i, j]) if stack else (i[0], j[0])
         else:
-            out = np.column_stack([i,j]) if stack else (i, j)
+            out = np.column_stack([i, j]) if stack else (i, j)
 
         # ---- Return coordinates
         return out
-
-
 
     @marthe_utils.deprecated
     def get_xy(self, i, j, stack=False):
@@ -1143,7 +1133,7 @@ class MartheModel():
         coords = mm.get_ij(i,j, stack=True)
         """
         # ---- Make i and j iterable
-        _i, _j = [marthe_utils.make_iterable(var) for var in [i,j]]
+        _i, _j = [marthe_utils.make_iterable(var) for var in [i, j]]
 
         # ---- Assert that i and j have the same length
         err_msg = "ERROR: i and j must have the same length." \
@@ -1153,7 +1143,7 @@ class MartheModel():
         # ---- Subset data by pairs on first layer
         df = pd.DataFrame.from_records(self.imask.get_data(layer=0))
         df['temp'] = df['i'].astype(str) + '_' + df['j'].astype(str)
-        df_ss = df.loc[df.temp.isin([f'{ii}_{jj}' for ii,jj in zip(_i,_j)])]
+        df_ss = df.loc[df.temp.isin([f'{ii}_{jj}' for ii, jj in zip(_i, _j)])]
 
         # ---- Fetch corresponding xcc, ycc
         x, y = [df_ss[c].to_numpy() for c in list('xy')]
@@ -1163,16 +1153,14 @@ class MartheModel():
             out = np.column_stack([x, y]) if stack else (x[0], y[0])
         else:
             out = np.column_stack([x, y]) if stack else (x, y)
-        
+
         # ---- Return coordinates
         return out
-
-
 
     def extract_refine_levels(self):
         """
         Function to extract refine levels of each nested grid.
-        The main grid (inest=0) must have a refine level 
+        The main grid (inest=0) must have a refine level
         equal to 1 (= division for each x-y direction).
 
         Parameters:
@@ -1192,18 +1180,15 @@ class MartheModel():
         """
         # -- Read 'permh' with adjacent cells (layer 0)
         mgs = marthe_utils.read_grid_file(
-                    self.mlfiles['permh'],
-                        keep_adj=True)
+            self.mlfiles['permh'],
+            keep_adj=True)
         mgs0 = [mg for mg in mgs if mg.layer == 0]
         # -- Compute rlevel (dx_main_grid / dx_nested_grid)
-        rlevels = {mg.inest : int(mg.dx[0]//mg.dx[1])
-                                if mg.inest > 0 else None
-                                    for mg in mgs0}
+        rlevels = {mg.inest: int(mg.dx[0] // mg.dx[1])
+        if mg.inest > 0 else None
+                   for mg in mgs0}
         # -- Return
         return rlevels
-
-
-
 
     def get_xycellcenters(self, stack=False):
         """
@@ -1239,8 +1224,6 @@ class MartheModel():
         else:
             return xcc, ycc
 
-
-
     def get_layer_from_depth(self, x, y, depth, as_list=True):
         """
         Function to infer the layer id at a given xyz coordonates.
@@ -1250,10 +1233,10 @@ class MartheModel():
         ----------
         x, y (float/iterable) : xy-coordinate(s) of the required point(s)
         depth (float/iterable) : depth to infer (=z)
-        as_list (bool): whatever returning only list of layer ids or 
+        as_list (bool): whatever returning only list of layer ids or
                         whole Dataframe with x,y,depth,layer,name.
                         Default is True.
-        
+
 
         Examples:
         --------
@@ -1295,19 +1278,14 @@ class MartheModel():
                          depth=_d,
                          layer=layers,
                          name=self.layers_infos.loc[layers, 'name'])
-                    )
                 )
+            )
 
-
-
-
-    def run_model(self, exe_name = 'marthe', rma_file = None, 
-                      silent = True, verbose=False, pause=False,
-                      report=False, cargs=None):
+    def run_model(self, exe_name='marthe', rma_file=None, silent=True,):
         """
-        Run Marthe model using subprocess.Popen. It communicates 
-        with the model's stdout asynchronously and reports progress 
-        to the screen with timestamps
+        Run Marthe model using subprocess.run. stdout and stderr are
+        not handled by this function. Actually, Marthe writes stdout
+        in bilandeb.txt and stderr in mart_ver.txt.
 
         Parameters
         ----------
@@ -1316,121 +1294,121 @@ class MartheModel():
                                    exename is not in environment path
                                    Default is 'marthe'.
         rma_file (str, optional) : .rma file of model to run.
-        silent (bool, optional) : run marthe model as silent 
-        verbose (bool, optional) : echo run information to screen
-                                   Default is False.
-        pause (bool, optional) : pause upon completion
-                                 Default is False.
-        report (bool, optional) : save stdout lines to a list (buff) 
-                                  which is returned by the method
-                                  Default is True.
-        cargs (str/list, optional) : additional command line arguments to pass to the executable.
-                                     Default is None.
-
-        Returns
-        -------
-        (success, buff)
-        success (bool) : Binary success of the run 
-        buff (list) :  stdout
+        silent (bool, optional) : whether to run Marthe quietly or not.
+        This argument can usually be True, except if you want to check the
+        output lines in the graphical Windows executable.
         """
-        # ---- Initialize variable
-        success = False
-        buff = []
-        normal_msg='normal termination'
 
-        # ---- Set the verbosity of the model
         self.set_verbosity(silent)
 
-        # ---- Check to make sure that program and namefile exist
+        # ---- Find executable
         exe = which(exe_name)
+        if exe is None and platform.system() == 'Windows':
+            exe = which(exe_name + '.exe')
         if exe is None:
-            # -- Try which() function for window user 
-            import platform
-            if platform.system() in 'Windows':
-                    exe = which(exe_name + '.exe')
+            raise FileNotFoundError(f"The program {exe_name} does not exist or is not executable.")
 
-        if exe is None:
-            s = 'The program {} does not exist or is not executable.'.format(
-                exe_name)
-            raise Exception(s)
-        
-
-        # ---- Fetch Marthe .rma file if not provided
-        if rma_file is None : 
+        # ---- Determine rma file
+        if rma_file is None:
             rma_file = os.path.join(self.mldir, self.rma_file)
 
-        # ---- Simple function for the thread to target
-        def q_output(output, q):
-            for line in iter(output.readline, b''):
-                q.put(line)
+        # ---- Run the model
+        sp.run([exe, rma_file], check=True)
 
-        # ---- Create a list of arguments to pass to Popen
-        argv = [exe_name]
-        if rma_file is not None:
-            argv.append(rma_file)
+        # NEW POPEN BLOCK BY SMA, IN CASE IT'S NEEDED (run time issue fixed)
+        # else:
+        #     # Live stdout mode
+        #     try:
+        #         with sp.Popen([exe, rma_file], stdout=sp.PIPE, stderr=sp.STDOUT, text=True, bufsize=1) as proc:
+        #             for line in proc.stdout:
+        #                 line = line.rstrip()
+        #                 output_lines.append(line)
+        #                 print(line)
+        #                 if normal_msg.lower() in line.lower():
+        #                     success = True
+        #
+        #             proc.wait()
+        #             if proc.returncode != 0 and not success:
+        #                 print(f"[Erreur] Le modèle s’est terminé avec le code {proc.returncode}")
+        #                 success = False
+        #
+        #     except Exception as e:
+        #         print(f"[Erreur] Impossible d’exécuter le modèle : {e}")
+        #         success = False
 
-        # ---- Add additional arguments to Popen arguments
-        if cargs is not None:
-            cargs = [arg for arg in cargs if isinstance(cargs, str)]
-            for t in cargs:
-                argv.append(t)
+        # TODO keeping the olds Popen blocks whenever it's needed
+        # it decided to go back with
+        # else:
+        #
+        #     # ---- Simple function for the thread to target
+        #     def q_output(output, q):
+        #         for line in iter(output.readline, b''):
+        #             q.put(line)
+        #
+        #     # ---- Create a list of arguments to pass to Popen
+        #     argv = [exe_name]
+        #     if rma_file is not None:
+        #         argv.append(rma_file)
+        #
+        #     # ---- Add additional arguments to Popen arguments
+        #     if cargs is not None:
+        #         cargs = [arg for arg in cargs if isinstance(cargs, str)]
+        #         for t in cargs:
+        #             argv.append(t)
+        #
+        #     # ---- Run the model with Popen
+        #     proc = sp.Popen(argv, stdout=sp.PIPE, stderr=sp.STDOUT)
+        #
+        #     # ---- Some tricks for the async stdout reading
+        #     q = queue.Queue()
+        #     thread = threading.Thread(target=q_output, args=(proc.stdout, q))
+        #     thread.daemon = True
+        #     thread.start()
+        #     failed_words = ["fail", "error"]
+        #     last = datetime.now()
+        #     lastsec = 0.
+        #     while True:
+        #         try:
+        #             line = q.get_nowait()
+        #         except queue.Empty:
+        #             pass
+        #         else:
+        #             if line == '':
+        #                 break
+        #             line = line.decode('latin-1').lower().strip()
+        #             if line != '':
+        #                 now = datetime.now()
+        #                 dt = now - last
+        #                 tsecs = dt.total_seconds() - lastsec
+        #                 line = "elapsed:{0}-->{1}".format(tsecs, line)
+        #                 lastsec = tsecs + lastsec
+        #                 buff.append(line)
+        #                 if not verbose:
+        #                     print(line)
+        #                 for fword in failed_words:
+        #                     if fword in line:
+        #                         success = False
+        #                         break
+        #         if proc.poll() is not None:
+        #             break
+        #     proc.wait()
+        #     thread.join(timeout=1)
+        #     buff.extend(proc.stdout.readlines())
+        #     proc.stdout.close()
+        #     # -- Examine run buff
+        #     for line in buff:
+        #         if normal_msg in line:
+        #             print("success")
+        #             success = True
+        #             break
+        #
+        #     if pause:
+        #         input('Press Enter to continue...')
+        # return success, buff
 
-        # ---- Run the model with Popen
-        proc = sp.Popen(argv, stdout=sp.PIPE, stderr=sp.STDOUT)
-
-        # ---- Some tricks for the async stdout reading
-        q = queue.Queue()
-        thread = threading.Thread(target=q_output, args=(proc.stdout, q))
-        thread.daemon = True
-        thread.start()
-        failed_words = ["fail", "error"]
-        last = datetime.now()
-        lastsec = 0.
-        while True:
-            try:
-                line = q.get_nowait()
-            except queue.Empty:
-                pass
-            else:
-                if line == '':
-                    break
-                line = line.decode('latin-1').lower().strip()
-                if line != '':
-                    now = datetime.now()
-                    dt = now - last
-                    tsecs = dt.total_seconds() - lastsec
-                    line = "elapsed:{0}-->{1}".format(tsecs, line)
-                    lastsec = tsecs + lastsec
-                    buff.append(line)
-                    if not verbose:
-                        print(line)
-                    for fword in failed_words:
-                        if fword in line:
-                            success = False
-                            break
-            if proc.poll() is not None:
-                break
-        proc.wait()
-        thread.join(timeout=1)
-        buff.extend(proc.stdout.readlines())
-        proc.stdout.close()
-        # -- Examine run buff
-        for line in buff:
-            if normal_msg in line:
-                print("success")
-                success = True
-                break
-
-        if pause:
-            input('Press Enter to continue...')
-        return success, buff
-
-
-
-
-    def get_vtk(self, vertical_exageration=0.05, hws = None,
-                      smooth=False, binary=True, xml=False,
-                      shared_points=False):
+    def get_vtk(self, vertical_exageration=0.05, hws=None,
+                smooth=False, binary=True, xml=False,
+                shared_points=False):
 
         """
         Build vtk unstructured grid from model geometry.
@@ -1453,7 +1431,7 @@ class MartheModel():
         smooth (bool) : boolean flag to enable interpolating vertex elevations
                         based on shared cell.
                         Default is False.
-        binary (bool) : Enable binary writing, otherwise classic ASCII format 
+        binary (bool) : Enable binary writing, otherwise classic ASCII format
                         will be consider.
                         Default is True.
                         Note : binary is prefered as paraview can produced bug
@@ -1489,8 +1467,6 @@ class MartheModel():
         # -- Return vtk instance
         return vtk
 
-
-
     def show_run_times(self, logfile=None, tablefmt='fancy'):
         """
         Print model run times.
@@ -1516,8 +1492,8 @@ class MartheModel():
 
         # -- Assert log file exists
         err_msg = f"Could not found {lf} log file. " \
-                   "Make sure to run the model before " \
-                   "calling `.show_run_times()` method."
+                  "Make sure to run the model before " \
+                  "calling `.show_run_times()` method."
         assert os.path.exists(lf), err_msg
 
         # -- Extract run times per process
@@ -1531,9 +1507,6 @@ class MartheModel():
         except:
             # -- Classic table print
             print(df)
-        
-
-
 
     def get_time_window(self, tw_type='date'):
         """
@@ -1562,13 +1535,11 @@ class MartheModel():
 
         """
         # ---- Extract time window
-        tw_min, tw_max =  marthe_utils.get_tw(martfile= self.mlfiles['mart'],
-                                              pastpfile= self.mlfiles['pastp'],
-                                              tw_type=tw_type)
+        tw_min, tw_max = marthe_utils.get_tw(martfile=self.mlfiles['mart'],
+                                             pastpfile=self.mlfiles['pastp'],
+                                             tw_type=tw_type)
         # ---- Return time window as tuple
         return tw_min, tw_max
-
-
 
     def set_time_window(self, start=None, end=None):
         """
@@ -1584,7 +1555,7 @@ class MartheModel():
                                     will be considered.
                                     Default is None.
 
-        end (str/int, optional) : string date or istep number of required 
+        end (str/int, optional) : string date or istep number of required
                                   last timestep to consider.
                                   If None, the last istep (in .pastp file)
                                   will be considered.
@@ -1605,13 +1576,10 @@ class MartheModel():
 
         """
         # ---- Wrapper to utils
-        marthe_utils.set_tw( start= start,
-                             end= end,
-                             martfile= self.mlfiles['mart'],
-                             pastpfile= self.mlfiles['pastp'] )
-
-
-
+        marthe_utils.set_tw(start=start,
+                            end=end,
+                            martfile=self.mlfiles['mart'],
+                            pastpfile=self.mlfiles['pastp'])
 
     def set_hydrodyn_periodicity(self, istep, external=False, new_pastpfile=None):
         """
@@ -1657,10 +1625,10 @@ class MartheModel():
 
         """
         # ---- Wrapper to utils
-        marthe_utils.hydrodyn_periodicity(pastpfile= self.mm.mlfiles['pastp'],
-                                          istep= istep,
-                                          external= external,
-                                          new_pastpfile= new_pastpfile)
+        marthe_utils.hydrodyn_periodicity(pastpfile=self.mm.mlfiles['pastp'],
+                                          istep=istep,
+                                          external=external,
+                                          new_pastpfile=new_pastpfile)
 
     def _check_si_input(self, spatial_index: str) -> str:
         """
@@ -1706,11 +1674,11 @@ class MartheModel():
         return 'MartheModel'
 
 
-
 class SpatialReference():
     """
     Inspired from FloPy, for compatibility with PyEMU
     """
+
     def __init__(self, mm):
         """
         Parameters
@@ -1720,10 +1688,8 @@ class SpatialReference():
         mg = mm.imask.to_grids(layer=0, inest=0)[0]
         self.nrow, self.ncol = mg.nrow, mg.ncol
 
-
     def __str__(self):
         """
         Internal string method.
         """
         return 'SpatialReference'
-
