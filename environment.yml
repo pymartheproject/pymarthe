@@ -1,18 +1,27 @@
-# use : `conda env create -n pymarthe -f env.yml`
+name: pymarthe-env
 channels:
   - conda-forge
+  - defaults
+
 dependencies:
-  - numpy
-  - pandas>=1.5
-  - matplotlib
-  - pip
-  - Rtree
-  - appdirs
-  - pathlib2
-  - ast
-  - pyshp
-  - pyemu
-  - pyvista
-  - vtk
-  - imageio
-  
+  # --- Python ---
+  - python=3.10
+
+  # --- Core scientific stack (matching pyproject.toml) ---
+  - numpy>=1.26.4,<2.0.0
+  - pandas>=2.3.3,<3.0.0
+  - matplotlib>=3.10.8,<4.0
+  - rtree>=1.4.1,<2.0.0
+  - pyshp>=2.4.1,<3.0        # conda name is "python-shapefile"
+  - pyemu>=1.3.8,<2.0.0
+  - appdirs>=1.4.4,<2.0.0
+
+  # Optional but compatible packages (if you want them directly in env)
+  # Otherwise install with: pip install "pymarthe[extras]"
+  - shapely>=2.1.2,<3.0.0
+  - vtk>=9.5.2,<10.0
+  - imageio>=2.37.0,<3.0
+
+  # --- Install pymarthe from your local repo (optional) ---
+  # - pip:
+  #     - -e .

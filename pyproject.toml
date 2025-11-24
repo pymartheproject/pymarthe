@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pymarthe"
 authors =[
-    {"name" = "Ryma Aissat"},
-    {"name" = "Alexandre Pryet"},
-    {"name" = "Pierre Matran"}
+    {name = "Ryma Aissat"},
+    {name = "Alexandre Pryet"},
+    {name = "Pierre Matran"}
 ]
 dynamic = ["version"]
 
@@ -26,25 +26,22 @@ classifiers = [
 
 keywords = ["hydrology", "groundwater", "modelling", "uncertainty", "coupling", "pest", "pestpp", "marthe"]
 
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 dependencies = [
-    "pandas >= 1.3",
-    "numpy >= 1.18",
-    "appdirs >= 1.4",
-    "pathlib2 >= 2.3",
-    "Rtree >= 0.9",
-    "matplotlib >= 3.2",
-    "pyshp >= 2.1",
-    "pyemu >= 1.2",
-    "flopy"
+    "numpy>=1.26.4,<2.0.0",
+    "pandas>=2.3.3,<3.0.0",
+    "matplotlib>=3.10.8,<4.0",    
+    "rtree>=1.4.1,<2.0.0",
+    "pyshp>=2.4.1,<3.0",
+    "pyemu>=1.3.8,<2.0.0",
+    "appdirs>=1.4.4,<2.0"
 ]
 
 [project.optional-dependencies]
-# install with `pip install pymarthe[extras]`
 extras = [
-    "pyvista >= 0.33",
-    "vtk >= 9.1",
-    "imageio >= 2.9"
+    "shapely>=2.1.2,<3.0.0",
+    "vtk>=9.5.2,<10.0",
+    "imageio>=2.37.0,<3.0"
 ]
 
 [tool.setuptools.dynamic]
@@ -52,11 +49,9 @@ version = {attr = "pymarthe.__version__"}
 
 [project.urls]
 Repository = "https://github.com/pymartheproject/pymarthe"
-#Documentation = 
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 exclude = ["examples*", "docs*", "assets*", "presentation*"]  # exclude packages matching these glob patterns (empty by default)
-
