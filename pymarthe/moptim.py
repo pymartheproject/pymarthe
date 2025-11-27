@@ -13,7 +13,6 @@ import pyemu
 
 from .marthe import MartheModel
 from .mobs import MartheObs
-from .mobs import BASE_OBS
 from .mparam import MartheListParam, MartheGridParam
 from .utils import marthe_utils, pest_utils
 from .utils.formatters import ENCODING
@@ -105,10 +104,19 @@ class MartheOptim():
         if len(self.obs) > 0:
             return pd.concat([mo.get_obs_df(transformed)for mo in self.obs.values()])
         else:
-            return pd.DataFrame(columns = BASE_OBS)
 
+            obs_df = pd.DataFrame({
+    'obsnme': pd.Series(dtype='string'),
+    'datatype': pd.Series(dtype='string'),
+    'locnme': pd.Series(dtype='string'),
+    'obsfile': pd.Series(dtype='string'),
+    'obgnme': pd.Series(dtype='string'),
+    'trans': pd.Series(dtype='string'),
+    'obsval': pd.Series(dtype='float64'),
+    'weight': pd.Series(dtype='float64'),
+    'date': pd.Series(dtype='datetime64[ns]'),})
 
-
+            return obs_df
 
     def get_param_df(self, transformed=False):
         """
@@ -132,9 +140,6 @@ class MartheOptim():
             return pd.concat([mp.get_param_df(transformed) for mp in self.param.values()])
         else:
             return pd.DataFrame(columns = BASE_PARAM)
-
-
-
 
     def get_nobs(self, locnme = None, null_weight = True):
         """
