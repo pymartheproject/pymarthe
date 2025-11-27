@@ -128,6 +128,22 @@ class MartheListParam():
                 'offset':self.offset,
                 'dercom':self.dercom
             },index = self.parnmes)
+
+        # ---- Set clean dtypes
+        self.param_df = self.param_df.astype({
+            'parnme': 'string',
+            'trans': 'string',
+            'btrans': 'string',
+            'parchglim': 'string',
+            'defaultvalue': 'float64',
+            'parlbnd': 'float64',
+            'parubnd': 'float64',
+            'pargp': 'string',
+            'scale': 'float64',
+            'offset': 'float64',
+            'dercom': 'int32'
+        })
+        # ---- Defines correct columns dtypes
         
         # ---- Manage files io
         self.parpath = kwargs.get('parpath', '.')
@@ -1032,19 +1048,33 @@ class MartheGridParam():
                             lambda s: f"{self.pargp}_zpc" if 'zpc' in s else f"{self.pargp}_pp")
         # ---- Build standard parameter data
         par_df = pd.DataFrame({
-            'parnme':concat['parname'],
-            'trans':self.trans,
-            'btrans':self.btrans,
-            'parchglim':self.parchglim,
-            'defaultvalue':concat['value'],
+            'parnme': concat['parname'].astype('string'),
+            'trans': self.trans,
+            'btrans': self.btrans,
+            'parchglim': self.parchglim,
+            'defaultvalue': concat['value'].astype("float64"),
             'parlbnd':self.parlbnd,
-            'parubnd':self.parubnd,
-            'pargp':concat['pargp'],
+            'parubnd': self.parubnd,
+            'pargp': concat['pargp'].astype('string'),
             'scale':self.scale,
             'offset':self.offset,
-            'dercom':self.dercom},
-            index =concat['parname']
-                              )
+            'dercom':self.dercom,  # pyemu compatibility
+        }, index=concat['parname'])
+
+        # ---- Defines compatible dtype
+        par_df = par_df.astype({
+                'parnme':'string',
+                'trans':'string',
+                'btrans':'string',
+                'parchglim':'string',
+                'defaultvalue':'float64',
+                'parlbnd':'float64',
+                'parubnd':'float64',
+                'pargp':'string',
+                'scale':'float64',
+                'offset':'float64',
+                'dercom':'int32',
+                             })
 
         # ---- Transform values if required
         if transformed:
