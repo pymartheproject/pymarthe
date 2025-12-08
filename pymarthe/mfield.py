@@ -671,7 +671,8 @@ class MartheField():
                                 If None, all nested grid are considered.
                                 Default is None.
         masked_values (str/list/None, optional) : field values to ignore.
-                                                  Default is 'default' => self.dmv.
+                                                  Default is 'default', falling back to the
+                                                  self.dmv attribute ([-9999., 0., 9999.])
         log (bool, optional) : logarithmic transformation of all values.
                                Default is False.
         epsg (int, optional) : Geodetic Parameter Dataset.
@@ -765,7 +766,8 @@ class MartheField():
                                        Default is None.
 
         masked_values (str/list/None, optional) : field values to ignore.
-                                                  Default is "default" <=> self.dmv.
+                                                  Default is 'default', falling back to the
+                                                  self.dmv attribute ([-9999., 0., 9999.])
 
         basemap (dict/bool, optional) : add base map to AxesSubplot.
                                         /!/ Required python `contextily` module /!/
@@ -974,7 +976,8 @@ class MartheField():
                                 See pymarthe.utils.pest_utils.transform.
                                 Default is 'none'.
         masked_values (str/float/it/None, optional) : values to mask of the current field data.
-                                                      Default is 'default' => self.dmv.
+                                                      Default is 'default', falling back to the
+                                                      self.dmv attribute ([-9999., 0., 9999.])
         vertical_exageration (float, kwargs) : floating point value to scale vertical
                                                exageration of the vtk points.
                                                Default is 0.05.
