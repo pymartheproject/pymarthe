@@ -10,12 +10,6 @@ import pandas as pd
 
 from .utils import marthe_utils, pest_utils
 
-BASE_OBS= ['obsnme', 'date', 'obsval',
-            'datatype', 'locnme', 'obsfile',
-            'weight', 'obgnme', 'trans' ]
-
-# pd.options.mode.chained_assignment = None  # Ignore pandas SettingWithCopyWarning
-
 
 class MartheObs():
     """
@@ -127,12 +121,32 @@ class MartheObs():
         # this happends whens self.obs_df is edited by the user
 
         # ---- Fill observations DataFrame with input data
-        self.obs_df = pd.DataFrame(index=self.obsnmes)
-        self.obs_df[BASE_OBS] = pd.Series([
-            self.obsnmes, self.date, self.value,
-            self.datatype, self.locnme, self.obsfile,
-            self.weight, self.obgnme, self.trans
-                                           ])
+        self.obs_df = pd.DataFrame(
+            {
+                'locnme': self.locnme,
+                'obsnme': self.obsnmes,
+                'obgnme': self.obgnme,
+                'date': self.date,
+                'obsval': self.value,
+                'datatype': self.datatype,
+                'obsfile': self.obsfile,
+                'weight': self.weight,
+                'trans': self.trans,
+            },
+            index=self.obsnmes
+        )
+        # Defines correct coloumns dtype
+        self.obs_df = self.obs_df.astype({
+            'obsnme': 'string',
+            'datatype': 'string',
+            'locnme': 'string',
+            'obsfile': 'string',
+            'obgnme': 'string',
+            'trans': 'string',
+            'obsval': 'float64',
+            'weight': 'float64',
+            'date': 'datetime64[ns]',
+        })
 
         # ---- Store fluctuation arguments
         self.fluc_dic = kwargs.get('fluc_dic', dict())
