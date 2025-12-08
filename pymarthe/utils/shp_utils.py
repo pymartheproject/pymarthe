@@ -4,13 +4,16 @@ Contains geospatial export utils
 (not much dependencies required)
 
 """
-import sys 
+import os
+import sys
+import shutil
+import json
+
 import numpy as np
 import pandas as pd
-import shutil
 import shapefile
 
-srefhttp = "https://spatialreference.org"
+SREFHTTP = "https://spatialreference.org"
 PYSHP_TYPES = {'Null':0, 'Point':1, 'LineString':3, 'Polygon':5}
 
 
@@ -617,7 +620,7 @@ class CRS:
         )
         urls = []
         for cat in epsg_categories:
-            url = f"{srefhttp}/ref/{cat}/{epsg}/{text}/"
+            url = f"{SREFHTTP}/ref/{cat}/{epsg}/{text}/"
             urls.append(url)
             result = get_url_text(url)
             if result is not None:
@@ -660,28 +663,26 @@ class EpsgReference:
     """
 
     def __init__(self):
-        import os
-        try:
-            from appdirs import user_data_dir
-        except ImportError:
-            user_data_dir = None
-        if user_data_dir:
-            datadir = user_data_dir("pymarthe")
-        else:
-            # if appdirs is not installed, use user's home directory
+
+        from appdirs import user_data_dir
+        # Get the standard data directory for pymarthe
+        datadir = user_data_dir("pymarthe")
+
+        # Fallback: if datadir doesn't exist or is not writable, use home directory
+        if not os.path.isdir(datadir) or not os.access(datadir, os.W_OK):
             datadir = os.path.join(os.path.expanduser("~"), ".pymarthe")
-        if not os.path.isdir(datadir):
-            os.makedirs(datadir)
+
+        # Ensure the directory exists
+        os.makedirs(datadir, exist_ok=True)
+
+        # Define the JSON database file path
         dbname = "epsgref.json"
         self.location = os.path.join(datadir, dbname)
-
 
     def to_dict(self):
         """
         returns dict with EPSG code integer key, and WKT CRS text
         """
-        import os
-        import json
         data = {}
         
         if os.path.exists(self.location):
@@ -696,7 +697,6 @@ class EpsgReference:
         return data
 
     def _write(self, data):
-        import json
         with open(self.location, "w") as f:
             json.dump(data, f, indent=0)
             f.write("\n")

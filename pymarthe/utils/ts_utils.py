@@ -4,12 +4,6 @@ Contains some usefull tools to manage TimeSeries data.
 
 """
 
-import os
-import numpy as np
-import pandas as pd
-
-
-
 def interpolate(ts, dates_out, method = 'index', **kwargs):
     """
     -----------

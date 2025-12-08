@@ -5,11 +5,9 @@ Handle single Marthe grid
 
 import numpy as np
 import pandas as pd
-import re
 from matplotlib.path import Path
 
-from . import shp_utils, marthe_utils
-
+from .shp_utils import get_parts
 
 
 class MartheGrid():
@@ -194,7 +192,8 @@ class MartheGrid():
             xcc = np.r_[ self.xcc[0] - (dx[1] + dx[0])/2, self.xcc, self.xcc[-1] + (dx[-2] + dx[-1])/2]
             ycc = np.r_[ self.ycc[0] + (dy[1] + dy[0])/2, self.ycc, self.ycc[-1] - (dy[-2] + dy[-1])/2] # reversed direction
             xl, yl = xcc.min() - (dx[0]/2), ycc.min() - (dy[0]/2)
-            array = marthe_utils.bordered_array(self.array, 0) # set bordered array with value 0
+            from .marthe_utils import bordered_array
+            array = bordered_array(self.array, 0) # set bordered array with value 0
             nrow, ncol = array.shape
 
         # ---- Manage nested grid number as str 
@@ -283,7 +282,7 @@ class MartheGrid():
         parts = mg.to_pyshp()
         """
         # ---- Get grid polygons
-        pyshp_parts = shp_utils.get_parts(self.xcc, self.ycc, self.dx, self.dy)
+        pyshp_parts = get_parts(self.xcc, self.ycc, self.dx, self.dy)
         # ---- Return polygons as list
         return pyshp_parts
 

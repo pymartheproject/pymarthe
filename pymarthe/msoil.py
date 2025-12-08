@@ -3,17 +3,14 @@ Contains the MartheSoil class
 Designed for Marthe model soil properties management.
 """
 
+import re
 
-import os, sys
 import numpy as np
 import pandas as pd
-import re
-from copy import deepcopy
 
-from pymarthe.mfield import MartheField
+from .mfield import MartheField
 from .utils import marthe_utils, pest_utils
-
-encoding = 'latin-1'
+from .utils.formatters import ENCODING
 
 
 class MartheSoil():
@@ -69,15 +66,12 @@ class MartheSoil():
         # ---- Set property style
         self._proptype = 'list'
 
-
-
     @property
     def soilprops(self):
         """
         Get array of unique soil property names
         """
         return self.data['soilprop'].unique()
-
 
     @property
     def zones(self):
@@ -86,14 +80,12 @@ class MartheSoil():
         """
         return self.data['zone'].unique()
 
-
     @property
     def nsoilprop(self):
         """
         Get number of defined soil properties
         """
         return len(self.soilprops)
-    
 
     @property
     def nzone(self):
@@ -101,8 +93,6 @@ class MartheSoil():
         Get number of defined zone ids
         """
         return len(self.zones)
-
-
 
     def get_data(self, soilprop=None, istep = None, zone=None, force=False, as_style = 'list-like', **kwargs):
         """
@@ -197,9 +187,6 @@ class MartheSoil():
             rec = df.replace({'value': repl_dic}).to_records(index=False)
             return rec
 
-
-
-
     def sample(self, soilprop, x, y, istep=0):
         """
         Get soil property at specific xy-location.
@@ -240,8 +227,6 @@ class MartheSoil():
         # ---- Return recarray
         return rec
 
-
-
     def plot(self, soilprop, istep=0, **kwargs):
         """
         Plot soil property.
@@ -281,8 +266,6 @@ class MartheSoil():
         ax = mf.plot(**kwargs)
         return ax
 
-
-
     def to_shapefile(self, soilprop, filename, istep=0, **kwargs):
         """
         Export soil property to shapefile
@@ -318,8 +301,6 @@ class MartheSoil():
         mf = MartheField(f'{soilprop}_{istep}', rec, self.mm)
         mf.to_shapefile(filename= filename, **kwargs)
 
-
-
     def set_data_from_parfile(self, parfile, keys, value_col, btrans, fmt_lite):
         """
         """
@@ -342,9 +323,6 @@ class MartheSoil():
         data = df.reset_index(drop=True)
         # -- Set data inplace
         self.data = data
-
-
-
 
     def set_data(self, soilprop, value, istep=None, zone=None):
         """
@@ -384,10 +362,6 @@ class MartheSoil():
         # ---- Set provided value inplace
         self.data.loc[mask,'value'] = value
 
-
-
-
-
     def write_data(self, filename=None):
         """
         Write soil current soil property data.
@@ -420,7 +394,7 @@ class MartheSoil():
         # ---- Write data in .pastp file
         if 'pastp' in self.mode:
             # ---- Fetch .pastp file content by lines
-            with open(self.pastpfile, 'r', encoding=encoding) as f:
+            with open(self.pastpfile, 'r', encoding=ENCODING) as f:
                 pastp_content = f.read()
             # ---- Extract indices when a new time tsep begin
             idx = [m.start(0) for m in re.finditer(from_istep, pastp_content)]
@@ -451,7 +425,7 @@ class MartheSoil():
                     pastp_content = until_istep + new_from_istep
             # ---- Write new content
             out = self.pastpfile if filename is None else filename
-            with open(out, 'w', encoding=encoding) as f:
+            with open(out, 'w', encoding=ENCODING) as f:
                 f.write(pastp_content)
 
 
@@ -459,7 +433,7 @@ class MartheSoil():
         elif 'mart' in self.mode:
 
             # ---- Fetch actual .mart file content as text
-            with open(self.martfile, 'r', encoding=encoding) as f:
+            with open(self.martfile, 'r', encoding=ENCODING) as f:
                 mart_content = f.read()
             # ---- Iterate over each soil DataFrame line
             for d in self.data.itertuples():
@@ -478,14 +452,11 @@ class MartheSoil():
                 mart_content=re.sub(pattern, rf"\1V={d.value:>10.4E};",mart_content)
             # ---- Write new content
             out = self.martfile if filename is None else filename
-            with open(out, 'w', encoding=encoding) as f:
+            with open(out, 'w', encoding=ENCODING) as f:
                 f.write(mart_content)
-
-
 
     def __str__(self):
         """
         Internal string method.
         """
         return 'MartheSoil'
-

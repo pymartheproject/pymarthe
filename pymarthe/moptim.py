@@ -4,34 +4,26 @@ Contains the MartheOptim class
 Designed for structured grid
 """
 
-import os, sys
-import numpy as np
-import pandas as pd 
-import pyemu
+import os
 import warnings
 from datetime import datetime
 
-from pymarthe.marthe import MartheModel
-from pymarthe.mobs import MartheObs
-from pymarthe.mparam import MartheListParam, MartheGridParam
-from .utils import marthe_utils, pest_utils
+import pandas as pd 
+import pyemu
 
+from .marthe import MartheModel
+from .mobs import MartheObs
+from .mobs import BASE_OBS
+from .mparam import MartheListParam, MartheGridParam
+from .utils import marthe_utils, pest_utils
+from .utils.formatters import ENCODING
 
 # ---- Set no data customs values
 NO_DATA_VALUES = [-9999.,-8888.]
 
-
-base_obs = ['obsnme', 'date', 'obsval',
-            'datatype', 'locnme', 'obsfile',
-            'weight', 'obgnme', 'trans' ]
-
-base_param = ['parnme', 'trans', 'btrans', 'parchglim',
+BASE_PARAM = ['parnme', 'trans', 'btrans', 'parchglim',
               'defaultvalue', 'parlbnd', 'parubnd',
               'pargp', 'scale', 'offset', 'dercom']
-
-
-# ---- Set encoding 
-encoding = 'latin-1'
 
 
 class MartheOptim():
@@ -113,7 +105,7 @@ class MartheOptim():
         if len(self.obs) > 0:
             return pd.concat([mo.get_obs_df(transformed)for mo in self.obs.values()])
         else:
-            return pd.DataFrame(columns = base_obs)
+            return pd.DataFrame(columns = BASE_OBS)
 
 
 
@@ -139,7 +131,7 @@ class MartheOptim():
         if len(self.param) > 0:
             return pd.concat([mp.get_param_df(transformed) for mp in self.param.values()])
         else:
-            return pd.DataFrame(columns = base_param)
+            return pd.DataFrame(columns = BASE_PARAM)
 
 
 
@@ -1037,7 +1029,7 @@ class MartheOptim():
         headers.append('***')
 
         # -- Write config file
-        with open(configfile, 'w', encoding=encoding) as f:
+        with open(configfile, 'w', encoding=ENCODING) as f:
             # -- write headers
             f.write(title)
             f.write('\n'*2)
@@ -1238,11 +1230,7 @@ class MartheOptim():
             err_msg = 'ERROR: all extra functions must be callable objects.'
             assert all(callable(obj) for obj in ext_func), err_msg
             if len(ext_func) > 0:
-                # -- Try to import inspect module
-                try:
-                    import inspect
-                except:
-                    raise ImportError('Could not import `inspect` python module.')
+                import inspect
                 # -- Extrac function
                 for i, func in enumerate(ext_func):
                     # -- Assert that item is a function

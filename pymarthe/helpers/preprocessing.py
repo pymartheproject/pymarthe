@@ -2,17 +2,14 @@
 Contains some helper functions for Marthe model preprocessing
 
 """
+import os
+import shutil
 
-import os, sys
-import re
 import numpy as np
 import pandas as pd
-from copy import deepcopy
-from pymarthe import MartheModel
-from pymarthe.utils import *
 
-
-
+from ..utils import pest_utils
+from ..utils import import_utils
 
 def spatial_aggregation(mm, x, y, layer, value, agg = 'sum', trans ='none', only_active = True, base=0):
     """
@@ -141,16 +138,11 @@ def extract_model_geology(mm, shpout, epsg=2154, on_grid=False):
     extract_model_geology(mm, 'Lambert_3_model_geol.shp', epsg=27572, on_grid=True)
 
     """
-    # ---- Import all additional required python modules
-    try:
-        import requests, shutil
-        from shapely.geometry import Polygon
-        import geopandas as gpd
-    except:
-        pcks = ['requests','shutil','shapely','geopandas']
-        err_msg = 'Could not import all the required python module(s):\n\t- '
-        err_msg += '\n\t- '.join(pcks)
-        ImportError(err_msg)
+    # ---- Import all additional required python packages
+    requests = import_utils.import_package("requests")
+    shapely_geom = import_utils.import_package("shapely.geometry", pip_name="shapely")
+    Polygon = shapely_geom.Polygon
+    gpd = import_utils.import_package("geopandas")
 
     # ---- Query BDCharm50 data base online
     print('Query BRGM `BDCharm50` data base online ...')
@@ -234,17 +226,13 @@ def extract_Hubeau_stations(mm, epsg, only_active=True):
     stations = extract_Hubeau_stations(mm, epsg=2154)
 
     """
-    # ---- Import all additional required python modules
-    try:
-        from pyproj import Transformer
-        import requests
-        from shapely.geometry import Polygon
-        import geopandas as gpd
-    except:
-        pcks = ['pyproj', 'requests', 'shapely','geopandas']
-        err_msg = 'Could not import all the required python module(s):\n\t- '
-        err_msg += '\n\t- '.join(pcks)
-        ImportError(err_msg)
+    # ---- Import all additional required python packages
+    pyproj = import_utils.import_package("pyproj")
+    requests = import_utils.import_package("requests")
+    shapely_geom = import_utils.import_package("shapely.geometry", pip_name="shapely")
+    Polygon = shapely_geom.Polygon
+    gpd = import_utils.import_package("geopandas")
+    Transformer = pyproj.Transformer
 
     # ---- Build modelgrid if required
     if mm.modelgrid is None:
@@ -323,12 +311,8 @@ def extract_Hubeau_head_records(code_bss, start_date, end_date):
 
     """
     # ---- Import additional required python module
-    try:
-        import requests
-    except:
-        err_msg = 'Could not import `requests` python module.'
-        ImportError(err_msg)
-        
+    requests = import_utils.import_package("requests")  # requests is a module
+
     # ---- Build Hubeau url
     url_root = "https://hubeau.eaufrance.fr/api/v1/niveaux_nappes/chroniques?"
     url_code = "code_bss=" + code_bss.replace("/","%2F")
