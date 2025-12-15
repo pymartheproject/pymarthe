@@ -133,8 +133,11 @@ class MartheModel():
         if isinstance(spatial_index, str):
             spatial_index = self._check_si_input(spatial_index)
             self.si_state = 1       # activate spatial index
-            self.spatial_index = rtree.Index(spatial_index)
-            self.sifile = spatial_index
+            try:
+                self.spatial_index = rtree.Index(spatial_index)
+            except rtree.exceptions.RTreeError:
+                warnings.warn(f"Spatial index files {os.path.basename(spatial_index)}.idx/dat may be corrupted. Rebuilding...")
+                self.build_spatial_index()
 
         # From custom dictionary
         elif isinstance(spatial_index, dict):
