@@ -9,6 +9,8 @@ import warnings
 import subprocess as sp
 from shutil import which
 from copy import deepcopy
+
+import pyemu.utils.helpers
 import rtree
 
 # import queue
@@ -125,9 +127,6 @@ class MartheModel():
         # ---- Load geometry
         self.geometry = {g: None for g in ['sepon', 'topog', 'hsubs']}
 
-        # ---- Set spatial reference (used for compatibility with pyemu geostat utils)
-        self.spatial_reference = SpatialReference(self)
-
         # ---- Manage spatial index instance
         # From existing external file
         if isinstance(spatial_index, str):
@@ -158,6 +157,9 @@ class MartheModel():
             self.build_modelgrid()
         else:
             self.modelgrid = None
+
+        # ---- Private attribute handled in spatial_reference property attribute
+        self._sr = None
 
     def __iter__(self, only_active=False):
 
@@ -244,6 +246,23 @@ class MartheModel():
                     marthe_utils.progress_bar((node + 1) / nnodes)
                     # -- Incrementation of unique cell id
                     node += 1
+
+    @property
+    def spatial_reference(self):
+        """
+        Deprecated. Use `get_pyemu_spatial_reference()` instead.
+        """
+        warnings.warn(
+            "`spatial_reference` is deprecated and will be removed in a future "
+            "version. Use `get_pyemu_spatial_reference()` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        if self._sr is None:
+            self._sr = SpatialReference(self)
+
+        return self._sr
 
     def build_spatial_index(self, name=None, only_active=False):
         """
@@ -1622,14 +1641,65 @@ class MartheModel():
 
         """
         # ---- Wrapper to utils
+        # TODO : value of the pastpfile argument looks bad.. (self.mm[...])
         marthe_utils.hydrodyn_periodicity(pastpfile= self.mm.mlfiles['pastp'],
                                           istep= istep,
                                           external= external,
                                           new_pastpfile= new_pastpfile)
-    @staticmethod
-    def _check_si_input( spatial_index: str) -> str:
+
+    def get_pyemu_spatial_reference(self, **kwargs) -> pyemu.SpatialReference:
         """
-        Removes '.dat' or '.idx' if provde by the user.
+        Instantiate a pyemu SpatialReference object using Marthe grid geometry.
+
+        Notes
+        -----
+        The parameters `delr`, `delc`, `xll`, and `yll` are always inferred from
+        the Marthe model grid (layer 0). If provided by the user, they will be
+        ignored and a warning will be issued.
+
+        Parameters
+        ----------
+        **kwargs :
+            Additional keyword arguments passed to
+            pyemu.utils.helpers.SpatialReference.
+
+        Returns
+        -------
+        pyemu.SpatialReference
+        """
+        # -- Get Marthe grid (layer 0)
+        mg = self.imask.to_grids(layer=0)[0]
+
+        # -- Grid-derived values (authoritative)
+        grid_params = {
+            "delr": mg.dx,
+            "delc": mg.dy,
+            "xll": mg.xl,
+            "yll": mg.yl,
+        }
+
+        # -- Check for user-provided forbidden overrides
+        forbidden = set(grid_params) & set(kwargs)
+        if forbidden:
+            warnings.warn(
+                "The following SpatialReference parameters are inferred from a default "
+                f"MartheGrid instance and will be ignored: {', '.join(sorted(forbidden))}",
+                UserWarning,
+                stacklevel=2,
+            )
+            # Remove them from kwargs
+            for key in forbidden:
+                kwargs.pop(key)
+
+        # -- Merge parameters
+        params = {**grid_params, **kwargs}
+
+        return pyemu.utils.helpers.SpatialReference(**params)
+
+    @staticmethod
+    def _check_si_input(spatial_index: str) -> str:
+        """
+        Removes '.dat' or '.idx' if provide by the user.
         Intent to capture a FileNotFoundError if index files are not found.
 
         Parameters
@@ -1682,6 +1752,12 @@ class SpatialReference():
         ----------
         mm : instance of MartheModel
         """
+        warnings.warn(
+            "`SpatialReference` is deprecated and will be removed in a future "
+            "version. Use `MartheModel.get_pyemu_spatial_reference()` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         mg = mm.imask.to_grids(layer=0, inest=0)[0]
         self.nrow, self.ncol = mg.nrow, mg.ncol
 
