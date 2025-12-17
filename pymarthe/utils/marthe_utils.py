@@ -730,13 +730,18 @@ def get_units_dic(martfile):
         content = f.read()
 
     # ---- Set block regex
-    re_block = r'Unités des données\s*\*{3}\n(.*?)\*{3}'
+    re_block = r'(?i)\*{3,}\s*(?:Unités des données|Data units).*?\*{3,}\n(.*?)\*{3,}'
 
     # ---- Extract string block in .mart file
-    block = re.findall(re_block, content, re.DOTALL)[0]
+    matches = re.findall(re_block, content, re.DOTALL)
+
+    # ---- If no match is found, stop the program immediately
+    if not matches:
+        raise ValueError(f"Could not find unit block in {martfile}. Check block headers.")
+    
+    block = matches[0]
 
     # ---- Build unit dictionary (add try loop to avoid errors)
-
     units_dic = {}
     for unit_name, line in zip(unit_names, block.splitlines()):
         # -- Get value as string
