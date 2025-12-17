@@ -213,7 +213,7 @@ def has_soilprop(text):
     else:
         print('This string does not contain soil data')
     """
-    res = True if '/ZONE_SOL' in text else False
+    res = True if '/ZONE_SOL' in text or '/SOIL_ZONE' in text else False
     return res
 
 
@@ -253,7 +253,7 @@ def extract_soildf(text, istep=None):
     """
     # -- Set useful regex to identify soil data contain by line
     re_num = r"[-+]?\d*\.?\d+|\d+"
-    re_prop = r"\s*\/(.+)\/ZONE_SOL\s*Z=\s*({0})V=\s*(.+);".format(re_num)
+    re_prop = r"\s*\/(.+)\/(?:ZONE_SOL|SOIL_ZONE)\s*Z=\s*({0})V=\s*(.+);".format(re_num)
     # -- Define data type
     dt_dic = {c:dt for c,dt
                in zip(['soilprop', 'zone', 'value'],
