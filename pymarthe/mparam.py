@@ -758,6 +758,7 @@ class MartheGridParam():
             ppx, ppy = np.column_stack(coords)
             dv = self.get_dv_from_xy(ppx, ppy, layer)
             # -- Check default value(s) validity
+            # TODO add the reason that a pp could be set on grid line (actually located in 0 cells ..)
             if len(dv) != len(coords):
                 msg = "WARNINGS : could not extract field data properly at pilot points coordinates. " \
                       f" for `layer`={layer} and `zone`={zone}. The reason can be the:\n" \
