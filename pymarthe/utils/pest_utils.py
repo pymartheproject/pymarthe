@@ -219,8 +219,6 @@ def transform(it, trans, fail = 'raise'):
             return res
 
 
-
-
 def is_valid_trans(trans):
     """
     """
@@ -233,9 +231,7 @@ def is_valid_trans(trans):
         return False
 
 
-
-
-def check_trans(trans, btrans=None, test_on =None):
+def check_trans(trans, btrans='none', test_on =None):
     """
     """
     err_trans = 'ERROR: Invalid transformation. Must be a pandas ' \
@@ -245,15 +241,14 @@ def check_trans(trans, btrans=None, test_on =None):
     err_test = 'ERROR: transformation and back-transformation not compatibles -> ' \
                 f'btrans(trans(value)) != value. Given trans= {trans}, btrans= {btrans}'
 
-    assert is_valid_trans(trans), err_trans + f'Given: {trans}.'
+    if not is_valid_trans(trans):
+        raise ValueError(err_trans)
 
-    if btrans is not None:
+    if btrans != 'none':
         assert is_valid_trans(btrans), err_trans + f'Given: {btrans}.'
         it = pd.Series(np.arange(5)) if test_on is None else pd.Series(test_on)
         test = transform(transform(it, trans), btrans)
         assert all(np.isclose(it.values, test.values)), err_test
-
-
 
 
 def read_config(configfile):
