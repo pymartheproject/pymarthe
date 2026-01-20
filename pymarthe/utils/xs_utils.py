@@ -353,7 +353,7 @@ class CrossSection():
             .apply(
                 lambda g: [Point(p.x, p.y) for p in g.geoms]
                 if isinstance(g, MultiPoint)
-                else np.NaN
+                else np.nan
                 )
             .dropna()
             # -- Expand series of list of points to flat points series
