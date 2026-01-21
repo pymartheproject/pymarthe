@@ -759,8 +759,9 @@ class MartheGridParam():
             dv = self.get_dv_from_xy(ppx, ppy, layer)
             # -- Check default value(s) validity
             if len(dv) != len(coords):
-                msg = "WARNINGS : could not extract field data properly at pilot points coordinates. " \
-                      f" for `layer`={layer} and `zone`={zone}. The reason can be the:\n" \
+                msg = "WARNING: could not extract field data at pilot point coordinates. "\
+                     f"for `layer`={layer} and `zone`={zone}. Possible reason:\n"\
+                      "\t- Pilot points are located exactly on grid edges.\n"\
                       "\t- Absence of spatial index in main model\n" \
                       "\t- Bad spatial index files creation\n" \
                       "\t- Presence of corrupted spatial index files\n" \
