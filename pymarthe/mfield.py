@@ -734,6 +734,7 @@ class MartheField():
         # ---- Sum up export
         print("\n ---> Shapefile wrote in {} succesfully.".format(filename))
 
+    #TODO améliorer en ajoutant du control sur label et colorbar
     def plot(self,  ax=None, layer=0, inest=None, vmin=None,
                     vmax=None, log = False, extent = None,
                     masked_values = "default", basemap=False, rc_font=False, **kwargs):
