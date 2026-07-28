@@ -1342,7 +1342,7 @@ class MartheOptim():
 
     def build_pst(self, add_reg0= False, write_pst= False,
                         write_config=False, write_fr=False,
-                        model_command=None, fmt_lite=False, **kwargs):
+                        model_command=None,**kwargs):
         """
         Generate Pest Control File from the current observation
         and parameters sets added to MartheOptim instance.
@@ -1383,9 +1383,6 @@ class MartheOptim():
                                              If None and `write_fr` == False, the default command
                                              will be 'model.bat' (no changes from pyemu).
                                              Default is None.
-        
-        fmt_lite (bool, optional) : use a lighter format for parameter names.
-                                    allow the use of PEST_HP (<12 char)
 
         **kwargs, additional internal arguments that refer to the pyemu.Pst:
                 - `control_data` section:
@@ -1437,12 +1434,12 @@ class MartheOptim():
             fr_file = os.path.join(self.mm.mldir, 'forward_run.py')
             if write_config == False:
                 warnings.warn(msg)
-            self.write_forward_run(fr_file, configfile, fmt_lite=fmt_lite)
+            self.write_forward_run(fr_file, configfile, )
         elif isinstance(write_fr, str):
             if write_config == False:
                 warnings.warn(msg)
             fr_file = write_fr
-            self.write_forward_run(fr_file, configfile, fmt_lite=fmt_lite)
+            self.write_forward_run(fr_file, configfile, )
         elif write_fr == False:
             fr_file = None
 
