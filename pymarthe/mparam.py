@@ -6,7 +6,6 @@ layered parameterization
 
 """
 import os
-import re
 import warnings
 
 import numpy as np
@@ -1084,6 +1083,40 @@ class MartheGridParam():
         # ---- Return parameter DataFrame
         return par_df
 
+    def _expected_parfiles(self, ext='.dat'):
+        """
+        Build the list of parameter files written by the .write_parfile() method.
+
+        Parameters
+        ----------
+        ext (str, optional) : extension of the required files.
+                              Default is '.dat'.
+
+        Returns
+        -------
+        parfiles (list) : paths to the parameter files.
+
+        Examples
+        --------
+        parfiles = mgp._expected_parfiles()
+
+        """
+        parfiles = []
+        # ---- Zone of piecewise constancy (a single file gathers all layers/zones)
+        if not self.zpc_df.empty:
+            parfiles.append(os.path.join(self.parpath, f'{self.parname}_zpc{ext}'))
+        # ---- Pilot points (1 file per layer and zone)
+        for ilay, pp_df in self.pp_dic.items():
+            for zone in sorted(pp_df.zone.unique()):
+                parfiles.append(
+                    os.path.join(
+                        self.parpath,
+                        input_file_fmt(self.parname, ilay, zone,
+                                       ext=ext, fmt_lite=self.fmt_lite)
+                        )
+                    )
+        return parfiles
+
     def to_config(self):
         """
         Return the essential informations of current set of parameters to be
@@ -1098,20 +1131,7 @@ class MartheGridParam():
         print(mgp.to_config())
         """
         # ---- Get all parameter file names
-
-        files = sorted(os.listdir(self.parpath))
-        if self.fmt_lite:
-            pattern_pp = re.compile(r"\d{2}z\d{2}p\.dat$")
-        else:
-            pattern_pp = re.compile(r"_l\d+_z\d+.dat$")
-
-        parfiles = [
-            os.path.join(self.parpath, f)
-            for f in files
-            if f.startswith(self.parname) and (
-                    ("zpc" in f and f.endswith(".dat")) or pattern_pp.search(f)
-            )
-        ]
+        parfiles = self._expected_parfiles()
 
         lines = ['[START_PARAM]']
         data = [

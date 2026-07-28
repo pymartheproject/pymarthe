@@ -80,8 +80,11 @@ def parse_mgp_parfile(parfile, btrans, fmt_lite=False):
     path, file = os.path.split(parfile)
     # ---- Set regex expression to parse layer and zone
     if fmt_lite:
-        re_zpc = r"zpc(\d{2})z(\d{2})"
-        re_pp = r"(\d{2})z(\d{2})p"
+        # Note: `re_zpc` is matched against the parameter names held in the file
+        # (ZPCFMT_LITE, 3-digit zone) when `re_pp` is matched against the file
+        # name itself (input_file_fmt, no pilot point id).
+        re_zpc = r"zpc(\d{2})z(\d{3})"
+        re_pp = r"(\d{2})z(\d{2})\.dat$"
     else:
         re_pp  = re_zpc =  r"_l(\d+)_z(\d+)"
     # ---- Manage parser according to parameter type
