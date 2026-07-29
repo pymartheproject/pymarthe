@@ -635,8 +635,9 @@ class MartheModel():
 
             # -- Set list-like properties
             if pdic['type'] == 'list':
-                # if not prop in mm.prop.keys():
-                mm.load_prop(prop)
+                # -- Load the property only once
+                if not prop in mm.prop.keys():
+                    mm.load_prop(prop)
                 mm.prop[prop].set_data_from_parfile(
                     parfile=os.path.normpath(
                         pdic['parfile']),

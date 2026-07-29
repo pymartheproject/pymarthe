@@ -307,15 +307,12 @@ class MartheSoil():
         # -- Get all data
         df = self.data.copy(deep=True)
 
-        # Cut soilprop name if fmt_lite is True
-        if fmt_lite:
-            df.soilprop = df.soilprop.str[:8]
-
         # -- Get parnames and bvalues from parfile
         parnames, bvalues = pest_utils.parse_mlp_parfile(parfile, btrans)
 
-        # Set parnames as index
-        df['index'] = df['soilprop'] + df['zone'].apply(lambda x: f"_{int(x):03d}")
+        # -- Rebuild parameter names as index regarding fmt_lite
+        sp = df['soilprop'].str[:8] if fmt_lite else df['soilprop']
+        df['index'] = sp + df['zone'].apply(lambda x: f"_{int(x):03d}")
         df.set_index('index',inplace=True)
 
         # -- Set values and back to single index
